@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <link rel="icon" href="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/2024-01-09-221639_orig.png" type="image/png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Моят Сайт</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    header {
+      background-color: #007acc;
+      color: white;
+      padding: 1em;
+      text-align: center;
+    }
+
+    nav {
+      background-color: #005f99;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 0.5em 0;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0.5em;
+      font-weight: bold;
+      font-size: 1em;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    section {
+      display: none;
+      padding: 1.5em;
+      margin: 1em auto;
+      max-width: 800px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    section.active {
+      display: block;
+    }
+
+    footer {
+      background-color: #007acc;
+      color: white;
+      text-align: center;
+      padding: 1em;
+      margin-top: 2em;
+    }
+
+    @media (max-width: 600px) {
+      nav a {
+        font-size: 1em;
+        margin: 0.3em 0.8em;
+      }
+
+      section {
+        padding: 1em;
+        margin: 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Добре дошли в нашия сайт!</h1>
+  </header>
+
+  <nav>
+    <a href="#" onclick="showPage('home')">Начало</a>
+    <a href="#" onclick="showPage('about')">За нас</a>
+    <a href="#" onclick="showPage('contact')">Контакт</a>
+  </nav>
+
+  <section id="home" class="active">
+    <h2>Начална страница</h2>
+    <p>Това е началната секция на сайта. Добре дошли!</p>
+  </section>
+
+  <section id="about">
+    <h2>За нас</h2>
+    <p>Ние сме екип, който обича природата и технологиите. Организираме туризъм, обучения и още!</p>
+  </section>
+
+  <section id="contact">
+    <h2>Контакти</h2>
+    <p>Имейл: <a href="mailto:test@example.com">test@example.com</a></p>
+    <p>Телефон: 0888 123 456</p>
+  </section>
+
+  <footer>
+    &copy; 2025 Моят Сайт
+  </footer>
+
+  <script>
+    function showPage(id) {
+      document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+  </script>
+
+</body>
+</html>
