@@ -1,0 +1,129 @@
+
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <title>Вход / Регистрация</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      background-color: #f4f7fa;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input[type=email], input[type=password] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background-color: #eef3ff;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .switch {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    .switch a {
+      color: #007bff;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .message {
+      text-align: center;
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 id="form-title">Админ Вход</h2>
+    <input type="email" id="email" placeholder="Имейл">
+    <input type="password" id="password" placeholder="Парола">
+    <button onclick="handleAction()" id="action-button">Вход</button>
+    <div class="switch">
+      <span id="toggle-text">Нямате профил? <a onclick="toggleMode()">Създайте акаунт</a></span>
+    </div>
+    <div class="message" id="message"></div>
+  </div>
+
+  <script>
+    const supabase = supabase.createClient(
+      "https://cmiylzpmpwqbacjoqtkx.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8"
+    );
+
+    let isLogin = true;
+
+    function toggleMode() {
+      isLogin = !isLogin;
+      document.getElementById("form-title").innerText = isLogin ? "Админ Вход" : "Регистрация";
+      document.getElementById("action-button").innerText = isLogin ? "Вход" : "Регистрация";
+      document.getElementById("toggle-text").innerHTML = isLogin 
+        ? 'Нямате профил? <a onclick="toggleMode()">Създайте акаунт</a>'
+        : 'Вече имате профил? <a onclick="toggleMode()">Вход</a>';
+      document.getElementById("message").innerText = "";
+    }
+
+    async function handleAction() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      if (isLogin) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          document.getElementById("message").innerText = "Грешен имейл или парола.";
+        } else {
+          const userId = data.user.id;
+          const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).single();
+          if (profile?.role === "admin") {
+            window.location.href = "admin_dashboard.html";
+          } else {
+            window.location.href = "user_dashboard.html";
+          }
+        }
+      } else {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          document.getElementById("message").innerText = "Грешка при регистрация.";
+        } else {
+          await supabase.from("profiles").insert([{ id: data.user.id, role: "user" }]);
+          document.getElementById("message").innerText = "Регистрацията е успешна. Влезте в профила си.";
+          toggleMode();
+        }
+      }
+    }
+  </script>
+</body>
+</html>
