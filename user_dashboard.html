@@ -1,0 +1,35 @@
+
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <title>Потребителска страница</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const supabase = supabase.createClient(
+      "https://cmiylzpmpwqbacjoqtkx.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    );
+
+    async function checkUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return (window.location.href = "index.html");
+    }
+
+    async function signOut() {
+      await supabase.auth.signOut();
+      window.location.href = "index.html";
+    }
+
+    document.addEventListener("DOMContentLoaded", checkUser);
+  </script>
+</head>
+<body>
+  <h1>Добре дошъл, потребителю!</h1>
+  <button onclick="signOut()">Изход</button>
+  <ul>
+    <li>Чат</li>
+    <li>Потребители</li>
+  </ul>
+</body>
+</html>
