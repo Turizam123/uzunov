@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <title>Добре дошли в T-MAP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/jpeg" href="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo-edelvais2023love.jpg?1753986288">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+
+    h1 {
+      color: #2b8a8a;
+      font-size: 2em;
+    }
+
+    p {
+      font-size: 1.2em;
+      margin-bottom: 30px;
+    }
+
+    .button-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      background-color: #2b8a8a;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1em;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background-color: #217575;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Добре дошли в T-MAP</h1>
+  <p>Интерактивна туристическа карта на България</p>
+
+  <div class="button-container">
+    <a href="#" onclick="handleDashboardClick()" class="btn">📋 Моето табло</a>
+    <a href="tmap_view.html" class="btn">🗺️ Виж картата (T-MAP)</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const supabase = supabase.createClient(
+      'https://cmiylzpmpwqbacjoqtkx.supabase.co',
+      'YOUR_PUBLIC_ANON_KEY' // замени с реалния си ключ
+    );
+
+    async function handleDashboardClick() {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        window.location.href = 'login.html';
+      } else if (user.email === 'uzunov.angel@abv.bg') {
+        window.location.href = 'tmap_admin.html';
+      } else {
+        window.location.href = 'dashboard.html';
+      }
+    }
+  </script>
+
+</body>
+</html>
