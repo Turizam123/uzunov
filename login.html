@@ -90,6 +90,42 @@
         window.location.href = 'user_dashboard.html';
       }
     }
-  </script>
+  </script><script type="module">
+  document.addEventListener('DOMContentLoaded', async () => {
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      'https://cmiylzpmpwqbacjoqtkx.supabase.co',
+      'your-anon-key-here'
+    );
+
+    const loginForm = document.querySelector('form');
+    const emailInput = document.querySelector('#email');
+    const passwordInput = document.querySelector('#password');
+    const errorBox = document.querySelector('#error');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error || !data.user) {
+        errorBox.innerText = "Невалиден имейл или парола.";
+        return;
+      }
+
+      // Проверка дали е администратор по user.id
+      if (data.user.id === '59e62f07-5fab-443f-a0cb-efd988b44b8f') {
+        window.location.href = 'admin_dashboard.html';
+      } else {
+        window.location.href = 'user_dashboard.html';
+      }
+    });
+  });
+</script>
+
 </body>
 </html>
