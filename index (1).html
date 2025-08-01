@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Начало – T-MAP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f7f7f7;
+      text-align: center;
+    }
+    h1 {
+      color: #2b7a78;
+    }
+    nav {
+      margin-top: 2rem;
+    }
+    a {
+      display: inline-block;
+      margin: 0.5rem;
+      padding: 1rem 1.5rem;
+      background: #3aafa9;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: background 0.2s ease;
+    }
+    a:hover {
+      background: #2b7a78;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Добре дошли в T-MAP</h1>
+  <p>Интерактивна туристическа карта на България</p>
+
+  <nav>
+    <a href="dashboard.html">📋 Моето табло</a>
+    <a href="tmap_view.html">🗺 Виж картата (T-MAP)</a>
+    <a id="admin-link" href="tmap_admin.html" style="display:none;">⚙️ Добави обект (Админ)</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const supabase = supabase.createClient(
+      'https://cmiylzpmpwqbacjoqtkx.supabase.co',
+      'YOUR_PUBLIC_ANON_KEY' // ЗАМЕНИ с реалния си ключ
+    );
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email === 'uzunov.angel@abv.bg') {
+        document.getElementById('admin-link').style.display = 'inline-block';
+      }
+    });
+  </script>
+
+</body>
+</html>
