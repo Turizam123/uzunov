@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Админ – T-MAP</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    #map {
+      height: 60%;
+    }
+    form {
+      padding: 1rem;
+      background: #f2f2f2;
+    }
+    input, textarea {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px;
+    }
+    button {
+      padding: 10px 15px;
+      background: green;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .popup-img {
+      width: 100%;
+      max-width: 250px;
+      height: auto;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <form id="add-form">
+    <h3>Добави нов обект</h3>
+    <input type="text" id="title" placeholder="Име на обекта" required />
+    <textarea id="description" placeholder="Описание" rows="4" required></textarea>
+    <input type="file" id="image" accept="image/*" required />
+    <input type="text" id="latitude" placeholder="Ширина (автоматично)" readonly />
+    <input type="text" id="longitude" placeholder="Дължина (автоматично)" readonly />
+    <button type="submit">Запиши обекта</button>
+  </form>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const map = L.map('map').setView([42.7, 25.3], 7);
+    let tempMarker = null;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    const supabaseUrl = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
+    const supabaseKey = 'YOUR_PUBLIC_ANON_KEY';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    map.on('click', function(e) {
+      const lat = e.latlng.lat.toFixed(6);
+      const lng = e.latlng.lng.toFixed(6);
+
+      document.getElementById('latitude').value = lat;
+      document.getElementById('longitude').value = lng;
+
+      if (tempMarker) map.removeLayer(tempMarker);
+      tempMarker = L.marker([lat, lng]).addTo(map);
+    });
+
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
+      const adminEmail = "admin@example.com";
+      if (error || !user || user.email !== adminEmail) {
+        alert("Нямате достъп до тази страница.");
+        window.location.href = "tmap_view.html";
+      }
+    });
+
+    document.getElementById('add-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const title = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const imageFile = document.getElementById('image').files[0];
+      const lat = parseFloat(document.getElementById('latitude').value);
+      const lng = parseFloat(document.getElementById('longitude').value);
+
+      if (!imageFile) {
+        alert('Моля качете снимка.');
+        return;
+      }
+
+      const fileName = `${Date.now()}_${imageFile.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(fileName, imageFile);
+
+      if (uploadError) {
+        alert('Грешка при качване на снимката');
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage.from('images').getPublicUrl(fileName);
+      const imageUrl = publicUrlData.publicUrl;
+
+      const { error: insertError } = await supabase.from('objects').insert([{
+        title,
+        description,
+        image_url: imageUrl,
+        latitude: lat,
+        longitude: lng
+      }]);
+
+      if (insertError) {
+        alert('Грешка при запис в базата');
+      } else {
+        alert('Обектът е успешно добавен!');
+        location.reload();
+      }
+    });
+  </script>
+
+</body>
+</html>
