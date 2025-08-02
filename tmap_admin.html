@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <title>Административен панел</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background-color: #eee; }
+    .status { font-weight: bold; }
+    button { margin: 2px; padding: 6px 12px; }
+  </style>
+</head>
+<body>
+  <h1>Администраторски панел</h1>
+  <input type="text" id="searchInput" placeholder="Търси по име или планина" oninput="filterRows()"/>
+
+  <table id="requestsTable">
+    <thead>
+      <tr>
+        <th>Заглавие</th>
+        <th>Описание</th>
+        <th>Координати</th>
+        <th>Планина</th>
+        <th>Снимка</th>
+        <th>Действия</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://cmiylzpmpwqbacjoqtkx.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8'
+    );
+
+    async function loadPendingRequests() {
+      const { data, error } = await supabase.from("pending_places").select("*").order("created_at", { ascending: false });
+      if (error) return console.error("Грешка при зареждане:", error);
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+      data.forEach(place => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${place.title}</td>
+          <td>${place.description}</td>
+          <td>${place.latitude}, ${place.longitude}</td>
+          <td>${place.mountain}</td>
+          <td><img src="${place.image_url}" width="80"/></td>
+          <td>
+            <button onclick="editPlace(${place.id})">Редактирай</button>
+            <button onclick="approvePlace(${place.id}, this.closest('tr'))">Одобри</button>
+            <button onclick="rejectPlace(${place.id}, this.closest('tr'))">Отхвърли</button>
+          </td>
+          <td class="status">—</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function approvePlace(id, rowElement) {
+      try {
+        const { data: place, error: fetchError } = await supabase
+          .from('pending_places')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (fetchError || !place) {
+          rowElement.querySelector('.status').innerText = 'Грешка при зареждане';
+          return;
+        }
+
+        const { error: insertError } = await supabase
+          .from('objects')
+          .insert([{
+            title: place.title,
+            description: place.description,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            image_url: place.image_url,
+            mountain: place.mountain,
+            created_at: new Date().toISOString()
+          }]);
+
+        if (insertError) {
+          rowElement.querySelector('.status').innerText = 'Грешка при запис';
+          rowElement.querySelector('.status').style.color = 'red';
+          return;
+        }
+
+        const { error: deleteError } = await supabase
+          .from('pending_places')
+          .delete()
+          .eq('id', id);
+
+        if (deleteError) {
+          rowElement.querySelector('.status').innerText = 'Грешка при премахване';
+          rowElement.querySelector('.status').style.color = 'orange';
+          return;
+        }
+
+        rowElement.querySelector('.status').innerText = '✅ Добавено успешно';
+        rowElement.querySelector('.status').style.color = 'green';
+        setTimeout(() => rowElement.remove(), 2000);
+
+      } catch (err) {
+        rowElement.querySelector('.status').innerText = '⚠ Неочаквана грешка';
+        rowElement.querySelector('.status').style.color = 'red';
+      }
+    }
+
+    async function rejectPlace(id, rowElement) {
+      const { error } = await supabase.from("pending_places").delete().eq("id", id);
+      const statusCell = rowElement.querySelector(".status");
+      if (error) {
+        statusCell.innerText = "Грешка при отхвърляне";
+        statusCell.style.color = "red";
+      } else {
+        statusCell.innerText = "Заявката е отхвърлена";
+        statusCell.style.color = "gray";
+        setTimeout(() => rowElement.remove(), 2000);
+      }
+    }
+
+    function editPlace(id) {
+      alert("Редактирането ще бъде добавено скоро.");
+    }
+
+    function filterRows() {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      const rows = document.querySelectorAll("#tableBody tr");
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(input) ? "" : "none";
+      });
+    }
+
+    loadPendingRequests();
+  </script>
+</body>
+</html>
