@@ -6,6 +6,52 @@
   <title>Административен панел</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+    h1 { color: #1d5c4d; }
+    input[type="text"] {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 15px;
+      width: 300px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: #1d5c4d;
+      color: white;
+    }
+    td img {
+      border-radius: 6px;
+      max-width: 100px;
+    }
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    button:nth-child(1) { background-color: #ffc107; color: black; }  /* Редактирай */
+    button:nth-child(2) { background-color: #28a745; color: white; }  /* Одобри */
+    button:nth-child(3) { background-color: #dc3545; color: white; }  /* Отхвърли */
+    .status { font-weight: bold; }
+
     body { font-family: Arial, sans-serif; margin: 20px; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
@@ -15,7 +61,16 @@
   </style>
 </head>
 <body>
+
+<audio id="notificationSound">
+  <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
+  Вашият браузър не поддържа аудио.
+</audio>
+
   <h1>Администраторски панел</h1>
+  
+<div id="globalStatus" style="display:none; padding: 12px; font-weight: bold; text-align: center; border-radius: 8px; margin-bottom: 15px;"></div>
+
   <input type="text" id="searchInput" placeholder="Търси по име или планина" oninput="filterRows()"/>
 
   <table id="requestsTable">
@@ -63,33 +118,40 @@
       });
     }
 
+    
     async function approvePlace(id, rowElement) {
       try {
-        const { data: place, error: fetchError } = await supabase
+        const { data: placeData, error: fetchError } = await supabase
           .from('pending_places')
           .select('*')
           .eq('id', id)
           .single();
 
-        if (fetchError || !place) {
+        if (fetchError || !placeData) {
           rowElement.querySelector('.status').innerText = 'Грешка при зареждане';
           return;
         }
 
+        const newObject = {
+          title: placeData.title,
+          description: placeData.description,
+          latitude: parseFloat(placeData.latitude),
+          longitude: parseFloat(placeData.longitude),
+          image_url: placeData.image_url,
+          mountain: placeData.mountain,
+          created_at: new Date().toISOString()
+        };
+
+        console.log("📤 Данни за запис:", newObject);
+
         const { error: insertError } = await supabase
           .from('objects')
-          .insert([{
-            title: place.title,
-            description: place.description,
-            latitude: place.latitude,
-            longitude: place.longitude,
-            image_url: place.image_url,
-            mountain: place.mountain,
-            created_at: new Date().toISOString()
-          }]);
+          .insert([newObject]);
 
         if (insertError) {
-          rowElement.querySelector('.status').innerText = 'Грешка при запис';
+          console.error("❌ Грешка при insert:", insertError);
+          rowElement.querySelector('.status').innerText = 'Грешка при запис: ' + insertError.message;
+        showGlobalStatus('❌ Грешка при запис: ' + insertError.message, 'red');
           rowElement.querySelector('.status').style.color = 'red';
           return;
         }
@@ -101,19 +163,23 @@
 
         if (deleteError) {
           rowElement.querySelector('.status').innerText = 'Грешка при премахване';
+        showGlobalStatus('⚠️ Неуспешно премахване от заявките.', 'red');
           rowElement.querySelector('.status').style.color = 'orange';
           return;
         }
 
         rowElement.querySelector('.status').innerText = '✅ Добавено успешно';
+        showGlobalStatus('Обектът е успешно добавен в картата.', 'green');
         rowElement.querySelector('.status').style.color = 'green';
         setTimeout(() => rowElement.remove(), 2000);
 
       } catch (err) {
+        console.error("⚠ Неочаквана грешка:", err);
         rowElement.querySelector('.status').innerText = '⚠ Неочаквана грешка';
         rowElement.querySelector('.status').style.color = 'red';
       }
     }
+
 
     async function rejectPlace(id, rowElement) {
       const { error } = await supabase.from("pending_places").delete().eq("id", id);
@@ -123,6 +189,7 @@
         statusCell.style.color = "red";
       } else {
         statusCell.innerText = "Заявката е отхвърлена";
+        showGlobalStatus('Заявката беше отхвърлена.', 'gray');
         statusCell.style.color = "gray";
         setTimeout(() => rowElement.remove(), 2000);
       }
@@ -131,6 +198,17 @@
     function editPlace(id) {
       alert("Редактирането ще бъде добавено скоро.");
     }
+
+    
+    function showGlobalStatus(message, color = "green") {
+      const statusBox = document.getElementById("globalStatus");
+      statusBox.innerText = message;
+      statusBox.style.backgroundColor = color === "green" ? "#d4edda" : "#f8d7da";
+      statusBox.style.color = color === "green" ? "#155724" : "#721c24";
+      statusBox.style.display = "block";
+      setTimeout(() => { statusBox.style.display = "none"; }, 4000);
+    }
+
 
     function filterRows() {
       const input = document.getElementById("searchInput").value.toLowerCase();
@@ -142,6 +220,108 @@
     }
 
     loadPendingRequests();
+
+let lastIds = [];
+
+async function checkForNewRequests() {
+  const { data, error } = await supabase.from("pending_places").select("id");
+  if (error || !data) return;
+
+  const newIds = data.map(p => p.id);
+  const newOnes = newIds.filter(id => !lastIds.includes(id));
+  if (newOnes.length > 0) {
+    document.getElementById("notificationSound").play();
+    loadPendingRequests(); // презареди таблицата
+  }
+  lastIds = newIds;
+}
+
+setInterval(checkForNewRequests, 15000);
+
   </script>
+
+  <!-- Popup редакция -->
+  <div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#00000066; z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:white; padding:20px; border-radius:10px; width:400px;">
+      <h3>Редактирай обекта</h3>
+      <input type="hidden" id="edit-id">
+      <label>Заглавие:</label>
+      <input type="text" id="edit-title" style="width:100%;"><br><br>
+      <label>Описание:</label>
+      <textarea id="edit-description" style="width:100%; height:80px;"></textarea><br><br>
+      <label>Планина / Регион:</label>
+      <input type="text" id="edit-mountain" style="width:100%;"><br><br>
+      <label>Координати:</label>
+      <input type="text" id="edit-lat" placeholder="Ширина">
+      <input type="text" id="edit-lng" placeholder="Дължина"><br><br>
+      <label>URL на снимка:</label>
+      <input type="text" id="edit-img" style="width:100%;"><br><br>
+      <button onclick="saveEdit()">Запази</button>
+      <button onclick="document.getElementById('editModal').style.display='none'">Отказ</button>
+    </div>
+  </div>
+
+  <script>
+    let currentEditRow = null;
+
+    function editPlace(id) {
+      const row = [...document.querySelectorAll("#tableBody tr")].find(r => r.innerHTML.includes('editPlace(' + id));
+      if (!row) return;
+
+      const cells = row.querySelectorAll("td");
+      document.getElementById("edit-id").value = id;
+      document.getElementById("edit-title").value = cells[0].innerText;
+      document.getElementById("edit-description").value = cells[1].innerText;
+      document.getElementById("edit-lat").value = cells[2].innerText.split(",")[0].trim();
+      document.getElementById("edit-lng").value = cells[2].innerText.split(",")[1].trim();
+      document.getElementById("edit-mountain").value = cells[3].innerText;
+      document.getElementById("edit-img").value = cells[4].querySelector("img")?.src || "";
+      document.getElementById("editModal").style.display = "flex";
+      currentEditRow = row;
+    }
+
+    async function saveEdit() {
+      const id = document.getElementById("edit-id").value;
+      const updated = {
+        title: document.getElementById("edit-title").value,
+        description: document.getElementById("edit-description").value,
+        mountain: document.getElementById("edit-mountain").value,
+        latitude: parseFloat(document.getElementById("edit-lat").value),
+        longitude: parseFloat(document.getElementById("edit-lng").value),
+        image_url: document.getElementById("edit-img").value,
+      };
+
+      const { error } = await supabase
+        .from("pending_places")
+        .update(updated)
+        .eq("id", id);
+
+      if (error) {
+        alert("Грешка при записване");
+      } else {
+        document.getElementById("editModal").style.display = "none";
+        loadPendingRequests();
+
+let lastIds = [];
+
+async function checkForNewRequests() {
+  const { data, error } = await supabase.from("pending_places").select("id");
+  if (error || !data) return;
+
+  const newIds = data.map(p => p.id);
+  const newOnes = newIds.filter(id => !lastIds.includes(id));
+  if (newOnes.length > 0) {
+    document.getElementById("notificationSound").play();
+    loadPendingRequests(); // презареди таблицата
+  }
+  lastIds = newIds;
+}
+
+setInterval(checkForNewRequests, 15000);
+
+      }
+    }
+  </script>
+
 </body>
 </html>
