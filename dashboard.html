@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Моето табло – Добави туристически обект</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1d5c4d;
+    }
+
+    form {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      background-color: #1d5c4d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+    }
+
+    .success {
+      margin-top: 20px;
+      color: green;
+      text-align: center;
+    }
+
+    .error {
+      margin-top: 20px;
+      color: red;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Добави туристически обект</h1>
+  <form id="place-form">
+    <label for="title">Заглавие</label>
+    <input type="text" id="title" required>
+
+    <label for="description">Описание</label>
+    <textarea id="description" rows="4" required></textarea>
+
+    <label for="mountain">Планина / Регион</label>
+    <input type="text" id="mountain" required>
+
+    <label for="latitude">Ширина (Latitude)</label>
+    <input type="text" id="latitude" required>
+
+    <label for="longitude">Дължина (Longitude)</label>
+    <input type="text" id="longitude" required>
+
+    <label for="image_url">URL на снимка (по избор)</label>
+    <input type="url" id="image_url">
+
+    <button type="submit">Изпрати за одобрение</button>
+    <div class="success" id="success-msg" style="display: none;">✅ Успешно изпратено за одобрение!</div>
+    <div class="error" id="error-msg" style="display: none;">⚠️ Грешка при изпращането.</div>
+  </form>
+
+  <script>
+    const { createClient } = supabase;
+    const supabaseUrl = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    const form = document.getElementById("place-form");
+    const successMsg = document.getElementById("success-msg");
+    const errorMsg = document.getElementById("error-msg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      try {
+        const latRaw = document.getElementById("latitude").value.replace(",", ".");
+        const lngRaw = document.getElementById("longitude").value.replace(",", ".");
+
+        const newPlace = {
+          title: document.getElementById("title").value,
+          description: document.getElementById("description").value,
+          mountain: document.getElementById("mountain").value,
+          latitude: parseFloat(latRaw),
+          longitude: parseFloat(lngRaw),
+          image_url: document.getElementById("image_url").value || null,
+          created_at: new Date().toISOString()
+        };
+
+        const { error } = await supabaseClient
+          .from("pending_places")
+          .insert([newPlace]);
+
+        if (error) {
+          successMsg.style.display = "none";
+          errorMsg.style.display = "block"; errorMsg.scrollIntoView({ behavior: "smooth" });
+          
+    console.error("Supabase грешка:", error);
+    errorMsg.innerText = "⚠️ " + (error.message || "Грешка при изпращането.");
+    
+        } else {
+          errorMsg.style.display = "none";
+          successMsg.style.display = "block";
+          form.reset();
+        }
+      } catch (e) {
+        console.error(e);
+        successMsg.style.display = "none";
+        errorMsg.style.display = "block"; errorMsg.scrollIntoView({ behavior: "smooth" });
+      }
+    });
+  </script>
+</body>
+</html>
