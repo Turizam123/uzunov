@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Добре дошли в T-MAP</title>
+  <link rel="icon" href="logo.png" type="image/png" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .logo-container {
+      margin-bottom: 20px;
+    }
+    .logo-container img {
+      max-width: 160px;
+      height: auto;
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    }
+    .logo-container img:hover {
+      transform: scale(1.05);
+    }
+    h1 {
+      font-size: 2.2rem;
+      color: #1f8c8c;
+      margin: 10px 0;
+    }
+    p {
+      font-size: 1.2rem;
+      color: #333;
+    }
+    .buttons {
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .buttons a {
+      text-decoration: none;
+      padding: 15px;
+      font-size: 1.1rem;
+      border-radius: 10px;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    .btn-tablo {
+      background-color: #007bff;
+      color: #fff;
+    }
+    .btn-tablo:hover {
+      background-color: #0056b3;
+    }
+    .btn-map {
+      background-color: #28a745;
+      color: #fff;
+    }
+    .btn-map:hover {
+      background-color: #1e7e34;
+    }
+    @media (min-width: 600px) {
+      .buttons {
+        flex-direction: row;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo-container" onclick="window.location.href='welcome.html'">
+    <img src="logo.png" alt="T-MAP Logo" />
+  </div>
+
+  <h1>Добре дошли в Т-MAP</h1>
+  <p>Интерактивна туристическа карта на България</p>
+
+  <div class="buttons">
+    <a href="dashboard.html" class="btn-tablo">📋 Моето табло</a>
+    <a href="tmap_view.html" class="btn-map">🗺️ Виж картата (T-MAP)</a>
+  </div>
+
+</body>
+</html>
