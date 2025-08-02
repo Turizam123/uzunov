@@ -1,139 +1,85 @@
+
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="icon" href="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo-edelvais2023love.jpg?1753986288" type="image/jpeg">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Админ – T-MAP</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>
-  body { max-width: 100%; margin: 0 auto; padding: 1rem; }
-  img { max-width: 100%; height: auto; }
-  .map, iframe { width: 100% !important; height: auto; }
-  button { width: 100%; max-width: 300px; margin-top: 10px; }
-
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-    #map {
-      height: 60%;
-    }
-    form {
-      padding: 1rem;
-      background: #f2f2f2;
-    }
-    input, textarea {
-      display: block;
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 8px;
-    }
-    button {
-      padding: 10px 15px;
-      background: green;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    .popup-img {
-      width: 100%;
-      max-width: 250px;
-      height: auto;
-      border-radius: 8px;
-    }
-  </style>
+  <title>Администраторски панел - T-MAP</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="bg-light">
+  <div class="container py-4">
+    <h2 class="mb-4 text-center">Администраторски панел – Заявки за обекти</h2>
+    <div id="pending-list" class="table-responsive"></div>
+  </div>
 
-  <div id="map"></div>
+<script>
+const supabaseUrl = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
+const supabaseKey = 'YOUR_ANON_KEY'; // Сложи тук реалния ключ
+const adminEmail = '59e62f07-5fab-443f-a0cb-efd988b44b8f';
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-  <form id="add-form">
-    <h3>Добави нов обект</h3>
-    <input type="text" id="title" placeholder="Име на обекта" required />
-    <textarea id="description" placeholder="Описание" rows="4" required></textarea>
-    <input type="file" id="image" accept="image/*" required />
-    <input type="text" id="latitude" placeholder="Ширина (автоматично)" readonly />
-    <input type="text" id="longitude" placeholder="Дължина (автоматично)" readonly />
-    <button type="submit">Запиши обекта</button>
-  </form>
+async function loadPending() {
+  const { data, error } = await supabase.from('pending_places').select('*').order('created_at', { ascending: false });
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script>
-    const map = L.map('map').setView([42.7, 25.3], 7);
-    let tempMarker = null;
+  if (error) {
+    document.getElementById('pending-list').innerHTML = '<p class="text-danger">Грешка при зареждане.</p>';
+    return;
+  }
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+  if (data.length === 0) {
+    document.getElementById('pending-list').innerHTML = '<p class="text-muted">Няма чакащи заявки.</p>';
+    return;
+  }
 
-    const supabaseUrl = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+  let html = '<table class="table table-bordered table-hover table-striped"><thead><tr><th>Заглавие</th><th>Описание</th><th>Координати</th><th>Снимка</th><th>Действия</th></tr></thead><tbody>';
 
-    map.on('click', function(e) {
-      const lat = e.latlng.lat.toFixed(6);
-      const lng = e.latlng.lng.toFixed(6);
+  data.forEach(place => {
+    html += `
+      <tr>
+        <td>${place.title}</td>
+        <td>${place.description}</td>
+        <td>${place.latitude}, ${place.longitude}</td>
+        <td><img src="${place.image_url}" alt="Снимка" width="100"/></td>
+        <td>
+          <button class="btn btn-success btn-sm mb-1" onclick="approvePlace('${place.id}')">Одобри</button><br>
+          <button class="btn btn-danger btn-sm" onclick="deletePlace('${place.id}')">Изтрий</button>
+        </td>
+      </tr>`;
+  });
 
-      document.getElementById('latitude').value = lat;
-      document.getElementById('longitude').value = lng;
+  html += '</tbody></table>';
+  document.getElementById('pending-list').innerHTML = html;
+}
 
-      if (tempMarker) map.removeLayer(tempMarker);
-      tempMarker = L.marker([lat, lng]).addTo(map);
-    });
+async function approvePlace(id) {
+  const { data, error } = await supabase.from('pending_places').select('*').eq('id', id).single();
+  if (error || !data) return alert('Грешка при намиране на заявката.');
 
-    .then(({ data: { user }, error }) => {
-      const adminEmail = "admin@example.com";
-    });
+  const insert = await supabase.from('objects').insert([{
+    title: data.title,
+    description: data.description,
+    image_url: data.image_url,
+    latitude: data.latitude,
+    longitude: data.longitude
+  }]);
 
-    document.getElementById('add-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
+  if (insert.error) return alert('Грешка при одобрение.');
 
-      const title = document.getElementById('title').value.trim();
-      const description = document.getElementById('description').value.trim();
-      const imageFile = document.getElementById('image').files[0];
-      const lat = parseFloat(document.getElementById('latitude').value);
-      const lng = parseFloat(document.getElementById('longitude').value);
+  await supabase.from('pending_places').delete().eq('id', id);
+  alert('Одобрено успешно.');
+  loadPending();
+}
 
-      if (!imageFile) {
-        alert('Моля качете снимка.');
-        return;
-      }
+async function deletePlace(id) {
+  const { error } = await supabase.from('pending_places').delete().eq('id', id);
+  if (error) return alert('Грешка при изтриване.');
+  alert('Заявката е изтрита.');
+  loadPending();
+}
 
-      const fileName = `${Date.now()}_${imageFile.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(fileName, imageFile);
-
-      if (uploadError) {
-        alert('Грешка при качване на снимката');
-        return;
-      }
-
-      const { data: publicUrlData } = supabase.storage.from('images').getPublicUrl(fileName);
-      const imageUrl = publicUrlData.publicUrl;
-
-      const { error: insertError } = await supabase.from('objects').insert([{
-        title,
-        description,
-        image_url: imageUrl,
-        latitude: lat,
-        longitude: lng
-      }]);
-
-      if (insertError) {
-        alert('Грешка при запис в базата');
-      } else {
-        alert('Обектът е успешно добавен!');
-        location.reload();
-      }
-    });
-  </script>
-
+loadPending();
+</script>
 </body>
 </html>
