@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Админ панел – Одобрение на обекти</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1a4d3c;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #1a4d3c;
+      color: white;
+    }
+
+    button {
+      padding: 6px 12px;
+      margin: 4px 4px 4px 0;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .approve {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .reject {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .status {
+      font-weight: bold;
+    }
+
+    .status.approved {
+      color: #28a745;
+    }
+
+    .status.rejected {
+      color: #dc3545;
+    }
+  </style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+  const supabaseUrl = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+</script>
+
+</head>
+<body>
+  <h1>Админ панел – Заявки за нови обекти</h1>
+  <table id="requests-table">
+    <thead>
+      <tr>
+        <th>Заглавие</th>
+        <th>Описание</th>
+        <th>Координати</th>
+        <th>Планина</th>
+        <th>Снимка</th>
+        <th>Действия</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const { createClient } = supabase;
+    const supabaseUrl = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    const tbody = document.querySelector("#requests-table tbody");
+
+    async function loadPendingPlaces() {
+      const { data, error } = await supabaseClient
+        .from("pending_places")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        alert("Грешка при зареждане на заявки.");
+        return;
+      }
+
+      tbody.innerHTML = "";
+
+      data.forEach(place => {
+        const tr = document.createElement("tr");
+
+        const imageHtml = place.image_url
+          ? `<img src="\${place.image_url}" alt="снимка" width="100">`
+          : "—";
+
+        tr.innerHTML = \`
+          <td>\${place.title}</td>
+          <td>\${place.description}</td>
+          <td>\${place.latitude.toFixed(5)}, \${place.longitude.toFixed(5)}</td>
+          <td>\${place.mountain}</td>
+          <td>\${imageHtml}</td>
+          <td>
+            <button class="approve" onclick="approvePlace('\${place.id}', this)">Одобри</button>
+            <button class="reject" onclick="rejectPlace('\${place.id}', this)">Отхвърли</button>
+          </td>
+          <td class="status-cell status">Очаква</td>
+        \`;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function approvePlace(id, button) {
+      const { data, error } = await supabaseClient
+        .from("pending_places")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error || !data) return alert("Грешка при взимане на заявка.");
+
+      const insert = await supabaseClient.from("objects").insert({
+        title: data.title,
+        description: data.description,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        image_url: data.image_url,
+        mountain: data.mountain,
+        created_at: new Date().toISOString()
+      });
+
+      if (insert.error) return alert("Грешка при одобряване.");
+
+      await supabaseClient.from("pending_places").delete().eq("id", id);
+
+      const row = button.closest("tr");
+      row.querySelector(".status-cell").textContent = "Одобрено";
+      row.querySelector(".status-cell").classList.add("approved");
+      row.querySelectorAll("button").forEach(btn => btn.disabled = true);
+    }
+
+    async function rejectPlace(id, button) {
+      await supabaseClient.from("pending_places").delete().eq("id", id);
+
+      const row = button.closest("tr");
+      row.querySelector(".status-cell").textContent = "Отхвърлено";
+      row.querySelector(".status-cell").classList.add("rejected");
+      row.querySelectorAll("button").forEach(btn => btn.disabled = true);
+    }
+
+    loadPendingPlaces();
+  </script>
+</body>
+</html>
