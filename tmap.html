@@ -1,0 +1,282 @@
+
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>T-MAP – Карта с търсачка</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    #search-container {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #search-input, #mountain-input {
+      padding: 8px;
+      font-size: 14px;
+      width: 200px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .popup-image {
+      max-width: 200px;
+      display: block;
+      margin-top: 10px;
+    }
+  
+#toast {
+  visibility: hidden;
+  min-width: 280px;
+  background-color: #1c1c1c;
+  color: #fff;
+  text-align: center;
+  border-radius: 10px;
+  padding: 16px;
+  position: fixed;
+  z-index: 1001;
+  left: 50%;
+  bottom: 30px;
+  transform: translateX(-50%);
+  font-size: 16px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+
+#toast.show {
+  visibility: visible;
+  animation: fadein 0.5s, fadeout 0.5s 8s;
+}
+
+@keyframes fadein {
+  from { bottom: 0; opacity: 0; }
+  to { bottom: 30px; opacity: 1; }
+}
+
+@keyframes fadeout {
+  from { bottom: 30px; opacity: 1; }
+  to { bottom: 0; opacity: 0; }
+}
+
+</style>
+</head>
+<body>
+
+<div id="search-container">
+  <input type="text" id="search-input" placeholder="🔍 Заглавие на обекта...">
+  <input type="text" id="mountain-input" placeholder="⛰️ Планина/регион...">
+</div>
+
+
+<div id="toast" onclick="showOnlyNewMarkers()">🆕 Нови обекти са добавени – кликни, за да ги видиш</div>
+<audio id="notifSound" src="https://www.soundjay.com/buttons/sounds/button-16.mp3" preload="auto"></audio>
+
+
+<div style="position: fixed; top: 20px; right: 20px; z-index: 1001;">
+  <button onclick="showAllMarkers()" style="padding: 8px 12px; border-radius: 8px; background-color: #3a3a3a; color: white; border: none; font-size: 14px; cursor: pointer;">Покажи всички обекти</button>
+</div>
+
+
+<div style="position: fixed; top: 70px; right: 20px; z-index: 1001;">
+  <select id="filterSelect" onchange="filterMarkers()" style="padding: 8px; border-radius: 8px;">
+    <option value="">Всички категории</option>
+  </select>
+</div>
+
+<div style="position: fixed; bottom: 20px; right: 20px; background: white; padding: 10px; border-radius: 8px; font-size: 14px; box-shadow: 0 0 6px rgba(0,0,0,0.3); z-index: 1001;">
+  <b>Легенда:</b><br>
+  🟠 Нов обект<br>
+  🔵 Стандартен обект
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  
+let newMarkers = [];
+
+function showNotification(newCount) {
+  const toast = document.getElementById("toast");
+  const sound = document.getElementById("notifSound");
+  toast.innerText = `🆕 ${newCount} нови обекта – натисни тук, за да ги видиш`;
+  toast.className = "show";
+  sound.play();
+}
+
+
+
+function filterMarkers() {
+  const selected = document.getElementById("filterSelect").value;
+  allMarkers.forEach(m => map.removeLayer(m));
+  allMarkers.forEach(m => {
+    if (!selected || m.category === selected) {
+      m.addTo(map);
+    }
+  });
+}
+
+function updateFilterOptions(data) {
+  const select = document.getElementById("filterSelect");
+  const categories = Array.from(new Set(data.map(obj => obj.category).filter(Boolean)));
+  categories.forEach(cat => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = cat;
+    select.appendChild(opt);
+  });
+}
+
+function showAllMarkers() {
+  allMarkers.forEach(m => m.addTo(map));
+  map.setView(allMarkers[0].getLatLng(), 8);
+}
+
+function showOnlyNewMarkers() {
+  allMarkers.forEach(m => map.removeLayer(m));
+  newMarkers.forEach(m => {
+    m.addTo(map);
+    m.openPopup();
+    map.setView(m.getLatLng(), 14);
+  });
+}
+
+function showOnlyNewMarkers() {
+  allMarkers.forEach(m => map.removeLayer(m));
+  newMarkers.forEach(m => {
+    m.addTo(map);
+    m.openPopup();
+    map.setView(m.getLatLng(), 14);
+  });
+}
+
+async function detectNewObjects(data) {
+  const lastVisit = localStorage.getItem("tmap_last_visit");
+  const newObjects = data.filter(obj => !lastVisit || obj.created_at > lastVisit);
+
+  if (newObjects.length > 0) {
+    showNotification(newObjects.length);
+  }
+
+  updateFilterOptions(data);
+  localStorage.setItem("tmap_last_visit", new Date().toISOString());
+  return newObjects;
+}
+
+  
+const orangeIcon = new L.Icon({
+  iconUrl: 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32]
+});
+
+  const map = L.map('map').setView([42.7, 25.3], 7);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const { createClient } = supabase;
+  const supabaseUrl = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
+  const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+  let allMarkers = [];
+    detectNewObjects(data).then(objs => {
+      newMarkers = objs.map(obj => {
+        
+const popup = `<b>${obj.title}</b><br>${obj.description}<br>
+${obj.mountain ? "<i>🏔 " + obj.mountain + "</i><br>" : ""}
+${obj.category ? "<i>📌 " + obj.category + "</i>" : ""}`;
+
+const marker = L.marker([obj.latitude, obj.longitude], { icon: orangeIcon }).bindPopup(popup);
+        marker.category = obj.category;
+        return marker;
+      });
+    });
+
+  async function loadObjects() {
+    const { data, error } = await supabaseClient.from("objects").select("*");
+    if (error) {
+      alert("Грешка при зареждане на обектите.");
+      return;
+    }
+
+    allMarkers = [];
+    detectNewObjects(data).then(objs => {
+      newMarkers = objs.map(obj => {
+        
+const popup = `<b>${obj.title}</b><br>${obj.description}<br>
+${obj.mountain ? "<i>🏔 " + obj.mountain + "</i><br>" : ""}
+${obj.category ? "<i>📌 " + obj.category + "</i>" : ""}`;
+
+const marker = L.marker([obj.latitude, obj.longitude], { icon: orangeIcon }).bindPopup(popup);
+        marker.category = obj.category;
+        return marker;
+      });
+    });
+
+    data.forEach(obj => {
+      const marker = L.marker([obj.latitude, obj.longitude]).addTo(map);
+
+      let popupContent = `<strong>${obj.title}</strong><br>${obj.description}<br><em>${obj.mountain}</em>`;
+      if (obj.image_url) {
+        popupContent += `<br><img src="${obj.image_url}" class="popup-image">`;
+      }
+
+      marker.bindPopup(popupContent);
+      marker.objTitle = obj.title.toLowerCase();
+      marker.objMountain = obj.mountain.toLowerCase();
+      allMarkers.push(marker);
+    });
+  }
+
+  function filterMarkers() {
+    const titleQuery = document.getElementById("search-input").value.toLowerCase();
+    const mountainQuery = document.getElementById("mountain-input").value.toLowerCase();
+
+    allMarkers.forEach(marker => {
+      const matchTitle = marker.objTitle.includes(titleQuery);
+      const matchMountain = marker.objMountain.includes(mountainQuery);
+
+      if (matchTitle && matchMountain) {
+        map.addLayer(marker);
+      } else {
+        map.removeLayer(marker);
+      }
+    });
+  }
+
+  document.getElementById("search-input").addEventListener("input", filterMarkers);
+  document.getElementById("mountain-input").addEventListener("input", filterMarkers);
+
+  loadObjects();
+</script>
+
+</body>
+</html>
