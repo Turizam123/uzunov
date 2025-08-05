@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>T-MAP – Туристическа карта (SVG маркери)</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #map { height: 100%; width: 100%; }
+
+    .leaflet-popup-content {
+      font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    .popup-title { font-weight: 700; margin-bottom: 6px; }
+    .popup-img {
+      display: block;
+      width: 180px;
+      max-width: 80vw;
+      height: auto;
+      border-radius: 8px;
+      margin-top: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const map = L.map('map').setView([42.7339, 25.4858], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+    }).addTo(map);
+
+    // SVG маркер с твоето лого
+    const customIcon = L.icon({
+      iconUrl: 'logo01082025.svg',
+      iconSize: [48, 48],
+      iconAnchor: [24, 46],
+      popupAnchor: [0, -42]
+    });
+
+    async function loadObjects() {
+      const { data, error } = await supabaseClient
+        .from('objects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Грешка при зареждане:', error);
+        return;
+      }
+
+      (data || []).forEach(obj => {
+        const lat = Number(obj.latitude);
+        const lng = Number(obj.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+        L.marker([lat, lng], { icon: customIcon })
+          .addTo(map)
+          .bindPopup(`
+            <div class="popup-title">${(obj.title ?? 'Без заглавие')
+              .toString().replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]))}</div>
+            ${obj.description ? obj.description.toString().replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[s])) : ''}
+            ${obj.image_url ? `<img class="popup-img" src="${obj.image_url.toString().replace(/"/g,'&quot;')}" alt="">` : ''}
+          `);
+      });
+    }
+
+    loadObjects();
+  </script>
+</body>
+</html>
