@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>T-MAP – Само за Chrome</title>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    html, body { height: 100%; margin: 0; background: #f7f7fb; }
+    #map { height: 100vh; width: 100vw; }
+    .leaflet-popup-content { font: 14px/1.4 system-ui; }
+    .popup-title { font-weight: 700; margin-bottom: 6px; }
+    .tmap-visit-btn { margin-top: 10px; border: none; border-radius: 7px; background: #1976d2; color: #fff; padding: 8px 16px; font: 600 14px/1 system-ui; cursor: pointer; }
+    .tmap-visit-msg { margin-top: 6px; font-size: 13px; color: #088c1e; }
+    .tmap-login-btn { border: none; border-radius: 6px; background: #db4437; color: #fff; padding: 8px 14px; font: 600 14px/1 system-ui; cursor: pointer; margin-top: 10px; }
+    .user-bar { position:fixed;top:12px;right:12px;background:#fff;border-radius:16px;padding:6px 16px;box-shadow:0 4px 16px rgba(0,0,0,0.12);display:flex;align-items:center;gap:10px;z-index:1000;font: 600 15px system-ui;}
+    .user-bar img { width:28px; height:28px; border-radius:50%; }
+    .user-bar button { background:#eee; border:none; border-radius:8px; padding:6px 12px; font:600 13px system-ui; cursor:pointer;}
+    .chrome-msg { color:#d32f2f; font-weight:600; margin-top:16px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="userBar" class="user-bar" style="display:none;"></div>
+  <script>
+    // Функция за детекция на Chrome (без Edge, без Opera)
+    function isChrome() {
+      return /Chrome/.test(navigator.userAgent)
+        && /Google Inc/.test(navigator.vendor)
+        && !/Edg/.test(navigator.userAgent)
+        && !/OPR/.test(navigator.userAgent);
+    }
+
+    // Supabase настройки
+    const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = null;
+
+    // Google вход/изход
+    async function loginWithGoogle() {
+      if (!isChrome()) return;
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      if (error) alert('Проблем с Google входа!');
+    }
+    async function logout() {
+      await supabase.auth.signOut();
+      location.reload();
+    }
+    function renderUserBar(user) {
+      const bar = document.getElementById('userBar');
+      if (!isChrome()) {
+        bar.style.display = 'none';
+        return;
+      }
+      if (!user) { bar.style.display = 'none'; return; }
+      const name = user.user_metadata?.name || user.email || "Google потребител";
+      const img = user.user_metadata?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name);
+      bar.innerHTML = `<img src="${img}" alt="avatar"><span>${name}</span><button onclick="logout()">Изход</button>`;
+      bar.style.display = 'flex';
+    }
+    window.logout = logout;
+
+    // --- Карта и маркери ---
+    const map = L.map('map').setView([42.7339, 25.4858], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(map);
+
+    const customIcon = L.icon({
+      iconUrl: 'logo01082025.svg',
+      iconSize: [52, 52],
+      iconAnchor: [26, 48],
+      popupAnchor: [0, -40],
+      className: 'tmap-pin'
+    });
+
+    async function addMarker(obj) {
+      const marker = L.marker([+obj.latitude, +obj.longitude], { icon: customIcon }).addTo(map);
+      marker.bindPopup(
+        `<div class="popup-title">${obj.title || "Обект"}</div>
+        <div>${obj.description || ""}</div>
+        ${(obj.image_url ? `<img src="${obj.image_url}" style="width:100%;border-radius:10px;margin-top:8px;">` : "")}
+        <div id="visit-section-${obj.id}"></div>`
+      );
+      marker.on('popupopen', () => showVisitSection(obj.id));
+    }
+
+    // --- Само Chrome може да отбелязва!
+    async function showVisitSection(objectId) {
+      const el = document.getElementById('visit-section-' + objectId);
+      if (!el) return;
+      if (!isChrome()) {
+        el.innerHTML = `<div class="chrome-msg">⚠️ Тази функция работи само с браузър Google Chrome.</div>`;
+        return;
+      }
+      const user = currentUser;
+      const { count } = await supabase
+        .from('visits')
+        .select('*', { count: 'exact', head: true })
+        .eq('object_id', objectId);
+      let html = `<div style="margin:10px 0 5px 0;">Посетили: <b>${count}</b> души</div>`;
+      if (!user) {
+        html += `<button class="tmap-login-btn" onclick="loginWithGoogle()">Вход с Google, за да се отбележиш</button>`;
+      } else {
+        const { data: vis } = await supabase
+          .from('visits')
+          .select('id')
+          .eq('object_id', objectId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (vis && vis.id) {
+          html += `<div class="tmap-visit-msg">Вече сте се отбелязали тук!</div>`;
+        } else {
+          html += `<button class="tmap-visit-btn" onclick="markVisit('${objectId}')">Отбележи се</button>
+          <div id="visit-msg-${objectId}" class="tmap-visit-msg"></div>`;
+        }
+      }
+      el.innerHTML = html;
+    }
+
+    async function markVisit(objectId) {
+      const user = currentUser;
+      if (!user) return;
+      const { error } = await supabase
+        .from('visits')
+        .insert([{ object_id: objectId, user_id: user.id, user_name: user.user_metadata?.name, user_avatar: user.user_metadata?.avatar_url }]);
+      if (error) {
+        document.getElementById('visit-msg-' + objectId).textContent = "Грешка или вече сте се отбелязали.";
+      } else {
+        document.getElementById('visit-msg-' + objectId).textContent = "Успешно отбелязване!";
+        setTimeout(() => { map.closePopup(); }, 1000);
+      }
+      setTimeout(() => showVisitSection(objectId), 1100);
+    }
+    window.markVisit = markVisit;
+    window.loginWithGoogle = loginWithGoogle;
+
+    async function loadMarkers() {
+      const { data, error } = await supabase.from('objects').select('*');
+      if (error) { alert("Грешка при зареждане на обектите!"); return; }
+      data.forEach(addMarker);
+    }
+
+    (async function init() {
+      if (!isChrome()) {
+        alert('⚠️ Тази страница работи само с Google Chrome!');
+        document.body.innerHTML = '<div style="margin:70px auto;max-width:400px;font:20px/1.6 system-ui;text-align:center;color:#b71c1c;">⚠️ Тази страница работи само с браузър <b>Google Chrome</b>.<br><br>Моля, отвори линка през Chrome.</div>';
+        return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      currentUser = user;
+      renderUserBar(user);
+      await loadMarkers();
+      supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) { location.reload(); }
+      });
+    })();
+  </script>
+</body>
+</html>
+
