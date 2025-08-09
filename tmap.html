@@ -110,7 +110,7 @@
     await supabase.from('visits').insert([{
       object_id: objectId,
       user_id: currentUser.id,
-      user_name: currentUser.user_metadata?.name,
+      username: currentUser.user_metadata?.name,
       user_avatar: currentUser.user_metadata?.avatar_url
     }]);
     showVisitSection(objectId);
@@ -139,17 +139,17 @@
       return;
     }
     auth.innerHTML = `<textarea id='globalCommentText' placeholder='Вашият коментар...'></textarea><button class='tmap-login-btn' onclick='postGlobalComment()'>Прати</button>`;
-    const { data } = await supabase.from('global_comments').select('*').order('created_at');
+    const { data } = await supabase.from('comments').select('username, comment, created_at').order('created_at');
     (data||[]).forEach(c => {
-      list.innerHTML += `<div class='comment'><strong>${c.user_name || ''}</strong>: ${c.text}</div>`;
+      list.innerHTML += `<div class='comment'><strong>${c.username || ''}</strong>: ${c.comment}</div>`;
     });
   }
   async function postGlobalComment() {
     const ta = document.getElementById('globalCommentText');
     if (!ta.value.trim()) return;
-    await supabase.from('global_comments').insert([{
+    await supabase.from('comments').insert([{
       user_id: currentUser.id,
-      user_name: currentUser.user_metadata?.name,
+      username: currentUser.user_metadata?.name,
       text: ta.value.trim()
     }]);
     ta.value = '';
