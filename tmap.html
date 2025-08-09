@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>T-MAP – само Gmail вход (Android/iPhone) + глобални коментари</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    html, body { height: 100%; margin: 0; background: #f7f7fb; }
+    #map { height: 100vh; width: 100vw; }
+    .tmap-login-btn {
+      background: #1976d2; color: white; padding: 6px 12px; border: none;
+      border-radius: 5px; cursor: pointer; margin-top: 5px;
+    }
+    #globalCommentsBtn {
+      position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+      background: #1976d2; color: white; border: none; border-radius: 50px;
+      padding: 10px 20px; font-weight: bold; cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    #commentsModalBackdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: none; align-items: center; justify-content: center; z-index: 2000;
+    }
+    #commentsModal {
+      background: white; border-radius: 10px; padding: 20px; max-width: 500px; width: 90%;
+      max-height: 80vh; overflow-y: auto; font-family: sans-serif;
+    }
+    .comment { background: #f0f0f0; padding: 6px 8px; border-radius: 6px; margin-top: 6px; }
+    textarea { width: 100%; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="userBar" style="display:none;"></div>
+  <button id="globalCommentsBtn" onclick="openCommentsModal()">💬 Коментари</button>
+  <div id="commentsModalBackdrop" onclick="closeCommentsModal(event)">
+    <div id="commentsModal" onclick="event.stopPropagation()">
+      <h3>Общи коментари</h3>
+      <div id="commentsList"></div>
+      <div id="commentsAuth"></div>
+    </div>
+  </div>
+<script>
+  function isAllowedMobile() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera || "";
+    const isIphone = /iPhone/i.test(ua);
+    const isIpod = /iPod/i.test(ua);
+    const isIpad = /iPad/i.test(ua) || (/(Macintosh);.*CPU.*OS\s\d+_\d+/).test(ua) && 'ontouchend' in document;
+    const isAndroid = /Android/i.test(ua);
+    const isAndroidTablet = isAndroid && !/Mobile/i.test(ua);
+    const tabletHints = /(iPad|Tablet|Nexus 7|Nexus 9|Nexus 10|SM-T\d|Kindle|Silk|PlayBook)/i.test(ua);
+    if (isIpad || isAndroidTablet || tabletHints) return false;
+    return isIphone || isAndroid;
+  }
+
+  const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let currentUser = null;
+
+  async function loginWithGoogle() {
+    if (!isAllowedMobile()) {
+      alert('Входът е разрешен само от Android/iPhone.');
+      return;
+    }
+    await supabase.auth.signInWithOAuth({ provider: 'google' });
+  }
+  async function logout() {
+    await supabase.auth.signOut();
+    location.reload();
+  }
+  function renderUserBar(user) {
+    const bar = document.getElementById('userBar');
+    if (!user) { bar.style.display = 'none'; return; }
+    const name = user.user_metadata?.name || user.email;
+    const img = user.user_metadata?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name);
+    bar.innerHTML = `<img src="${img}" style="width:28px;height:28px;border-radius:50%"> ${name} <button onclick="logout()">Изход</button>`;
+    bar.style.display = 'block';
+  }
+
+  const map = L.map('map').setView([42.7339, 25.4858], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  const customIcon = L.icon({ iconUrl: 'logo01082025.svg', iconSize: [52, 52], iconAnchor: [26, 48] });
+
+  async function addMarker(obj) {
+    const marker = L.marker([+obj.latitude, +obj.longitude], { icon: customIcon }).addTo(map);
+    marker.bindPopup(`<div style='font-weight:bold;'>${obj.title}</div><div>${obj.description || ""}</div>${obj.image_url ? `<img src='${obj.image_url}' style='width:100%;margin-top:6px;border-radius:6px;'>` : ""}<div id='visit-section-${obj.id}'></div>`);
+    marker.on('popupopen', () => { showVisitSection(obj.id); });
+  }
+
+  async function showVisitSection(objectId) {
+    const el = document.getElementById('visit-section-' + objectId);
+    if (!currentUser) {
+      el.innerHTML = `<button class="tmap-login-btn" onclick="loginWithGoogle()">Вход с Google</button>`;
+      return;
+    }
+    const { data: vis } = await supabase.from('visits').select('id').eq('object_id', objectId).eq('user_id', currentUser.id).maybeSingle();
+    if (vis) {
+      el.innerHTML = `<div>✅ Вече сте се отбелязали</div>`;
+    } else {
+      el.innerHTML = `<button class="tmap-login-btn" onclick="markVisit('${objectId}')">Отбележи се</button>`;
+    }
+  }
+
+  async function markVisit(objectId) {
+    if (!currentUser) return;
+    await supabase.from('visits').insert([{
+      object_id: objectId,
+      user_id: currentUser.id,
+      user_name: currentUser.user_metadata?.name,
+      user_avatar: currentUser.user_metadata?.avatar_url
+    }]);
+    showVisitSection(objectId);
+  }
+  window.markVisit = markVisit;
+
+  async function loadMarkers() {
+    const { data } = await supabase.from('objects').select('*');
+    (data||[]).forEach(addMarker);
+  }
+
+  // ===== Global Comments Logic =====
+  function openCommentsModal() {
+    document.getElementById('commentsModalBackdrop').style.display = 'flex';
+    loadGlobalComments();
+  }
+  function closeCommentsModal(e) {
+    document.getElementById('commentsModalBackdrop').style.display = 'none';
+  }
+  async function loadGlobalComments() {
+    const list = document.getElementById('commentsList');
+    const auth = document.getElementById('commentsAuth');
+    list.innerHTML = '';
+    if (!currentUser) {
+      auth.innerHTML = `<button class='tmap-login-btn' onclick='loginWithGoogle()'>Вход с Google за коментари</button>`;
+      return;
+    }
+    auth.innerHTML = `<textarea id='globalCommentText' placeholder='Вашият коментар...'></textarea><button class='tmap-login-btn' onclick='postGlobalComment()'>Прати</button>`;
+    const { data } = await supabase.from('global_comments').select('*').order('created_at');
+    (data||[]).forEach(c => {
+      list.innerHTML += `<div class='comment'><strong>${c.user_name || ''}</strong>: ${c.text}</div>`;
+    });
+  }
+  async function postGlobalComment() {
+    const ta = document.getElementById('globalCommentText');
+    if (!ta.value.trim()) return;
+    await supabase.from('global_comments').insert([{
+      user_id: currentUser.id,
+      user_name: currentUser.user_metadata?.name,
+      text: ta.value.trim()
+    }]);
+    ta.value = '';
+    loadGlobalComments();
+  }
+
+  (async function init() {
+    const { data: { user } } = await supabase.auth.getUser();
+    currentUser = user;
+    renderUserBar(user);
+    await loadMarkers();
+    supabase.auth.onAuthStateChange((_event, session) => {
+      currentUser = session?.user || null;
+      renderUserBar(currentUser);
+    });
+  })();
+</script>
+</body>
+</html>
