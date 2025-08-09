@@ -22,8 +22,10 @@
 </head>
 <body>
   <div id="map"></div>
-  <div id="userBar" style="display:none;"></div>
+  <div id="userBar" style="display:none; padding:5px; background:#fff; position:absolute; top:5px; left:5px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.2);"></div>
+
 <script>
+  // Разрешаваме само Chrome
   function isChrome() {
     return /Chrome/.test(navigator.userAgent)
       && /Google Inc/.test(navigator.vendor)
@@ -51,10 +53,12 @@
     if (!user) { bar.style.display = 'none'; return; }
     const name = user.user_metadata?.name || user.email;
     const img = user.user_metadata?.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name);
-    bar.innerHTML = `<img src="${img}" style="width:28px;height:28px;border-radius:50%;"> ${name} <button onclick="logout()">Изход</button>`;
+    bar.innerHTML = `<img src="${img}" style="width:28px;height:28px;border-radius:50%;vertical-align:middle;"> ${name} 
+                     <button onclick="logout()">Изход</button>`;
     bar.style.display = 'block';
   }
 
+  // Създаване на картата
   const map = L.map('map').setView([42.7339, 25.4858], 7);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
@@ -112,9 +116,9 @@
 
   async function loadComments(objectId) {
     const el = document.getElementById('comments-section-' + objectId);
-    if (!currentUser) {
-      el.innerHTML = `<div style="color:gray;">Впишете се, за да пишете коментари</div>`;
-      return;
+    if (!currentUser) { 
+      el.innerHTML = `<div style="color:gray;">Впишете се за да коментирате</div>`;
+      return; 
     }
     let { data: comments } = await supabase
       .from('comments')
@@ -160,7 +164,8 @@
     renderUserBar(user);
     await loadMarkers();
     supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) location.reload();
+      currentUser = session?.user || null;
+      renderUserBar(currentUser);
     });
   })();
 </script>
