@@ -15,7 +15,6 @@
     .nice-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
     .nice-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
   </style>
-  <script src="favicon-injector.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-800">
   <!-- Auth Gate: visible only when NOT authenticated -->
@@ -319,12 +318,34 @@
       if (state.room.type === 'public') return { recipient_id: null };
       const a = state.user.id; const b = state.room.peer.user_id;
       return { or: `and(sender_id.eq.${a},recipient_id.eq.${b}),and(sender_id.eq.${b},recipient_id.eq.${a})` };
+    };
+      const a = state.user.id; const b = state.room.peer.user_id;
+      return { or: `and(sender_id.eq.${a},recipient_id.eq.${b}),and(sender_id.eq.${b},recipient_id.eq.${a})` };
     }
 
     async function loadMessages(){
-      const now = new Date();
-      const cutoff = new Date(now.getTime() - TTL_HOURS * 3600 * 1000).toISOString();
-      let query = sb.from('messages').select('*').gt('created_at', cutoff).order('created_at', { ascending: true }).limit(500);
+      // Fallback логика: работи и ако таблицата няма created_at/recipient_id
+      const f = roomFilter();
+      let base = sb.from('messages').select('*').limit(500);
+      if ('recipient_id' in f) base = base.is('recipient_id', null); else base = base.or(f.or);
+
+      // Първи опит: сортиране по created_at (ако колоната съществува)
+      let { data, error } = await base.order('created_at', { ascending: true });
+      if (error) {
+        console.warn('loadMessages(order by created_at) ->', error?.message || error);
+        // Втори опит: без order/филтър по време
+        ({ data, error } = await (('recipient_id' in f)
+          ? sb.from('messages').select('*').is('recipient_id', null).limit(500)
+          : sb.from('messages').select('*').or(f.or).limit(500)
+        ));
+      }
+      if (error) { console.warn('loadMessages fallback ->', error?.message || error); return; }
+
+      state.messages.clear();
+      messagesEl.innerHTML = '';
+      for (const msg of (data || [])) { state.messages.set(msg.id, msg); renderMessage(msg); }
+      scrollToBottom();
+    }).limit(500);
       const f = roomFilter();
       if ('recipient_id' in f) query = query.is('recipient_id', null);
       else query = query.or(f.or);
@@ -338,6 +359,43 @@
     function subscribeMessages(){
       sb.channel('realtime:messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+          const msg = payload.new;
+          if (!isMessageInCurrentRoom(msg)) return;
+          if (msg.created_at && isExpired(msg.created_at)) return; // ако имаме created_at
+          state.messages.set(msg.id, msg);
+          renderMessage(msg);
+          if (msg.sender_id !== state.user.id) ping.play().catch(()=>{});
+          maybeTrimViewport();
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
+          const msg = payload.new;
+          if (!state.messages.has(msg.id)) return;
+          state.messages.set(msg.id, msg);
+          const el = document.getElementById('msg-' + msg.id);
+          if (el) el.outerHTML = messageHtml(msg);
+        })
+        .subscribe();
+
+      // Typing via broadcast
+      sb.channel('typing')
+        .on('broadcast', { event: 'typing' }, ({ payload }) => {
+          if (!payload) return;
+          const { from, to, name } = payload;
+          if (!isTypingRelevant(to, from)) return;
+          state.typingPeers.set(from, { name, ts: Date.now() });
+          renderTyping();
+        })
+        .subscribe();
+
+      // remove stale typing indicators
+      setInterval(() => {
+        const now = Date.now();
+        for (const [k, v] of state.typingPeers.entries()){
+          if (now - v.ts > 2200) state.typingPeers.delete(k);
+        }
+        renderTyping();
+      }, 1200);
+    }, payload => {
           const msg = payload.new;
           if (!isMessageInCurrentRoom(msg)) return;
           if (isExpired(msg.created_at)) return;
@@ -396,8 +454,11 @@
     }
 
     function isMessageInCurrentRoom(msg){
-      if (state.room.type === 'public') return msg.recipient_id === null;
+      // Ако таблицата няма recipient_id, третираме като публичен чат
+      const hasRecipient = Object.prototype.hasOwnProperty.call(msg, 'recipient_id');
+      if (state.room.type === 'public') return !hasRecipient || msg.recipient_id === null;
       const a = state.user.id; const b = state.room.peer?.user_id;
+      if (!hasRecipient) return false; // няма DM режим без recipient_id
       return (msg.sender_id === a && msg.recipient_id === b) || (msg.sender_id === b && msg.recipient_id === a);
     }
 
@@ -413,10 +474,30 @@
     }
 
     function messageHtml(msg){
-      const mine = msg.sender_id === state.user.id;
+      const name = escapeHtml(msg.sender_name || msg.username || '');
+      const avatar = msg.sender_avatar || msg.avatar || '';
+      const mine = (msg.sender_id ? (msg.sender_id === state.user.id) : (name === state.me.name));
       const liked_by = msg.liked_by || [];
-      const liked = liked_by.includes(state.user.id);
-      const time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+      const liked = liked_by.includes?.(state.user.id);
+      const ts = msg.created_at ? new Date(msg.created_at) : new Date();
+      const time = ts.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+      const content = linkify(escapeHtml(msg.content || ''));
+      const image = msg.image_url ? `<a href="${escapeHtml(msg.image_url)}" target="_blank"><img src="${escapeHtml(msg.image_url)}" class="max-w-xs rounded-xl border" loading="lazy"/></a>` : '';
+      return `
+        <div class="flex items-start gap-3 ${mine ? 'justify-end' : ''}">
+          ${mine ? '' : `<img src="${escapeHtml(avatar)}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/>`}
+          <div class="max-w-[80%] ${mine ? 'bg-slate-900 text-white' : 'bg-white'} rounded-2xl px-4 py-3 shadow-sm border ${mine ? 'border-slate-900' : 'border-slate-200'}">
+            ${mine ? '' : `<div class="text-xs font-medium mb-1 text-slate-500">${name}</div>`}
+            ${msg.content ? `<div class="whitespace-pre-wrap leading-relaxed">${content}</div>` : ''}
+            ${image}
+            <div class="mt-2 flex items-center gap-3 text-xs ${mine ? 'text-slate-200' : 'text-slate-500'}">
+              <button class="inline-flex items-center gap-1 ${liked ? 'font-semibold' : ''}" onclick="toggleLike('${msg.id}')">❤ <span>${liked_by.length || 0}</span></button>
+              <span>${time}</span>
+            </div>
+          </div>
+          ${mine ? `<img src="${escapeHtml(avatar)}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/>` : ''}
+        </div>`;
+    });
       const name = escapeHtml(msg.sender_name || '');
       const content = linkify(escapeHtml(msg.content || ''));
       const image = msg.image_url ? `<a href="${escapeHtml(msg.image_url)}" target="_blank"><img src="${escapeHtml(msg.image_url)}" class="max-w-xs rounded-xl border" loading="lazy"/></a>` : '';
@@ -509,7 +590,12 @@
       autoResize(messageInput);
 
       const { error } = await sb.from('messages').insert(payload);
-      if (error) alert('Грешка при изпращане: ' + error.message);
+      if (error) {
+        alert('Грешка при изпращане: ' + error.message);
+      } else {
+        // Оптимистично обновяване: презареждаме списъка, в случай че Realtime е изключен/бавен
+        loadMessages();
+      }
     }
 
     // ======= Clear chat (admin) =======
