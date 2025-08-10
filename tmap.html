@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="bg">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>T-MAP – Тематични слоеве + детайлни карти + коментари (Realtime)</title>
+  <title>T-MAP – Скрити/показани слоеве + детайлни карти + коментари</title>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
@@ -76,7 +75,25 @@
       border-radius: 10px; padding: 6px 10px; cursor: pointer;
       font: 12px/1.2 system-ui; box-shadow: 0 6px 16px rgba(0,0,0,.12);
     }
+
+    /* Контрол за скриване/показване на панела със слоевете */
+    .leaflet-control.tmap-layers-toggle button {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 10px; padding: 8px 10px; cursor: pointer;
+      font: 12px/1.2 system-ui; box-shadow: 0 6px 16px rgba(0,0,0,.12);
+    }
+    .leaflet-control-layers.tmap-layers-panel {
+      transition: transform .18s ease, opacity .18s ease;
+      will-change: transform, opacity;
+      margin-bottom: 8px;
+    }
+    .leaflet-control-layers.tmap-hidden {
+      transform: translateY(6px);
+      opacity: 0; pointer-events: none;
+    }
   </style>
+  <script src="favicon-injector.js"></script>
 </head>
 <body>
   <div id="map"></div>
@@ -137,50 +154,21 @@
     });
     supabase.auth.onAuthStateChange((_event, _session) => { refreshAuthUI(); });
 
-    // ---------- Base layers (по‑детайлни карти) ----------
-    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    });
-    const positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-    });
-    const opentopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      maxZoom: 17,
-      attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)'
-    });
-    const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
-    });
-    const cyclOSM = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
-      attribution: 'Map data: &copy; OpenStreetMap contributors | Style: CyclOSM'
-    });
+    // ---------- Base layers ----------
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
+    const positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap contributors &copy; CARTO' });
+    const opentopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)' });
+    const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, GIS User Community' });
+    const cyclOSM = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', { attribution: 'Map data: &copy; OpenStreetMap contributors | Style: CyclOSM' });
 
     // ---------- Overlay thematic layers ----------
-    const hiking = L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png', {
-      opacity: 0.9,
-      attribution: 'Hiking overlay &copy; waymarkedtrails.org'
-    });
-    const hillshade = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
-      opacity: 0.55,
-      attribution: 'Hillshade &copy; Esri'
-    });
-    const railways = L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
-      opacity: 0.6,
-      attribution: '&copy; OpenRailwayMap contributors'
-    });
-    const ski = L.tileLayer('https://tiles.openskimap.org/openskimap/{z}/{x}/{y}.png', {
-      opacity: 0.8,
-      attribution: '&copy; OpenSkiMap'
-    });
+    const hiking = L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png', { opacity: 0.9, attribution: 'Hiking overlay &copy; waymarkedtrails.org' });
+    const hillshade = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', { opacity: 0.55, attribution: 'Hillshade &copy; Esri' });
+    const railways = L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { opacity: 0.6, attribution: '&copy; OpenRailwayMap contributors' });
+    const ski = L.tileLayer('https://tiles.openskimap.org/openskimap/{z}/{x}/{y}.png', { opacity: 0.8, attribution: '&copy; OpenSkiMap' });
 
     // ---------- Map init ----------
-    const map = L.map('map', {
-      center: [42.7339, 25.4858],
-      zoom: 7,
-      layers: [opentopo] // по подразбиране детайлен терен
-    });
-
-    // Scale control
+    const map = L.map('map', { center: [42.7339, 25.4858], zoom: 7, layers: [opentopo] });
     L.control.scale({ metric: true, imperial: false }).addTo(map);
 
     const baseLayers = {
@@ -196,23 +184,64 @@
       'ЖП линии (OpenRailwayMap)': railways,
       'Ски курорти (OpenSkiMap)': ski
     };
-    const layerCtl = L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+
+    // Позиционираме панела долу вдясно, за да не се засича с auth бара
+    const layerCtl = L.control.layers(baseLayers, overlays, { collapsed: true, position: 'bottomright' }).addTo(map);
+
+    // Достъп до елемента и анимационно скриване/показване + запомняне в localStorage
+    function getLayersPanelEl() {
+      const el = document.querySelector('.leaflet-control-layers');
+      if (el && !el.classList.contains('tmap-layers-panel')) {
+        el.classList.add('tmap-layers-panel');
+      }
+      return el;
+    }
+    function applyLayersVisibilityFromStorage() {
+      const el = getLayersPanelEl();
+      if (!el) return;
+      const hidden = localStorage.getItem('tmap_layers_hidden') === '1';
+      el.classList.toggle('tmap-hidden', hidden);
+    }
+    function toggleLayersVisibility() {
+      const el = getLayersPanelEl();
+      if (!el) return;
+      const nowHidden = !el.classList.toggle('tmap-hidden'); // toggle returns boolean if class present after op; we want inverse
+      // Correction of logic: compute hidden = el.classList.contains('tmap-hidden')
+      const hidden = el.classList.contains('tmap-hidden');
+      localStorage.setItem('tmap_layers_hidden', hidden ? '1' : '0');
+    }
+
+    // Контрол – бутон „Слоеве“ за show/hide
+    const LayersToggle = L.Control.extend({
+      options: { position: 'bottomright' },
+      onAdd: function(map) {
+        const container = L.DomUtil.create('div', 'leaflet-control tmap-layers-toggle');
+        const btn = L.DomUtil.create('button', '', container);
+        btn.type = 'button';
+        btn.title = 'Покажи/скрий панела за слоеве';
+        btn.innerHTML = 'Слоеве';
+        L.DomEvent.disableClickPropagation(container);
+        btn.addEventListener('click', function(e){ e.preventDefault(); toggleLayersVisibility(); });
+        return container;
+      }
+    });
+    map.addControl(new LayersToggle());
 
     // Пресети за удобство
     document.getElementById('presetTerrain').addEventListener('click', () => {
-      map.eachLayer(l => { if (l instanceof L.TileLayer) map.removeLayer(l); });
-      opentopo.addTo(map); hillshade.addTo(map); hiking.addTo(map);
+      [opentopo, hillshade, hiking].forEach(l => !map.hasLayer(l) && l.addTo(map));
+      [esriSat, osm, positron, cyclOSM, railways, ski].forEach(l => map.hasLayer(l) && ![hillshade, hiking].includes(l) && map.removeLayer(l));
     });
     document.getElementById('presetSatellite').addEventListener('click', () => {
-      map.eachLayer(l => { if (l instanceof L.TileLayer) map.removeLayer(l); });
-      esriSat.addTo(map); hillshade.addTo(map);
+      [esriSat, hillshade].forEach(l => !map.hasLayer(l) && l.addTo(map));
+      [opentopo, osm, positron, cyclOSM, hiking, railways, ski].forEach(l => map.hasLayer(l) && map.removeLayer(l));
     });
     document.getElementById('presetBike').addEventListener('click', () => {
-      map.eachLayer(l => { if (l instanceof L.TileLayer) map.removeLayer(l); });
-      cyclOSM.addTo(map); railways.addTo(map);
+      [cyclOSM, railways].forEach(l => !map.hasLayer(l) && l.addTo(map));
+      [opentopo, esriSat, osm, positron, hiking, hillshade, ski].forEach(l => map.hasLayer(l) && map.removeLayer(l));
     });
 
-    // ---------- Маркери, посещения, коментари (от съществуващия код) ----------
+    // ---------- Останалите функции (маркери, посещения, коментари, realtime) ----------
     const ICON_URL = 'logo01082025.svg';
     const customIcon = L.icon({ iconUrl: ICON_URL, iconSize: [52, 52], iconAnchor: [26, 48], popupAnchor: [0, -40], className: 'tmap-pin' });
 
@@ -416,10 +445,13 @@
       }, { passive: true });
     }
 
+    // Старт
     (async function init() {
       await refreshAuthUI();
       await loadObjects();
       subscribeRealtime();
+      // Приложи видимостта на панела според localStorage (по подразбиране: видим)
+      applyLayersVisibilityFromStorage();
     })();
   </script>
 </body>
