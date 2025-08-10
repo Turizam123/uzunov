@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>T‑MAP Chat — Google Sign‑In</title>
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .nice-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+    .nice-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <!-- Auth Gate: visible only when NOT authenticated -->
+  <section id="authGate" class="min-h-screen grid place-items-center p-6 hidden">
+    <div class="w-full max-w-md bg-white rounded-2xl border shadow-sm p-6 space-y-4">
+      <div class="flex items-center gap-3">
+        <div class="p-2 rounded-xl bg-slate-900 text-white"><i data-lucide="message-square" class="w-5 h-5"></i></div>
+        <h1 class="text-xl font-semibold">Вход в T‑MAP чата</h1>
+      </div>
+      <p class="text-sm text-slate-500">Влезте с вашия Google акаунт (Gmail), за да участвате в публичния чат и да изпращате директни съобщения.</p>
+      <button id="googleBtn" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-900 text-white hover:bg-slate-700">
+        <i data-lucide="mail" class="w-5 h-5"></i>
+        Вход с Google
+      </button>
+      <p class="text-xs text-slate-400">С влизането си се съгласявате съобщенията ви да са видими в публичния чат за определен период.</p>
+    </div>
+  </section>
+
+  <!-- App wrapper (visible when authenticated) -->
+  <div id="app" class="min-h-screen grid md:grid-cols-[300px,1fr] hidden">
+    <!-- Sidebar: identity + active users -->
+    <aside class="border-r border-slate-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div class="p-4 flex items-center gap-3 border-b">
+        <img id="meAvatar" class="w-10 h-10 rounded-full ring-2 ring-slate-200" alt="avatar" src=""/>
+        <div class="truncate">
+          <div id="meName" class="font-semibold">—</div>
+          <div class="text-xs text-slate-500">UID <span id="meId">—</span></div>
+        </div>
+        <button id="signOutBtn" class="ml-auto px-3 py-1.5 text-sm rounded-xl border hover:bg-slate-50">Изход</button>
+      </div>
+
+      <div class="p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Активни потребители</h2>
+          <span id="activeCount" class="text-xs text-slate-400">0</span>
+        </div>
+        <div id="usersList" class="nice-scroll overflow-y-auto max-h-[calc(100vh-220px)] pr-1 space-y-1"></div>
+      </div>
+
+      <div class="px-4 pb-4 mt-auto">
+        <button id="clearChatBtn" class="w-full text-sm px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 hidden">Изчисти чата (админ)</button>
+      </div>
+    </aside>
+
+    <!-- Main chat -->
+    <main class="relative flex flex-col min-h-screen">
+      <!-- Top bar -->
+      <header class="sticky top-0 z-10 flex items-center gap-3 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4 py-3">
+        <button id="roomBtn" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-sm">
+          <span id="roomLabel">Обща стая</span>
+          <i data-lucide="chevron-down" class="w-4 h-4"></i>
+        </button>
+        <div id="roomSub" class="text-xs text-slate-500 truncate">Публичен чат на T‑MAP</div>
+        <div id="connChip" class="ml-auto text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Онлайн</div>
+      </header>
+
+      <!-- Messages -->
+      <section id="messages" class="flex-1 nice-scroll overflow-y-auto px-4 py-4 space-y-3"></section>
+
+      <!-- Typing -->
+      <div id="typing" class="px-4 text-xs text-slate-500 h-5"></div>
+
+      <!-- Composer -->
+      <div class="sticky bottom-0 z-10 border-t bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+        <form id="composer" class="px-3 py-3 flex items-end gap-2">
+          <label class="shrink-0 cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-50">
+            <input id="imageInput" type="file" accept="image/*" class="hidden" />
+            <i data-lucide="image" class="w-5 h-5"></i>
+            <span class="text-sm">Изображение</span>
+          </label>
+          <textarea id="messageInput" rows="1" placeholder="Напишете съобщение…" class="flex-1 resize-none rounded-2xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white"></textarea>
+          <button type="submit" class="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 text-white hover:bg-slate-700">
+            <i data-lucide="send" class="w-5 h-5"></i>
+            Изпрати
+          </button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <!-- Room switcher popover -->
+  <dialog id="roomDialog" class="rounded-2xl p-0 w-[92vw] max-w-sm shadow-2xl">
+    <div class="bg-white rounded-2xl overflow-hidden">
+      <div class="p-4 border-b font-semibold">Избор на стая</div>
+      <div class="p-2">
+        <button data-room="public" class="roomBtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50">Обща стая</button>
+        <div class="px-3 pt-2 text-xs text-slate-500">Директни съобщения</div>
+        <div id="dmList" class="max-h-60 overflow-y-auto nice-scroll"></div>
+      </div>
+      <div class="p-3 border-t text-right">
+        <button class="px-3 py-1.5 rounded-xl border" onclick="roomDialog.close()">Затвори</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Audio for new messages -->
+  <audio id="ping" preload="auto">
+    <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" type="audio/mpeg">
+  </audio>
+
+  <script>
+    // ======= CONFIG =======
+    const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co"; // потвърдено
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8"; // поставете вашия anon ключ
+
+    // Опционално: Edge Function за чистене на стари съобщения
+    const CLEANUP_EDGE_FUNCTION_URL = ""; // напр. https://tmapchat.supabase.co/functions/v1/cleanup
+
+    // Настройки
+    const TTL_HOURS = 10; // UI филтър за видимост
+    const HEARTBEAT_SEC = 30; // колко често да обновяваме last_seen_at
+    const ONLINE_WINDOW_MS = 70 * 1000; // 70 сек. прозорец за "онлайн"
+    const ADMIN_USER_ID = "SET_ADMIN_USER_ID"; // поставете вашето Supabase auth user.id за админ
+
+    // ======= INIT =======
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true },
+      realtime: { params: { eventsPerSecond: 5 } }
+    });
+
+    const state = {
+      user: null, // Supabase auth user
+      me: { name: "", avatar_url: "" },
+      room: { type: "public", peer: null }, // type: public | dm, peer: {id, name, avatar_url}
+      messages: new Map(),
+      connected: true,
+      typingPeers: new Map(),
+    };
+
+    // UI refs
+    const authGate = document.getElementById('authGate');
+    const googleBtn = document.getElementById('googleBtn');
+    const appEl = document.getElementById('app');
+    const messagesEl = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+    const imageInput = document.getElementById('imageInput');
+    const composer = document.getElementById('composer');
+    const typingEl = document.getElementById('typing');
+    const meAvatar = document.getElementById('meAvatar');
+    const meName = document.getElementById('meName');
+    const meId = document.getElementById('meId');
+    const activeCount = document.getElementById('activeCount');
+    const usersList = document.getElementById('usersList');
+    const dmList = document.getElementById('dmList');
+    const ping = document.getElementById('ping');
+    const connChip = document.getElementById('connChip');
+    const roomBtn = document.getElementById('roomBtn');
+    const roomDialog = document.getElementById('roomDialog');
+    const roomLabel = document.getElementById('roomLabel');
+    const roomSub = document.getElementById('roomSub');
+    const clearChatBtn = document.getElementById('clearChatBtn');
+    const signOutBtn = document.getElementById('signOutBtn');
+
+    // ======= Auth flow =======
+    boot();
+    async function boot(){
+      const { data } = await sb.auth.getUser();
+      if (data?.user){
+        await onLoggedIn(data.user);
+      } else {
+        showAuthGate(true);
+      }
+    }
+
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) await onLoggedIn(session.user);
+      else showAuthGate(true);
+    });
+
+    function showAuthGate(show){
+      authGate.classList.toggle('hidden', !show);
+      appEl.classList.toggle('hidden', show);
+    }
+
+    googleBtn.addEventListener('click', async () => {
+      await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'openid email profile',
+          redirectTo: location.href
+        }
+      });
+    });
+
+    signOutBtn.addEventListener('click', async () => {
+      await sb.auth.signOut();
+      location.reload();
+    });
+
+    async function onLoggedIn(user){
+      state.user = user;
+      const meta = user.user_metadata || {};
+      state.me = {
+        name: meta.full_name || meta.name || user.email?.split('@')[0] || 'Потребител',
+        avatar_url: meta.avatar_url || meta.picture || ''
+      };
+      renderMe();
+      showAuthGate(false);
+      await startApp();
+    }
+
+    function renderMe(){
+      meAvatar.src = state.me.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(state.me.name)}&background=0D9488&color=fff`;
+      meName.textContent = state.me.name || '—';
+      meId.textContent = (state.user?.id || '').slice(0,8);
+      clearChatBtn.classList.toggle('hidden', state.user?.id !== ADMIN_USER_ID);
+    }
+
+    // ======= App start =======
+    async function startApp(){
+      await upsertPresence();
+      heartbeat();
+      subscribePresence();
+      subscribeMessages();
+      subscribeConnection();
+      loadMessages();
+      renderRoomHeader();
+    }
+
+    // ======= Presence (online_users) =======
+    async function upsertPresence(){
+      const { error } = await sb.from('online_users').upsert({
+        id: state.user.id,
+        username: state.me.name,
+        avatar: state.me.avatar_url,
+        last_seen_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+      if (error) console.warn('presence upsert error', error);
+    }
+
+    async function heartbeat(){
+      await upsertPresence();
+      setTimeout(heartbeat, HEARTBEAT_SEC * 1000);
+    }
+
+    function subscribePresence(){
+      refreshUsers();
+      sb.channel('online_users_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'online_users' }, () => refreshUsers())
+        .subscribe();
+    }
+
+    async function refreshUsers(){
+      const { data, error } = await sb.from('online_users')
+        .select('*')
+        .order('last_seen_at', { ascending: false })
+        .limit(200);
+      if (error) return console.warn(error);
+
+      const onlineCount = (data || []).filter(u => isOnline(u.last_seen_at)).length;
+      activeCount.textContent = onlineCount;
+
+      usersList.innerHTML = '';
+      dmList.innerHTML = '';
+      for (const u of data){
+        const isMe = u.id === state.user.id;
+        const online = isOnline(u.last_seen_at);
+        const el = document.createElement('button');
+        el.className = 'w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50 text-left';
+        el.innerHTML = `
+          <img src="${escapeHtml(u.avatar || '')}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/>
+          <div class="min-w-0">
+            <div class="font-medium truncate">${escapeHtml(u.username || 'Потребител')}</div>
+            <div class="text-xs ${online ? 'text-emerald-600' : 'text-slate-400'}">${online ? 'онлайн' : 'офлайн'}</div>
+          </div>
+          ${isMe ? '<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>' : ''}
+        `;
+        if (!isMe){ el.addEventListener('click', () => switchToDM(u)); } else { el.disabled = true; }
+        usersList.appendChild(el);
+
+        if (!isMe){
+          const dmBtn = document.createElement('button');
+          dmBtn.className = 'roomBtn w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 flex items-center gap-3';
+          dmBtn.dataset.room = `dm:${u.id}`;
+          dmBtn.innerHTML = `<img src="${escapeHtml(u.avatar || '')}" class="w-6 h-6 rounded-full"/> <span>${escapeHtml(u.username || 'Потребител')}</span>`;
+          dmBtn.addEventListener('click', () => { roomDialog.close(); switchToDM(u); });
+          dmList.appendChild(dmBtn);
+        }
+      }
+    }
+
+    function switchToDM(peer){
+      state.room = { type: 'dm', peer: { user_id: peer.id, name: peer.username, avatar_url: peer.avatar } };
+      state.messages.clear();
+      messagesEl.innerHTML = '';
+      renderRoomHeader();
+      loadMessages();
+    }
+
+    function switchToPublic(){
+      state.room = { type: 'public', peer: null };
+      state.messages.clear();
+      messagesEl.innerHTML = '';
+      renderRoomHeader();
+      loadMessages();
+    }
+
+    // ======= Messages =======
+    function roomFilter(){
+      if (state.room.type === 'public') return { recipient_id: null };
+      const a = state.user.id; const b = state.room.peer.user_id;
+      return { or: `and(sender_id.eq.${a},recipient_id.eq.${b}),and(sender_id.eq.${b},recipient_id.eq.${a})` };
+    }
+
+    async function loadMessages(){
+      const now = new Date();
+      const cutoff = new Date(now.getTime() - TTL_HOURS * 3600 * 1000).toISOString();
+      let query = sb.from('messages').select('*').gt('created_at', cutoff).order('created_at', { ascending: true }).limit(500);
+      const f = roomFilter();
+      if ('recipient_id' in f) query = query.is('recipient_id', null);
+      else query = query.or(f.or);
+
+      const { data, error } = await query;
+      if (error) return console.warn('loadMessages', error);
+      for (const msg of data){ state.messages.set(msg.id, msg); renderMessage(msg); }
+      scrollToBottom();
+    }
+
+    function subscribeMessages(){
+      sb.channel('realtime:messages')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+          const msg = payload.new;
+          if (!isMessageInCurrentRoom(msg)) return;
+          if (isExpired(msg.created_at)) return;
+          state.messages.set(msg.id, msg);
+          renderMessage(msg);
+          if (msg.sender_id !== state.user.id) ping.play().catch(()=>{});
+          maybeTrimViewport();
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
+          const msg = payload.new;
+          if (!state.messages.has(msg.id)) return;
+          state.messages.set(msg.id, msg);
+          const el = document.getElementById('msg-' + msg.id);
+          if (el) el.outerHTML = messageHtml(msg);
+        })
+        .subscribe();
+
+      // Typing via broadcast
+      sb.channel('typing')
+        .on('broadcast', { event: 'typing' }, ({ payload }) => {
+          if (!payload) return;
+          const { from, to, name } = payload;
+          if (!isTypingRelevant(to, from)) return;
+          state.typingPeers.set(from, { name, ts: Date.now() });
+          renderTyping();
+        })
+        .subscribe();
+
+      // remove stale typing indicators
+      setInterval(() => {
+        const now = Date.now();
+        for (const [k, v] of state.typingPeers.entries()){
+          if (now - v.ts > 2200) state.typingPeers.delete(k);
+        }
+        renderTyping();
+      }, 1200);
+    }
+
+    function isTypingRelevant(to, from){
+      if (to === 'public' && state.room.type === 'public') return true;
+      if (state.room.type === 'dm' && to === state.user.id && from === state.room.peer?.user_id) return true;
+      return false;
+    }
+
+    function subscribeConnection(){
+      setInterval(async () => {
+        const { error } = await sb.from('online_users').select('count').limit(1);
+        setConnected(!error);
+      }, 5000);
+    }
+
+    function setConnected(ok){
+      state.connected = ok;
+      connChip.textContent = ok ? 'Онлайн' : 'Офлайн';
+      connChip.className = 'ml-auto text-xs px-2 py-1 rounded-full ' + (ok ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700');
+    }
+
+    function isMessageInCurrentRoom(msg){
+      if (state.room.type === 'public') return msg.recipient_id === null;
+      const a = state.user.id; const b = state.room.peer?.user_id;
+      return (msg.sender_id === a && msg.recipient_id === b) || (msg.sender_id === b && msg.recipient_id === a);
+    }
+
+    function isExpired(iso){
+      return new Date(iso).getTime() < Date.now() - TTL_HOURS*3600*1000;
+    }
+
+    function renderMessage(msg){
+      const el = document.createElement('div');
+      el.id = 'msg-' + msg.id;
+      el.innerHTML = messageHtml(msg);
+      messagesEl.appendChild(el);
+    }
+
+    function messageHtml(msg){
+      const mine = msg.sender_id === state.user.id;
+      const liked_by = msg.liked_by || [];
+      const liked = liked_by.includes(state.user.id);
+      const time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+      const name = escapeHtml(msg.sender_name || '');
+      const content = linkify(escapeHtml(msg.content || ''));
+      const image = msg.image_url ? `<a href="${escapeHtml(msg.image_url)}" target="_blank"><img src="${escapeHtml(msg.image_url)}" class="max-w-xs rounded-xl border" loading="lazy"/></a>` : '';
+      return `
+        <div class="flex items-start gap-3 ${mine ? 'justify-end' : ''}">
+          ${mine ? '' : `<img src="${escapeHtml(msg.sender_avatar || '')}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/>`}
+          <div class="max-w-[80%] ${mine ? 'bg-slate-900 text-white' : 'bg-white'} rounded-2xl px-4 py-3 shadow-sm border ${mine ? 'border-slate-900' : 'border-slate-200'}">
+            ${mine ? '' : `<div class="text-xs font-medium mb-1 text-slate-500">${name}</div>`}
+            ${msg.content ? `<div class="whitespace-pre-wrap leading-relaxed">${content}</div>` : ''}
+            ${image}
+            <div class="mt-2 flex items-center gap-3 text-xs ${mine ? 'text-slate-200' : 'text-slate-500'}">
+              <button class="inline-flex items-center gap-1 ${liked ? 'font-semibold' : ''}" onclick="toggleLike('${msg.id}')">❤ <span>${liked_by.length}</span></button>
+              <span>${time}</span>
+            </div>
+          </div>
+          ${mine ? `<img src="${escapeHtml(msg.sender_avatar || '')}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/>` : ''}
+        </div>`;
+    }
+
+    async function toggleLike(id){
+      const row = state.messages.get(id);
+      if (!row) return;
+      const arr = Array.isArray(row.liked_by) ? [...row.liked_by] : [];
+      const idx = arr.indexOf(state.user.id);
+      if (idx === -1) arr.push(state.user.id); else arr.splice(idx,1);
+      const { error } = await sb.rpc('toggle_like', { p_msg_id: id });
+      if (error) alert('Грешка при харесване: ' + error.message);
+    }
+
+    function renderTyping(){
+      const names = [...state.typingPeers.values()].map(v => v.name).slice(0,3);
+      typingEl.textContent = names.length ? `${names.join(', ')} пише…` : '';
+    }
+
+    function renderRoomHeader(){
+      if (state.room.type === 'public'){
+        roomLabel.textContent = 'Обща стая';
+        roomSub.textContent = 'Публичен чат на T‑MAP';
+      } else {
+        roomLabel.textContent = `Чат с ${state.room.peer.name}`;
+        roomSub.textContent = 'Директни съобщения';
+      }
+    }
+
+    // ======= Send message =======
+    composer.addEventListener('submit', async (e) => { e.preventDefault(); await sendMessage(); });
+
+    let typingTimer = null;
+    messageInput.addEventListener('input', () => { autoResize(messageInput); broadcastTyping(); });
+    imageInput.addEventListener('change', async () => { await sendMessage(); });
+
+    async function broadcastTyping(){
+      clearTimeout(typingTimer);
+      sb.channel('typing').send({ type: 'broadcast', event: 'typing', payload: {
+        from: state.user.id,
+        to: state.room.type === 'public' ? 'public' : state.room.peer.user_id,
+        name: state.me.name
+      }});
+      typingTimer = setTimeout(()=>{}, 1500);
+    }
+
+    async function sendMessage(){
+      const text = messageInput.value.trim();
+      const file = imageInput.files?.[0];
+      if (!text && !file) return;
+
+      let image_url = null;
+      if (file){
+        const path = `${state.user.id}/${Date.now()}_${file.name.replace(/[^a-z0-9_.-]/gi,'_')}`;
+        const up = await sb.storage.from('chat').upload(path, file, { upsert: false });
+        if (up.error) { alert('Грешка при качване на изображение'); return; }
+        const pub = sb.storage.from('chat').getPublicUrl(path);
+        image_url = pub.data.publicUrl;
+        imageInput.value = '';
+      }
+
+      const payload = {
+        sender_id: state.user.id,
+        sender_name: state.me.name,
+        sender_avatar: state.me.avatar_url,
+        recipient_id: state.room.type === 'public' ? null : state.room.peer.user_id,
+        content: text || null,
+        image_url,
+        liked_by: [],
+        created_at: new Date().toISOString()
+      };
+
+      messageInput.value = '';
+      autoResize(messageInput);
+
+      const { error } = await sb.from('messages').insert(payload);
+      if (error) alert('Грешка при изпращане: ' + error.message);
+    }
+
+    // ======= Clear chat (admin) =======
+    clearChatBtn.addEventListener('click', async () => {
+      if (state.user?.id !== ADMIN_USER_ID) return alert('Нямате права.');
+      if (!confirm('Сигурни ли сте, че искате да изчистите публичния чат?')) return;
+      if (CLEANUP_EDGE_FUNCTION_URL){
+        try { await fetch(CLEANUP_EDGE_FUNCTION_URL, { method: 'POST' }); alert('Заявка за почистване е изпратена.'); }
+        catch(e){ alert('Грешка при извикване на функция.'); }
+      } else {
+        const { error } = await sb.from('messages').delete().is('recipient_id', null);
+        if (error) alert('Грешка: ' + error.message); else alert('Чатът е изчистен.');
+      }
+    });
+
+    // ======= Helpers =======
+    function isOnline(lastSeen){
+      return new Date(lastSeen).getTime() > Date.now() - ONLINE_WINDOW_MS;
+    }
+    function linkify(text){
+      const urlRe = new RegExp('https?:\/\/[^\s]+','g');
+      return text.replace(urlRe, (u) => `<a href="${u}" class="underline" target="_blank" rel="noopener">${u}</a>`);
+    }
+    function escapeHtml(s){
+      return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+    }
+    function scrollToBottom(){ messagesEl.scrollTop = messagesEl.scrollHeight; }
+    function maybeTrimViewport(){ if (messagesEl.children.length > 600) messagesEl.removeChild(messagesEl.firstChild); }
+    function autoResize(el){ el.style.height = 'auto'; el.style.height = Math.min(120, el.scrollHeight) + 'px'; }
+
+    // Room switcher
+    roomBtn.addEventListener('click', () => roomDialog.showModal());
+    document.querySelectorAll('.roomBtn[data-room="public"]').forEach(btn => btn.addEventListener('click', () => { roomDialog.close(); switchToPublic(); }));
+
+    // Cleanup trigger (optional)
+    async function triggerCleanup(){ if (!CLEANUP_EDGE_FUNCTION_URL) return; try { await fetch(CLEANUP_EDGE_FUNCTION_URL, { method: 'POST' }); } catch {} }
+    setInterval(triggerCleanup, 15*60*1000);
+
+    // hydrate icons
+    lucide.createIcons();
+  </script>
+
+  <!--
+  =====================
+  РЕФЕРЕНТНИ СХЕМИ (Supabase) — ползваме вашите таблици
+  =====================
+
+  Таблица: online_users (вашата)
+    id uuid primary key default gen_random_uuid()
+    username text
+    avatar text
+    last_seen_at timestamptz default now()
+
+  RLS (пример):
+  alter table public.online_users enable row level security;
+  create policy "online_users select" on public.online_users for select using (auth.role() = 'authenticated');
+  create policy "online_users insert self" on public.online_users for insert with check (id = auth.uid());
+  create policy "online_users update self" on public.online_users for update using (id = auth.uid()) with check (id = auth.uid());
+
+  Таблица: messages (както в кода)
+    id uuid pk default gen_random_uuid()
+    sender_id uuid not null
+    sender_name text
+    sender_avatar text
+    recipient_id uuid
+    content text
+    image_url text
+    liked_by uuid[] default '{}'
+    created_at timestamptz default now()
+
+  RLS за messages (secure с RPC):
+  alter table public.messages enable row level security;
+  create policy "messages select" on public.messages for select using (auth.role() = 'authenticated');
+  create policy "messages insert self" on public.messages for insert with check (sender_id = auth.uid());
+  create policy "messages update own" on public.messages for update using (sender_id = auth.uid()) with check (sender_id = auth.uid());
+
+  -- RPC функция за лайкове
+  create or replace function public.toggle_like(p_msg_id uuid)
+  returns void
+  language sql
+  security definer
+  set search_path = public
+  as $$
+    update public.messages m
+    set liked_by = case
+      when array_position(m.liked_by, auth.uid()) is null
+        then array_append(m.liked_by, auth.uid())
+      else array_remove(m.liked_by, auth.uid())
+    end
+    where m.id = p_msg_id;
+  $$;
+
+  revoke all on function public.toggle_like(uuid) from public;
+  grant execute on function public.toggle_like(uuid) to authenticated;
+
+  В клиента: sb.rpc('toggle_like', { p_msg_id: <uuid> });
+
+  Realtime: активирайте го за online_users и messages.
+
+  pg_cron cleanup (ако ползвате):
+  select cron.schedule('clean_old_messages','*/10 * * * *', $$ delete from public.messages where created_at < (now() - interval '1 hour'); $$);
+  -->
+</body>
+</html>
