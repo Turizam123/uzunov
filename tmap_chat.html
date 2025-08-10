@@ -6,7 +6,7 @@
   <title>T‑MAP Chat — simple</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Twemoji: надеждни емоджита (SVG), работят на всички устройства -->
+  <!-- Twemoji: надеждни емоджита (SVG) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js" crossorigin="anonymous"></script>
   <style>
     html { scroll-behavior: smooth; }
@@ -16,12 +16,11 @@
     .emoji-panel{position:absolute;bottom:72px;left:12px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 30px rgba(2,6,23,.08);padding:10px;width:min(90vw,360px);max-height:260px;overflow:auto;display:grid;grid-template-columns:repeat(8, minmax(0,1fr));gap:6px}
     .emoji-btn{font-size:22px;line-height:1;padding:8px;border-radius:12px;display:grid;place-items:center}
     .emoji-btn:hover{background:#f1f5f9}
-    /* Twemoji икони да стоят на линията */
-    img.emoji, img.twemoji{height:1.25em;width:1.25em;vertical-align:-0.2em}
+    img.twemoji{height:1.25em;width:1.25em;vertical-align:-0.2em}
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
-  <!-- AUTH GATE -->
+  <!-- AUTH -->
   <section id="auth" class="min-h-screen grid place-items-center p-6 hidden">
     <div class="w-full max-w-sm bg-white border rounded-2xl shadow-sm p-6 space-y-4">
       <h1 class="text-xl font-semibold">Вход в чата</h1>
@@ -66,6 +65,9 @@
         <button class="px-4 py-3 rounded-2xl bg-slate-900 text-white">Изпрати</button>
         <div id="emojiPanel" class="emoji-panel hidden"></div>
       </form>
+
+      <!-- Toast -->
+      <div id="toast" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-lg text-sm"></div>
     </main>
   </div>
 
@@ -77,11 +79,12 @@
     const HEARTBEAT_SEC = 20;
     const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
-    const { createClient } = supabase; 
+    const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true } });
 
     const S = { user:null, me:{name:"", avatar:""}, messages:new Map() };
     const EMOJIS = "😀😁😂🤣😊😍😘😎🤩😇😉🙂🙃😐😑😴🤔🤨😮😢😭😡👍👎👏🙏🔥✨🎉❤️💙💚💛🧡💜🤍🤎".split("");
+    let lastMsgAt = 0;
 
     // DOM
     const $auth = document.getElementById('auth');
@@ -100,6 +103,7 @@
     const $btnEmoji = document.getElementById('btnEmoji');
     const $emojiPanel = document.getElementById('emojiPanel');
     const $menu = document.getElementById('menu');
+    const $toast = document.getElementById('toast');
 
     // mobile menu toggle
     $menu?.addEventListener('click', ()=>{
@@ -179,6 +183,7 @@
       $messages.innerHTML=''; S.messages.clear();
       (data||[]).forEach(m=>{ S.messages.set(m.id, m); renderMessage(m); });
       renderTwemoji($messages);
+      if (data && data.length){ lastMsgAt = Date.parse(data[data.length-1].created_at||new Date()); }
       $messages.scrollTop = $messages.scrollHeight;
     }
 
@@ -190,6 +195,7 @@
           renderMessage(row);
           renderTwemoji(document.getElementById('msg-'+row.id));
           $messages.scrollTop=$messages.scrollHeight;
+          lastMsgAt = Math.max(lastMsgAt, Date.parse(row.created_at||new Date()));
           notifyIfNeeded(row);
         })
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'messages' }, ({new:row})=>{
@@ -248,45 +254,70 @@
 
     // Emoji picker + Twemoji
     function initEmoji(){
-      $emojiPanel.innerHTML = EMOJIS.map(e=>`<button type="button" class="emoji-btn">${e}</button>`).join('');
-      renderTwemoji($emojiPanel);
+      const base='https://twemoji.maxcdn.com/v/latest/svg/';
+      $emojiPanel.innerHTML = EMOJIS.map(e=>{
+        const cp = (window.twemoji?.convert?.toCodePoint(e) || toCodePoint(e));
+        return `<button type="button" class="emoji-btn" data-e="${e}"><img class="twemoji" src="${base}${cp}.svg" alt="${e}"/></button>`;
+      }).join('');
       $btnEmoji.addEventListener('click', ()=>{ $emojiPanel.classList.toggle('hidden'); });
-      $emojiPanel.addEventListener('click', (e)=>{ const btn=e.target.closest('.emoji-btn'); if(btn){ $input.value += btn.textContent; $input.focus(); autoResize($input); } });
+      $emojiPanel.addEventListener('click', (e)=>{ const btn=e.target.closest('.emoji-btn'); if(btn){ $input.value += btn.dataset.e; $input.focus(); autoResize($input); } });
       document.addEventListener('click', (e)=>{ if(!e.composedPath().includes($emojiPanel) && !e.composedPath().includes($btnEmoji)) $emojiPanel.classList.add('hidden'); });
     }
 
-    // Notifications & sound
+    // ===== Notifications =====
     function enableNotifications(){
       if ('Notification' in window && Notification.permission==='default'){
         try{ Notification.requestPermission(); }catch(e){}
       }
       document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) clearUnread(); });
     }
+
     let audioCtx;
     function beep(){
-      try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(audioCtx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.2); o.stop(audioCtx.currentTime+0.2);}catch(e){}
+      try{
+        audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+        const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+        o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(audioCtx.destination);
+        o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.2); o.stop(audioCtx.currentTime+0.2);
+      }catch(e){}
     }
+
+    function vibrate(){ try{ navigator.vibrate && navigator.vibrate([25, 30, 25]); }catch(_){} }
+
+    function showToast(text){
+      if(!$toast) return; $toast.textContent = text; $toast.classList.remove('hidden');
+      setTimeout(()=>{ $toast.classList.add('hidden'); }, 2500);
+    }
+
     function markUnread(){ const b=document.getElementById('unread'); b&&b.classList.remove('hidden'); document.title='• Нови - T‑MAP Chat'; }
     function clearUnread(){ const b=document.getElementById('unread'); b&&b.classList.add('hidden'); document.title='T‑MAP Chat — simple'; }
+
     function notifyIfNeeded(m){
       if(!S.user) return; const name = m.sender_name || m.username || 'Новo съобщение';
       const mine = m.sender_id ? (m.sender_id===S.user.id) : (name===S.me.name);
       if (mine) return;
-      beep();
+      // звук + вибрация
+      beep(); vibrate();
       if (document.hidden){
         markUnread();
         if ('Notification' in window && Notification.permission==='granted'){
           try{ const n=new Notification('T‑MAP чат', { body: `${name}: ${(m.content||'').slice(0,100)}`, icon: m.sender_avatar || m.avatar || undefined }); setTimeout(()=>n.close(),5000); }catch(e){}
         }
+      } else {
+        showToast(`${name}: ${(m.content||'').slice(0,80)}`);
       }
     }
+
+    // fallback poller (ако Realtime е блокиран)
+    setInterval(async()=>{ try{ const { data, error } = await sb.from('messages').select('created_at').order('created_at',{ascending:false}).limit(1); if(!error && data && data[0]){ const ts=Date.parse(data[0].created_at); if(ts>lastMsgAt){ await loadMessages(); } } }catch(e){} }, 7000);
 
     // connection ping
     setInterval(async()=>{ const { error } = await sb.from('online_users').select('count').limit(1); $conn.textContent = error? 'Офлайн' : 'Онлайн'; $conn.className = 'ml-auto text-xs px-2 py-1 rounded-full ' + (error?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'); }, 5000);
 
-    // helpers
+    // Helpers
     function avatarUrl(name, url){ return url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name||'U')}&background=0D9488&color=fff`; }
     function renderTwemoji(el){ try{ if (window.twemoji) twemoji.parse(el||document.body,{folder:'svg',ext:'.svg'}); }catch(_){} }
+    function toCodePoint(str){ try{ return Array.from(str).map(s=>s.codePointAt(0).toString(16)).join('-'); }catch(_){ return ''; } }
     function esc(s){return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
     function linkify(t){return t.replace(/https?:\/\/[^\s]+/g,u=>`<a class='underline' target='_blank' rel='noopener' href='${u}'>${u}</a>`);}  
     function formatTime(iso){ try{ const d=new Date(iso); return d.toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return ''; } }
