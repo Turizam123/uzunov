@@ -69,12 +69,13 @@
     const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
 
-    // presence
-    const HEARTBEAT_SEC = 20;                 // на колко време да пишем last_seen_at
-    const ONLINE_WINDOW_MS = 5 * 60 * 1000;   // считаме за онлайн до 5 мин след последната активност
+    const HEARTBEAT_SEC = 20;
+    const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
     // ===== INIT =====
-    const { createClient } = supabase; const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true } });
+    const { createClient } = supabase; 
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true } });
+
     const S = { user:null, me:{name:"", avatar:""}, messages:new Map() };
     const EMOJIS = "😀😁😂🤣😊😍😘😎🤩😇😉🙂🙃😐😑😴🤔🤨😮😢😭😡👍👎👏🙏🔥✨🎉❤️💙💚💛🧡💜🤍🤎".split("");
 
@@ -108,14 +109,9 @@
       await sb.auth.signInWithOAuth({ provider:'google', options:{ scopes:'openid email profile', redirectTo: `${location.origin}${location.pathname}` } });
     });
 
-    // Sign out: маркираме офлайн и чистим сесията
     $btnSignOut.addEventListener('click', async ()=>{
-      if (S.user){
-        await sb.from('online_users').update({ last_seen_at: new Date(Date.now()-10*60*1000).toISOString() }).eq('id', S.user.id);
-      }
-      await sb.auth.signOut();
-      S.user=null; S.me={name:"",avatar:""};
-      showAuth(true);
+      if (S.user){ await sb.from('online_users').update({ last_seen_at: new Date(Date.now()-10*60*1000).toISOString() }).eq('id', S.user.id); }
+      await sb.auth.signOut(); S.user=null; S.me={name:"",avatar:""}; showAuth(true);
     });
 
     async function onLoggedIn(user){
@@ -123,8 +119,7 @@
       const m = user.user_metadata||{};
       S.me = { name: m.full_name || m.name || (user.email||'').split('@')[0] || 'Потребител', avatar: m.avatar_url || m.picture || '' };
       $meAvatar.src = S.me.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(S.me.name)}&background=0D9488&color=fff`;
-      $meName.textContent = S.me.name;
-      $meId.textContent = (user.id||'').slice(0,8);
+      $meName.textContent = S.me.name; $meId.textContent = (user.id||'').slice(0,8);
       showAuth(false);
 
       await upsertPresence();
@@ -138,7 +133,7 @@
 
     // ===== Presence =====
     async function upsertPresence(){
-      const { error } = await sb.from('online_users').upsert({ id: S.user.id, username: S.me.name, avatar: S.me.avatar, last_seen_at: new Date().toISOString() }, { onConflict:'id' });
+      const { error } = await sb.from('online_users').upsert({ id:S.user.id, username:S.me.name, avatar:S.me.avatar, last_seen_at:new Date().toISOString() }, { onConflict:'id' });
       if (error) console.warn('presence upsert', error);
     }
     function heartbeat(){ upsertPresence(); setTimeout(heartbeat, HEARTBEAT_SEC*1000); }
@@ -147,30 +142,27 @@
     async function refreshUsers(){
       const { data, error } = await sb.from('online_users').select('*').order('last_seen_at', { ascending:false }).limit(200);
       if (error) return console.warn(error);
-      $users.innerHTML='';
-      let count=0;
+      $users.innerHTML=''; let count=0;
       (data||[]).forEach(u=>{
         const online=isOnline(u.last_seen_at); if(online) count++;
+        const ava = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=0D9488&color=fff`;
         const el=document.createElement('div'); el.className='flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50';
-        el.innerHTML=`<img src="${esc(u.avatar||'')}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/><div class='min-w-0'><div class='font-medium truncate'>${esc(u.username||'Потребител')}</div><div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div></div>${u.id===S.user.id?'<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>':''}`;
+        el.innerHTML=`<img src="${esc(ava)}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/><div class='min-w-0'><div class='font-medium truncate'>${esc(u.username||'Потребител')}</div><div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div></div>${u.id===S.user.id?'<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>':''}`;
         $users.appendChild(el);
       });
       $activeCount.textContent = count;
     }
 
     function subscribePresence(){
-      sb.channel('online_users_changes').on('postgres_changes', { event:'*', schema:'public', table:'online_users' }, refreshUsers).subscribe();
+      sb.channel('online_users_changes')
+        .on('postgres_changes', { event:'*', schema:'public', table:'online_users' }, refreshUsers)
+        .subscribe();
     }
 
     // ===== Messages =====
     async function loadMessages(){
-      // опит 1: ако има created_at
-      let q = sb.from('messages').select('*').order('created_at', {ascending:true}).limit(200);
-      let { data, error } = await q;
-      if (error){
-        // опит 2: без order
-        ({ data, error } = await sb.from('messages').select('*').limit(200));
-      }
+      let { data, error } = await sb.from('messages').select('*').order('created_at', {ascending:true}).limit(200);
+      if (error){ ({ data, error } = await sb.from('messages').select('*').limit(200)); }
       if (error){ console.warn('loadMessages', error); return; }
       $messages.innerHTML=''; S.messages.clear();
       (data||[]).forEach(m=>{ S.messages.set(m.id, m); renderMessage(m); });
@@ -182,13 +174,11 @@
         .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, ({new:row})=>{ S.messages.set(row.id,row); renderMessage(row); $messages.scrollTop=$messages.scrollHeight; })
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'messages' }, ({new:row})=>{ S.messages.set(row.id,row); const el=document.getElementById('msg-'+row.id); if(el) el.outerHTML = messageHtml(row); })
         .subscribe();
-    }, ({new:row})=>{ S.messages.set(row.id,row); renderMessage(row); $messages.scrollTop=$messages.scrollHeight; })
-        .subscribe();
     }
 
     function messageHtml(m){
       const name = esc(m.sender_name || m.username || '');
-      const avatar = m.sender_avatar || m.avatar || '';
+      const avatar = m.sender_avatar || m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name||'U')}&background=0D9488&color=fff`;
       const mine = m.sender_id ? (m.sender_id===S.user.id) : (name===S.me.name);
       const liked_by = Array.isArray(m.liked_by) ? m.liked_by : [];
       const liked = liked_by.includes?.(S.user?.id);
@@ -204,16 +194,7 @@
           ${mine?`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`:''}
         </div>`;
     }
-    function renderMessage(m){ $messages.insertAdjacentHTML('beforeend', messageHtml(m)); }">
-          ${mine?'':`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`}
-          <div class="max-w-[80%] ${mine?'bg-slate-900 text-white':'bg-white'} rounded-2xl px-4 py-3 shadow-sm border ${mine?'border-slate-900':'border-slate-200'}">
-            ${mine?'':`<div class='text-xs font-medium mb-1 text-slate-500'>${name}</div>`}
-            <div class="whitespace-pre-wrap leading-relaxed">${linkify(esc(m.content||''))}</div>
-          </div>
-          ${mine?`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`:''}
-        </div>`;
-      $messages.appendChild(el);
-    }
+    function renderMessage(m){ $messages.insertAdjacentHTML('beforeend', messageHtml(m)); }
 
     // send
     $composer.addEventListener('submit', async (e)=>{
@@ -236,14 +217,7 @@
       const mnt = document.getElementById('msg-'+id); if(mnt) mnt.outerHTML = messageHtml(msg);
       const { error } = await sb.rpc('toggle_like', { p_msg_id:id });
       if (error){ msg.liked_by = prev; S.messages.set(id,msg); if(mnt) mnt.outerHTML = messageHtml(msg); alert('Грешка при харесване: '+error.message); }
-    } const txt=$input.value.trim(); if(!txt) return;
-      $input.value=''; autoResize($input);
-      const row={ username:S.me.name, avatar:S.me.avatar, content:txt, sender_id:S.user.id, sender_name:S.me.name, sender_avatar:S.me.avatar };
-      const { error } = await sb.from('messages').insert(row);
-      if (error){ alert('Грешка при изпращане: '+error.message); return; }
-      // оптимистично
-      await loadMessages();
-    });
+    }
 
     // Emoji picker
     function initEmoji(){
