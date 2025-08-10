@@ -64,18 +64,6 @@
     .cmt-form button { justify-self: end; }
     .muted { color:#94a3b8; font-size:12px; }
 
-    /* Пресети */
-    .presets {
-      position: fixed; left: 10px; top: 10px; z-index: 10002;
-      display: grid; gap: 6px;
-    }
-    .preset-btn {
-      background: rgba(255,255,255,0.92);
-      border: 1px solid rgba(0,0,0,0.08);
-      border-radius: 10px; padding: 6px 10px; cursor: pointer;
-      font: 12px/1.2 system-ui; box-shadow: 0 6px 16px rgba(0,0,0,.12);
-    }
-
     /* Контрол за скриване/показване на панела със слоевете */
     .leaflet-control.tmap-layers-toggle button {
       background: rgba(255,255,255,0.92);
@@ -97,12 +85,6 @@
 </head>
 <body>
   <div id="map"></div>
-
-  <div class="presets">
-    <button class="preset-btn" id="presetTerrain">Терен (детайлен)</button>
-    <button class="preset-btn" id="presetSatellite">Сателит + релеф</button>
-    <button class="preset-btn" id="presetBike">Колоездене</button>
-  </div>
 
   <div class="authbar" id="authbar">
     <span id="authStatus" class="muted">Не сте влезли</span>
@@ -227,21 +209,7 @@
     });
     map.addControl(new LayersToggle());
 
-    // Пресети за удобство
-    document.getElementById('presetTerrain').addEventListener('click', () => {
-      [opentopo, hillshade, hiking].forEach(l => !map.hasLayer(l) && l.addTo(map));
-      [esriSat, osm, positron, cyclOSM, railways, ski].forEach(l => map.hasLayer(l) && ![hillshade, hiking].includes(l) && map.removeLayer(l));
-    });
-    document.getElementById('presetSatellite').addEventListener('click', () => {
-      [esriSat, hillshade].forEach(l => !map.hasLayer(l) && l.addTo(map));
-      [opentopo, osm, positron, cyclOSM, hiking, railways, ski].forEach(l => map.hasLayer(l) && map.removeLayer(l));
-    });
-    document.getElementById('presetBike').addEventListener('click', () => {
-      [cyclOSM, railways].forEach(l => !map.hasLayer(l) && l.addTo(map));
-      [opentopo, esriSat, osm, positron, hiking, hillshade, ski].forEach(l => map.hasLayer(l) && map.removeLayer(l));
-    });
-
-    // ---------- Останалите функции (маркери, посещения, коментари, realtime) ----------
+    // ---------- Останалите функции (маркери, посещения, коментари, realtime) ---------- (маркери, посещения, коментари, realtime) ----------
     const ICON_URL = 'logo01082025.svg';
     const customIcon = L.icon({ iconUrl: ICON_URL, iconSize: [52, 52], iconAnchor: [26, 48], popupAnchor: [0, -40], className: 'tmap-pin' });
 
