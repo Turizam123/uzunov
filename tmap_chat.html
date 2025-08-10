@@ -78,6 +78,8 @@
     const HEARTBEAT_SEC = 20;
     const ONLINE_WINDOW_MS = 5 * 60 * 1000;
     const TWE_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/';
+    // brand logo used when a user has no avatar from Google
+    const BRAND_LOGO = 'tmap_avatar_128.png'; // добави този файл до HTML-а
 
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true } });
@@ -318,7 +320,10 @@
     setInterval(async()=>{ const { error } = await sb.from('online_users').select('count').limit(1); $conn.textContent = error? 'Офлайн' : 'Онлайн'; $conn.className = 'ml-auto text-xs px-2 py-1 rounded-full ' + (error?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'); }, 5000);
 
     // ===== Helpers =====
-    function avatarUrl(name, url){ return url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name||'U')}&background=0D9488&color=fff`; }
+    function avatarUrl(name, url){
+      // ако доставчикът не е върнал аватар – ползваме брандирания
+      return (url && url.trim()) ? url : BRAND_LOGO;
+    }
     function renderTwemoji(el){ try{ if (window.twemoji) twemoji.parse(el||document.body,{base:TWE_BASE,folder:'svg',ext:'.svg'}); }catch(_){ } }
     function toCodePoint(str){ try{ return Array.from(str).map(s=>s.codePointAt(0).toString(16)).join('-'); }catch(_){ return ''; } }
     function esc(s){return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
