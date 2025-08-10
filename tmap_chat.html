@@ -3,13 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>T‑MAP Chat — simple + likes + emoji + admin clear</title>
+  <title>T‑MAP Chat — simple</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     html { scroll-behavior: smooth; }
     .scroll::-webkit-scrollbar{width:8px;height:8px}.scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px}
-    .emoji-panel{position:absolute;bottom:70px;right:16px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 30px rgba(2,6,23,.08);padding:8px;width:260px;max-height:220px;overflow:auto}
+    :root{ --emoji-stack: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla","Segoe UI Symbol"; }
+    body, textarea, button, .emoji-panel { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, var(--emoji-stack); }
+    .emoji-panel{position:absolute;bottom:70px;left:12px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 30px rgba(2,6,23,.08);padding:8px;width:260px;max-height:220px;overflow:auto}
     .emoji-btn{font-size:20px;line-height:1;padding:6px 8px;border-radius:10px}
     .emoji-btn:hover{background:#f1f5f9}
   </style>
@@ -25,7 +27,7 @@
   </section>
 
   <!-- APP -->
-  <div id="app" class="min-h-screen grid md:grid-cols-[300px,1fr] hidden">
+  <div id="app" class="min-h-screen grid md:grid-cols-[280px,1fr] hidden">
     <aside class="border-r bg-white">
       <div class="p-4 border-b flex items-center gap-3">
         <img id="meAvatar" class="w-10 h-10 rounded-full ring-2 ring-slate-200" alt="" />
@@ -33,8 +35,7 @@
           <div id="meName" class="font-semibold truncate">—</div>
           <div class="text-xs text-slate-500">UID <span id="meId">—</span></div>
         </div>
-        <button id="btnClear" class="hidden mr-2 px-3 py-1.5 rounded-xl border text-sm">Изчисти чата</button>
-        <button id="btnSignOut" class="px-3 py-1.5 rounded-xl border text-sm">Изход</button>
+        <button id="btnSignOut" class="ml-auto px-3 py-1.5 rounded-xl border text-sm">Изход</button>
       </div>
 
       <div class="p-4">
@@ -52,7 +53,7 @@
         <div id="conn" class="ml-auto text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Онлайн</div>
       </header>
 
-      <section id="messages" class="flex-1 scroll overflow-y-auto px-4 py-4 space-y-4"></section>
+      <section id="messages" class="flex-1 scroll overflow-y-auto px-4 py-4 space-y-3"></section>
 
       <form id="composer" class="relative border-t bg-white px-3 py-3 flex gap-2 items-end">
         <button id="btnEmoji" type="button" title="Емотикони" class="px-3 py-2 rounded-xl border">🙂</button>
@@ -67,7 +68,6 @@
     // ===== CONFIG =====
     const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
-    const ADMIN_USER_ID = "e4d984f3-d32f-4d32-8d6f-1defef67d466"; // Angel
 
     // presence
     const HEARTBEAT_SEC = 20;                 // на колко време да пишем last_seen_at
@@ -91,7 +91,6 @@
     const $input = document.getElementById('input');
     const $conn = document.getElementById('conn');
     const $btnSignOut = document.getElementById('btnSignOut');
-    const $btnClear = document.getElementById('btnClear');
     const $btnEmoji = document.getElementById('btnEmoji');
     const $emojiPanel = document.getElementById('emojiPanel');
 
@@ -119,14 +118,6 @@
       showAuth(true);
     });
 
-    // Admin clear
-    $btnClear.addEventListener('click', async ()=>{
-      if (!confirm('Да изчистя ли всички съобщения?')) return;
-      const { error } = await sb.rpc('admin_clear_messages');
-      if (error) { alert('Грешка при чистене: '+error.message+"\n(Създай функция admin_clear_messages в Supabase)"); return; }
-      await loadMessages();
-    });
-
     async function onLoggedIn(user){
       S.user = user;
       const m = user.user_metadata||{};
@@ -134,7 +125,6 @@
       $meAvatar.src = S.me.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(S.me.name)}&background=0D9488&color=fff`;
       $meName.textContent = S.me.name;
       $meId.textContent = (user.id||'').slice(0,8);
-      if (user.id === ADMIN_USER_ID) $btnClear.classList.remove('hidden'); else $btnClear.classList.add('hidden');
       showAuth(false);
 
       await upsertPresence();
@@ -162,7 +152,7 @@
       (data||[]).forEach(u=>{
         const online=isOnline(u.last_seen_at); if(online) count++;
         const el=document.createElement('div'); el.className='flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50';
-        el.innerHTML=`<img src="${esc(u.avatar||'')}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/><div class='min-w-0'><div class='font-medium truncate'>${esc(u.username||'Потребител')}</div><div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div></div>${u.id===S.user.id?'<span class=\"ml-auto text-xs px-2 py-1 rounded-full bg-slate-100\">Вие</span>':''}`;
+        el.innerHTML=`<img src="${esc(u.avatar||'')}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/><div class='min-w-0'><div class='font-medium truncate'>${esc(u.username||'Потребител')}</div><div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div></div>${u.id===S.user.id?'<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>':''}`;
         $users.appendChild(el);
       });
       $activeCount.textContent = count;
@@ -190,38 +180,63 @@
     function subscribeMessages(){
       sb.channel('realtime:messages')
         .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, ({new:row})=>{ S.messages.set(row.id,row); renderMessage(row); $messages.scrollTop=$messages.scrollHeight; })
-        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'messages' }, ({new:row})=>{ S.messages.set(row.id,row); const el=document.getElementById('msg-'+row.id); if(el) el.outerHTML=messageHtml(row); })
+        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'messages' }, ({new:row})=>{ S.messages.set(row.id,row); const el=document.getElementById('msg-'+row.id); if(el) el.outerHTML = messageHtml(row); })
         .subscribe();
-    }
-
-    window.toggleLike = async function(id){
-      const { error } = await sb.rpc('toggle_like', { p_msg_id:id });
-      if (error) alert('Грешка при харесване: '+error.message+"\n(Създай колоната liked_by и функцията toggle_like)");
+    }, ({new:row})=>{ S.messages.set(row.id,row); renderMessage(row); $messages.scrollTop=$messages.scrollHeight; })
+        .subscribe();
     }
 
     function messageHtml(m){
       const name = esc(m.sender_name || m.username || '');
+      const avatar = m.sender_avatar || m.avatar || '';
       const mine = m.sender_id ? (m.sender_id===S.user.id) : (name===S.me.name);
       const liked_by = Array.isArray(m.liked_by) ? m.liked_by : [];
       const liked = liked_by.includes?.(S.user?.id);
       const likeBtn = `<button class="inline-flex items-center gap-1 text-xs ${liked?'font-semibold':''}" onclick="toggleLike('${m.id}')">❤ <span>${liked_by.length||0}</span></button>`;
       return `
         <div id="msg-${m.id}" class="flex items-start gap-3 ${mine?'justify-end':''}">
-          ${mine?'':`<div class='w-8 h-8 rounded-full bg-emerald-800 text-white grid place-items-center font-semibold'>${(name||'?').charAt(0)}</div>`}
+          ${mine?'':`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`}
           <div class="max-w-[80%] ${mine?'bg-slate-900 text-white':'bg-white'} rounded-2xl px-4 py-3 shadow-sm border ${mine?'border-slate-900':'border-slate-200'}">
             ${mine?'':`<div class='text-xs font-medium mb-1 text-slate-500'>${name}</div>`}
             <div class="whitespace-pre-wrap leading-relaxed">${linkify(esc(m.content||''))}</div>
             <div class="mt-2 ${mine?'text-slate-200':'text-slate-500'}">${likeBtn}</div>
           </div>
-          ${mine?`<div class='w-8 h-8 rounded-full bg-emerald-800 text-white grid place-items-center font-semibold'>${(name||'?').charAt(0)}</div>`:''}
+          ${mine?`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`:''}
         </div>`;
     }
-
-    function renderMessage(m){ $messages.insertAdjacentHTML('beforeend', messageHtml(m)); }
+    function renderMessage(m){ $messages.insertAdjacentHTML('beforeend', messageHtml(m)); }">
+          ${mine?'':`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`}
+          <div class="max-w-[80%] ${mine?'bg-slate-900 text-white':'bg-white'} rounded-2xl px-4 py-3 shadow-sm border ${mine?'border-slate-900':'border-slate-200'}">
+            ${mine?'':`<div class='text-xs font-medium mb-1 text-slate-500'>${name}</div>`}
+            <div class="whitespace-pre-wrap leading-relaxed">${linkify(esc(m.content||''))}</div>
+          </div>
+          ${mine?`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`:''}
+        </div>`;
+      $messages.appendChild(el);
+    }
 
     // send
     $composer.addEventListener('submit', async (e)=>{
       e.preventDefault(); const txt=$input.value.trim(); if(!txt) return;
+      $input.value=''; autoResize($input);
+      const row={ username:S.me.name, avatar:S.me.avatar, content:txt, sender_id:S.user.id, sender_name:S.me.name, sender_avatar:S.me.avatar };
+      const { error } = await sb.from('messages').insert(row);
+      if (error){ alert('Грешка при изпращане: '+error.message); return; }
+      await loadMessages();
+    });
+
+    // likes (optimistic)
+    window.toggleLike = async function(id){
+      const msg = S.messages.get(id); if(!msg) return;
+      const uid = S.user.id;
+      const prev = Array.isArray(msg.liked_by) ? msg.liked_by.slice() : [];
+      const had = prev.includes(uid);
+      msg.liked_by = had ? prev.filter(x=>x!==uid) : prev.concat(uid);
+      S.messages.set(id, msg);
+      const mnt = document.getElementById('msg-'+id); if(mnt) mnt.outerHTML = messageHtml(msg);
+      const { error } = await sb.rpc('toggle_like', { p_msg_id:id });
+      if (error){ msg.liked_by = prev; S.messages.set(id,msg); if(mnt) mnt.outerHTML = messageHtml(msg); alert('Грешка при харесване: '+error.message); }
+    } const txt=$input.value.trim(); if(!txt) return;
       $input.value=''; autoResize($input);
       const row={ username:S.me.name, avatar:S.me.avatar, content:txt, sender_id:S.user.id, sender_name:S.me.name, sender_avatar:S.me.avatar };
       const { error } = await sb.from('messages').insert(row);
