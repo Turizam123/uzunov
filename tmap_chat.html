@@ -77,26 +77,17 @@
 
     const HEARTBEAT_SEC = 20;
     const ONLINE_WINDOW_MS = 5 * 60 * 1000;
-    const TWE_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/';
+    const TWE_BASE = 'emoji/';
     // brand logo used when a user has no avatar from Google
     const BRAND_LOGO = 'tmap_avatar_128.png'; // добави този файл до HTML-а
     // Emoji render mode: native characters (reliable everywhere). Set to true to try Twemoji images.
-    const USE_TWEMOJI = false;
+    const USE_TWEMOJI = true;
 
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true } });
 
     const S = { user:null, me:{name:"", avatar:""}, messages:new Map() };
-    const EMOJIS = (
-      "😀😁😂🤣😃😄😅😆😉😊🙂🙃😋😎😍😘😗😙😚🥰🤩🤗🤭🤫🤔🤨😐😑😴😪😮😲😯😳🥵🥶😱😰😓😭😢😡😤😇🤠🤡👻💀🤖🎃"+
-      "👍👎👌🤌✌️🤞🤟🤘🤙👏🙌👐🤲🙏💪🫶🫰👊🤝👋🖐️✋🖖✍️"+
-      "❤️🩷🧡💛💚💙💜🖤🤍🤎💔❤‍🔥❤‍🩹✨🔥🎉🎊💯✅❌⭐🌟⚡️🔔📣"+
-      "🍏🍎🍐🍊🍋🍌🍉🍇🍓🫐🍒🍑🥝🍍🥥🍅🥕🌶️🧄🧅🥔🥦🍔🍟🍕🍝🍣"+
-      "🚗🚕🚙🚌🚎🏎️🚓🚑🚒🚐🚚✈️🚀⛵🚤🛥️🚁🗺️📍"+
-      "⛅☀️🌤️🌧️⛈️🌩️❄️🌈🌙⭐🌊🗻⛰️🌋"+
-      "⌛⏳⏰⏱️🕰️📆📅📌✏️✂️📎🧭🔑"+
-      "😀"
-    ).split("");
+    const EMOJIS = ["😀","😂","😊","😉","😍","😎","😭","😡","👍","🙏","👏","🔥","✨","🎉","❤️","💙","💚","💛","😅","🤔"];
     let lastMsgAt = 0;
 
     // DOM refs
@@ -264,8 +255,13 @@
 
     // Emoji panel + Twemoji
     function initEmoji(){
-      // Build panel using native emoji characters (no external images)
-      $emojiPanel.innerHTML = EMOJIS.map(e=>`<button type="button" class="emoji-btn" data-e="${e}">${e}</button>`).join('');
+      // Local images from /emoji using Twemoji filenames (e.g. 1f600.svg)
+      const base = TWE_BASE.endsWith('/') ? TWE_BASE : TWE_BASE + '/';
+      $emojiPanel.innerHTML = EMOJIS.map(e=>{
+        const cp = toCodePoint(e);
+        const safe = e.replace(/\"/g,'&quot;');
+        return `<button type="button" class="emoji-btn" data-e="${safe}"><img class="twemoji" src="${base}${cp}.svg" alt="${safe}" onerror="this.parentElement.textContent='${safe}'"/></button>`;
+      }).join('');
       $btnEmoji.addEventListener('click', ()=>{ $emojiPanel.classList.toggle('hidden'); });
       $emojiPanel.addEventListener('click', (ev)=>{ const btn=ev.target.closest('.emoji-btn'); if(btn){ $input.value += btn.dataset.e; $input.focus(); autoResize($input); }});
       document.addEventListener('click', (ev)=>{ if(!ev.composedPath().includes($emojiPanel) && !ev.composedPath().includes($btnEmoji)) $emojiPanel.classList.add('hidden'); });
@@ -332,7 +328,10 @@
       // ако доставчикът не е върнал аватар – ползваме брандирания
       return (url && url.trim()) ? url : BRAND_LOGO;
     }
-    function renderTwemoji(el){ try{ if (window.twemoji) twemoji.parse(el||document.body,{base:TWE_BASE,folder:'svg',ext:'.svg'}); }catch(_){ } }
+    function renderTwemoji(el){
+      try{
+        if (USE_TWEMOJI && window.twemoji)
+          twemoji.parse(el||document.body,{ base:TWE_BASE, folder:'', ext:'.svg' ); }catch(_){ } }); }catch(_){ } }
     function toCodePoint(str){ try{ return Array.from(str).map(s=>s.codePointAt(0).toString(16)).join('-'); }catch(_){ return ''; } }
     function esc(s){return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
     function linkify(t){return t.replace(/https?:\/\/[^\s]+/g,u=>`<a class='underline' target='_blank' rel='noopener' href='${u}'>${u}</a>`);}  
