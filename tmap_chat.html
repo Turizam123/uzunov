@@ -3,35 +3,61 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>T‑MAP Chat — V5 Stable (local emoji)</title>
+  <title>T-MAP Chat — V5 Stable (local emoji + sound + fixed composer)</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Twemoji (за парсване на емоджи в съобщенията, посочваме локална папка) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js" crossorigin="anonymous"></script>
+
   <style>
+    html,body{height:100%}
     html { scroll-behavior: smooth; }
     :root{ --emoji-stack: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla","Segoe UI Symbol"; }
     body, textarea, button { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, var(--emoji-stack); }
-    .scroll::-webkit-scrollbar{width:8px;height:8px}.scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px}
+
+    .scroll::-webkit-scrollbar{width:8px;height:8px}
+    .scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px}
+
     .emoji-panel{position:absolute;bottom:72px;left:12px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 30px rgba(2,6,23,.08);padding:10px;width:min(90vw,360px);max-height:260px;overflow:auto;display:grid;grid-template-columns:repeat(8, minmax(0,1fr));gap:6px}
     .emoji-btn{font-size:22px;line-height:1;padding:8px;border-radius:12px;display:grid;place-items:center}
     .emoji-btn:hover{background:#f1f5f9}
     img.twemoji{height:1.25em;width:1.25em;vertical-align:-0.2em}
+
+    /* --- Login logo with aurora glow --- */
+    .auth-card{position:relative;overflow:hidden}
+    .auth-logo-wrap{position:relative;display:grid;place-items:center;margin-bottom:.5rem}
+    .auth-logo{height:82px;width:auto;filter:drop-shadow(0 4px 14px rgba(2,6,23,.15))}
+    .auth-logo-glow{
+      position:absolute;inset:-60px;border-radius:9999px;z-index:0;
+      background: conic-gradient(from 180deg at 50% 50%,
+        #0ea5e9, #22d3ee, #34d399, #a78bfa, #0ea5e9);
+      filter: blur(80px); opacity:.35; animation: auroraSpin 16s linear infinite;
+    }
+    @keyframes auroraSpin{to{transform:rotate(360deg)}}
   </style>
-  <script src="favicon-injector.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-800">
+
+<body class="h-screen overflow-hidden bg-slate-50 text-slate-800">
   <!-- AUTH GATE -->
   <section id="auth" class="min-h-screen grid place-items-center p-6 hidden">
-    <div class="w-full max-w-sm bg-white border rounded-2xl shadow-sm p-6 space-y-4">
-      <h1 class="text-xl font-semibold">Вход в чата</h1>
-      <p class="text-sm text-slate-500">Влезте с Google (Gmail), за да пишете в общата стая.</p>
-      <button id="btnGoogle" class="w-full px-4 py-3 rounded-xl bg-slate-900 text-white hover:bg-slate-700">Вход с Google</button>
+    <div class="w-full max-w-sm bg-white/95 backdrop-blur border rounded-2xl shadow-sm p-6 space-y-4 auth-card">
+      <!-- AUTH LOGO -->
+      <div class="auth-logo-wrap">
+        <div class="auth-logo-glow"></div>
+        <img src="logo01082025-removebg-preview.png" alt="T-MAP" class="auth-logo relative z-10">
+      </div>
+
+      <h1 class="text-xl font-semibold relative z-10">Вход в чата</h1>
+      <p class="text-sm text-slate-500 relative z-10">Влезте с Google (Gmail), за да пишете в общата стая.</p>
+      <button id="btnGoogle" class="relative z-10 w-full px-4 py-3 rounded-xl bg-slate-900 text-white hover:bg-slate-700">
+        Вход с Google
+      </button>
     </div>
   </section>
 
   <!-- APP -->
-  <div id="app" class="min-h-screen grid md:grid-cols-[280px,1fr] hidden">
+  <!-- h-screen + grid редове гарантират, че composer стои долу; скролира само messages -->
+  <div id="app" class="h-screen grid md:grid-cols-[280px,1fr] hidden">
     <aside class="border-r bg-white hidden md:block">
       <div class="p-4 border-b flex items-center gap-3">
         <img id="meAvatar" class="w-10 h-10 rounded-full ring-2 ring-slate-200" alt="" />
@@ -51,16 +77,18 @@
       </div>
     </aside>
 
-    <main class="flex flex-col min-h-screen">
+    <main class="grid grid-rows-[auto,1fr,auto] h-screen">
       <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b px-4 py-3 flex items-center gap-2">
         <button id="menu" class="md:hidden px-3 py-2 rounded-xl border">☰</button>
         <div class="font-semibold flex items-center gap-2">Обща стая <span id="unread" class="hidden text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">нови</span></div>
         <div id="conn" class="ml-auto text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Онлайн</div>
       </header>
 
-      <section id="messages" class="flex-1 scroll overflow-y-auto px-2 sm:px-4 py-4 space-y-3"></section>
+      <!-- само тук има скрол -->
+      <section id="messages" class="scroll overflow-y-auto px-2 sm:px-4 py-4 space-y-3"></section>
 
-      <form id="composer" class="relative border-t bg-white px-2 sm:px-3 py-3 flex gap-2 items-end">
+      <!-- композиторът е винаги долу -->
+      <form id="composer" class="sticky bottom-0 z-10 border-t bg-white px-2 sm:px-3 py-3 flex gap-2 items-end">
         <button id="btnEmoji" type="button" title="Емотикони" class="px-3 py-2 rounded-xl border">🙂</button>
         <textarea id="input" rows="1" placeholder="Напишете съобщение…" class="flex-1 resize-none rounded-2xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-300"></textarea>
         <button class="px-4 py-3 rounded-2xl bg-slate-900 text-white">Изпрати</button>
@@ -71,6 +99,11 @@
     </main>
   </div>
 
+  <!-- резервен звук (работи след първо докосване) -->
+  <audio id="ding" preload="auto">
+    <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAAAACAAACcQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" type="audio/mp3">
+  </audio>
+
   <script>
     // ===== CONFIG =====
     const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
@@ -79,8 +112,8 @@
     const HEARTBEAT_SEC = 20;
     const ONLINE_WINDOW_MS = 5 * 60 * 1000;
     const TWE_BASE = 'emoji/';   // локални SVG файлове
-    const BRAND_LOGO = 'tmap_avatar_128.png'; // брандиран аватар, сложи файла до HTML
-    const USE_TWEMOJI = true;    // парсваме Unicode емоджи в <img> от локалната папка
+    const BRAND_LOGO = 'tmap_avatar_128.png'; // брандиран аватар
+    const USE_TWEMOJI = true;
 
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true } });
@@ -107,6 +140,7 @@
     const $emojiPanel = document.getElementById('emojiPanel');
     const $menu = document.getElementById('menu');
     const $toast = document.getElementById('toast');
+    const $ding = document.getElementById('ding');
 
     // Mobile menu
     $menu?.addEventListener('click', ()=>{ document.querySelector('aside').classList.toggle('hidden'); });
@@ -146,6 +180,7 @@
       await loadMessages();
       initEmoji();
       enableNotifications();
+
       $input.addEventListener('input', ()=>autoResize($input));
       autoResize($input);
     }
@@ -244,7 +279,7 @@
       if (error){ msg.liked_by = prev; S.messages.set(id,msg); if(mnt) mnt.outerHTML = messageHtml(msg); alert('Грешка при харесване: '+error.message); }
     }
 
-    // ===== Emoji panel (локални SVG) =====
+    // ===== Emoji panel =====
     function initEmoji(){
       const base = TWE_BASE.endsWith('/') ? TWE_BASE : TWE_BASE + '/';
       $emojiPanel.innerHTML = EMOJIS.map(e=>{
@@ -262,6 +297,9 @@
       if ('Notification' in window && Notification.permission==='default'){
         try{ Notification.requestPermission(); }catch(e){}
       }
+      // „отключваме“ звука на първо докосване (за мобилни)
+      const unlock = ()=>{ try{ $ding.play().then(()=>{ $ding.pause(); $ding.currentTime=0; }).catch(()=>{}); }catch(_){} document.removeEventListener('pointerdown',unlock); };
+      document.addEventListener('pointerdown', unlock, {passive:true});
       document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) clearUnread(); });
     }
 
@@ -277,30 +315,32 @@
     $composer?.addEventListener('submit', unlockAudio);
     $btnEmoji?.addEventListener('click', unlockAudio);
 
-    function beep(){
-      if(!soundEnabled) return;
+    function playDing(){
+      // първо пробваме HTMLAudio, после WebAudio „beep“
+      try{ $ding.volume = 0.7; $ding.currentTime = 0; $ding.play().catch(()=>{}); }catch(_){}
+      if(!soundEnabled){ return; }
       try{
         audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
         const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
         o.type='sine'; o.frequency.value=880; g.gain.value=0.08; o.connect(g); g.connect(audioCtx.destination);
         o.start(); o.stop(audioCtx.currentTime+0.12);
-      }catch(e){}
+      }catch(_){}
     }
     function vibrate(){ try{ navigator.vibrate && navigator.vibrate([25, 30, 25]); }catch(_){} }
 
     function showToast(text){ if(!$toast) return; $toast.textContent = text; $toast.classList.remove('hidden'); setTimeout(()=>{ $toast.classList.add('hidden'); }, 2500); }
-    function markUnread(){ const b=document.getElementById('unread'); b&&b.classList.remove('hidden'); document.title='• Нови - T‑MAP Chat'; }
-    function clearUnread(){ const b=document.getElementById('unread'); b&&b.classList.add('hidden'); document.title='T‑MAP Chat — clean build'; }
+    function markUnread(){ const b=document.getElementById('unread'); b&&b.classList.remove('hidden'); document.title='• Нови - T-MAP Chat'; }
+    function clearUnread(){ const b=document.getElementById('unread'); b&&b.classList.add('hidden'); document.title='T-MAP Chat — clean build'; }
 
     function notifyIfNeeded(m){
       if(!S.user) return; const name = m.sender_name || m.username || 'Новo съобщение';
       const mine = m.sender_id ? (m.sender_id===S.user.id) : (name===S.me.name);
       if (mine) return;
-      beep(); vibrate();
+      playDing(); vibrate();
       if (document.hidden){
         markUnread();
         if ('Notification' in window && Notification.permission==='granted'){
-          try{ const n=new Notification('T‑MAP чат', { body: `${name}: ${(m.content||'').slice(0,100)}`, icon: m.sender_avatar || m.avatar || undefined }); setTimeout(()=>n.close(),5000); }catch(e){}
+          try{ const n=new Notification('T-MAP чат', { body: `${name}: ${(m.content||'').slice(0,100)}`, icon: m.sender_avatar || m.avatar || undefined }); setTimeout(()=>n.close(),5000); }catch(e){}
         }
       } else {
         showToast(`${name}: ${(m.content||'').slice(0,80)}`);
