@@ -80,12 +80,23 @@
     const TWE_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/';
     // brand logo used when a user has no avatar from Google
     const BRAND_LOGO = 'tmap_avatar_128.png'; // добави този файл до HTML-а
+    // Emoji render mode: native characters (reliable everywhere). Set to true to try Twemoji images.
+    const USE_TWEMOJI = false;
 
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true } });
 
     const S = { user:null, me:{name:"", avatar:""}, messages:new Map() };
-    const EMOJIS = "😀😁😂🤣😊😍😘😎🤩😇😉🙂🙃😐😑😴🤔🤨😮😢😭😡👍👎👏🙏🔥✨🎉❤️💙💚💛🧡💜🤍🤎".split("");
+    const EMOJIS = (
+      "😀😁😂🤣😃😄😅😆😉😊🙂🙃😋😎😍😘😗😙😚🥰🤩🤗🤭🤫🤔🤨😐😑😴😪😮😲😯😳🥵🥶😱😰😓😭😢😡😤😇🤠🤡👻💀🤖🎃"+
+      "👍👎👌🤌✌️🤞🤟🤘🤙👏🙌👐🤲🙏💪🫶🫰👊🤝👋🖐️✋🖖✍️"+
+      "❤️🩷🧡💛💚💙💜🖤🤍🤎💔❤‍🔥❤‍🩹✨🔥🎉🎊💯✅❌⭐🌟⚡️🔔📣"+
+      "🍏🍎🍐🍊🍋🍌🍉🍇🍓🫐🍒🍑🥝🍍🥥🍅🥕🌶️🧄🧅🥔🥦🍔🍟🍕🍝🍣"+
+      "🚗🚕🚙🚌🚎🏎️🚓🚑🚒🚐🚚✈️🚀⛵🚤🛥️🚁🗺️📍"+
+      "⛅☀️🌤️🌧️⛈️🌩️❄️🌈🌙⭐🌊🗻⛰️🌋"+
+      "⌛⏳⏰⏱️🕰️📆📅📌✏️✂️📎🧭🔑"+
+      "😀"
+    ).split("");
     let lastMsgAt = 0;
 
     // DOM refs
@@ -253,11 +264,8 @@
 
     // Emoji panel + Twemoji
     function initEmoji(){
-      const base=TWE_BASE + 'svg/';
-      $emojiPanel.innerHTML = EMOJIS.map(e=>{
-        const cp = (window.twemoji?.convert?.toCodePoint(e) || toCodePoint(e));
-        return `<button type="button" class="emoji-btn" data-e="${e}"><img class="twemoji" src="${base}${cp}.svg" alt="${e}"/></button>`;
-      }).join('');
+      // Build panel using native emoji characters (no external images)
+      $emojiPanel.innerHTML = EMOJIS.map(e=>`<button type="button" class="emoji-btn" data-e="${e}">${e}</button>`).join('');
       $btnEmoji.addEventListener('click', ()=>{ $emojiPanel.classList.toggle('hidden'); });
       $emojiPanel.addEventListener('click', (ev)=>{ const btn=ev.target.closest('.emoji-btn'); if(btn){ $input.value += btn.dataset.e; $input.focus(); autoResize($input); }});
       document.addEventListener('click', (ev)=>{ if(!ev.composedPath().includes($emojiPanel) && !ev.composedPath().includes($btnEmoji)) $emojiPanel.classList.add('hidden'); });
