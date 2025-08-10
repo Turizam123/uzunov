@@ -6,14 +6,18 @@
   <title>T‑MAP Chat — simple</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Twemoji: надеждни емоджита (SVG), работят на всички устройства -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js" crossorigin="anonymous"></script>
   <style>
     html { scroll-behavior: smooth; }
-    .scroll::-webkit-scrollbar{width:8px;height:8px}.scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px}
     :root{ --emoji-stack: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla","Segoe UI Symbol"; }
-    body, textarea, button, .emoji-panel { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, var(--emoji-stack); }
-    .emoji-panel{position:absolute;bottom:70px;left:12px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 30px rgba(2,6,23,.08);padding:8px;width:260px;max-height:220px;overflow:auto}
-    .emoji-btn{font-size:20px;line-height:1;padding:6px 8px;border-radius:10px}
+    body, textarea, button { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, var(--emoji-stack); }
+    .scroll::-webkit-scrollbar{width:8px;height:8px}.scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px}
+    .emoji-panel{position:absolute;bottom:72px;left:12px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 30px rgba(2,6,23,.08);padding:10px;width:min(90vw,360px);max-height:260px;overflow:auto;display:grid;grid-template-columns:repeat(8, minmax(0,1fr));gap:6px}
+    .emoji-btn{font-size:22px;line-height:1;padding:8px;border-radius:12px;display:grid;place-items:center}
     .emoji-btn:hover{background:#f1f5f9}
+    /* Twemoji икони да стоят на линията */
+    img.emoji, img.twemoji{height:1.25em;width:1.25em;vertical-align:-0.2em}
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -28,7 +32,7 @@
 
   <!-- APP -->
   <div id="app" class="min-h-screen grid md:grid-cols-[280px,1fr] hidden">
-    <aside class="border-r bg-white">
+    <aside class="border-r bg-white hidden md:block">
       <div class="p-4 border-b flex items-center gap-3">
         <img id="meAvatar" class="w-10 h-10 rounded-full ring-2 ring-slate-200" alt="" />
         <div class="min-w-0">
@@ -48,14 +52,15 @@
     </aside>
 
     <main class="flex flex-col min-h-screen">
-      <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b px-4 py-3 flex items-center">
-        <div class="font-semibold">Обща стая</div>
+      <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b px-4 py-3 flex items-center gap-2">
+        <button id="menu" class="md:hidden px-3 py-2 rounded-xl border">☰</button>
+        <div class="font-semibold flex items-center gap-2">Обща стая <span id="unread" class="hidden text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">нови</span></div>
         <div id="conn" class="ml-auto text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Онлайн</div>
       </header>
 
-      <section id="messages" class="flex-1 scroll overflow-y-auto px-4 py-4 space-y-3"></section>
+      <section id="messages" class="flex-1 scroll overflow-y-auto px-2 sm:px-4 py-4 space-y-3"></section>
 
-      <form id="composer" class="relative border-t bg-white px-3 py-3 flex gap-2 items-end">
+      <form id="composer" class="relative border-t bg-white px-2 sm:px-3 py-3 flex gap-2 items-end">
         <button id="btnEmoji" type="button" title="Емотикони" class="px-3 py-2 rounded-xl border">🙂</button>
         <textarea id="input" rows="1" placeholder="Напишете съобщение…" class="flex-1 resize-none rounded-2xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-300"></textarea>
         <button class="px-4 py-3 rounded-2xl bg-slate-900 text-white">Изпрати</button>
@@ -72,13 +77,13 @@
     const HEARTBEAT_SEC = 20;
     const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
-    // ===== INIT =====
     const { createClient } = supabase; 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true } });
 
     const S = { user:null, me:{name:"", avatar:""}, messages:new Map() };
     const EMOJIS = "😀😁😂🤣😊😍😘😎🤩😇😉🙂🙃😐😑😴🤔🤨😮😢😭😡👍👎👏🙏🔥✨🎉❤️💙💚💛🧡💜🤍🤎".split("");
 
+    // DOM
     const $auth = document.getElementById('auth');
     const $btnGoogle = document.getElementById('btnGoogle');
     const $app = document.getElementById('app');
@@ -94,6 +99,13 @@
     const $btnSignOut = document.getElementById('btnSignOut');
     const $btnEmoji = document.getElementById('btnEmoji');
     const $emojiPanel = document.getElementById('emojiPanel');
+    const $menu = document.getElementById('menu');
+
+    // mobile menu toggle
+    $menu?.addEventListener('click', ()=>{
+      const aside = document.querySelector('aside');
+      aside.classList.toggle('hidden');
+    });
 
     boot();
     async function boot(){
@@ -118,7 +130,7 @@
       S.user = user;
       const m = user.user_metadata||{};
       S.me = { name: m.full_name || m.name || (user.email||'').split('@')[0] || 'Потребител', avatar: m.avatar_url || m.picture || '' };
-      $meAvatar.src = S.me.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(S.me.name)}&background=0D9488&color=fff`;
+      $meAvatar.src = avatarUrl(S.me.name, S.me.avatar);
       $meName.textContent = S.me.name; $meId.textContent = (user.id||'').slice(0,8);
       showAuth(false);
 
@@ -129,6 +141,9 @@
       subscribeMessages();
       await loadMessages();
       initEmoji();
+      enableNotifications();
+      $input.addEventListener('input', ()=>autoResize($input));
+      autoResize($input);
     }
 
     // ===== Presence =====
@@ -145,51 +160,61 @@
       $users.innerHTML=''; let count=0;
       (data||[]).forEach(u=>{
         const online=isOnline(u.last_seen_at); if(online) count++;
-        const ava = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=0D9488&color=fff`;
         const el=document.createElement('div'); el.className='flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50';
-        el.innerHTML=`<img src="${esc(ava)}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/><div class='min-w-0'><div class='font-medium truncate'>${esc(u.username||'Потребител')}</div><div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div></div>${u.id===S.user.id?'<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>':''}`;
+        el.innerHTML=`<img src="${avatarUrl(u.username,u.avatar)}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/><div class='min-w-0'><div class='font-medium truncate'>${esc(u.username||'Потребител')}</div><div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div></div>${u.id===S.user.id?'<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>':''}`;
         $users.appendChild(el);
       });
       $activeCount.textContent = count;
     }
 
     function subscribePresence(){
-      sb.channel('online_users_changes')
-        .on('postgres_changes', { event:'*', schema:'public', table:'online_users' }, refreshUsers)
-        .subscribe();
+      sb.channel('online_users_changes').on('postgres_changes', { event:'*', schema:'public', table:'online_users' }, refreshUsers).subscribe();
     }
 
     // ===== Messages =====
     async function loadMessages(){
-      let { data, error } = await sb.from('messages').select('*').order('created_at', {ascending:true}).limit(200);
-      if (error){ ({ data, error } = await sb.from('messages').select('*').limit(200)); }
+      let { data, error } = await sb.from('messages').select('*').order('created_at', {ascending:true}).limit(300);
+      if (error){ ({ data, error } = await sb.from('messages').select('*').limit(300)); }
       if (error){ console.warn('loadMessages', error); return; }
       $messages.innerHTML=''; S.messages.clear();
       (data||[]).forEach(m=>{ S.messages.set(m.id, m); renderMessage(m); });
+      renderTwemoji($messages);
       $messages.scrollTop = $messages.scrollHeight;
     }
 
     function subscribeMessages(){
-      sb.channel('realtime:messages')
-        .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, ({new:row})=>{ S.messages.set(row.id,row); renderMessage(row); $messages.scrollTop=$messages.scrollHeight; })
-        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'messages' }, ({new:row})=>{ S.messages.set(row.id,row); const el=document.getElementById('msg-'+row.id); if(el) el.outerHTML = messageHtml(row); })
+      const ch = sb.channel('realtime:messages');
+      ch
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, ({new:row})=>{
+          S.messages.set(row.id,row);
+          renderMessage(row);
+          renderTwemoji(document.getElementById('msg-'+row.id));
+          $messages.scrollTop=$messages.scrollHeight;
+          notifyIfNeeded(row);
+        })
+        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'messages' }, ({new:row})=>{
+          S.messages.set(row.id,row);
+          const el=document.getElementById('msg-'+row.id);
+          if(el){ el.outerHTML = messageHtml(row); renderTwemoji(document.getElementById('msg-'+row.id)); }
+        })
         .subscribe();
     }
 
     function messageHtml(m){
       const name = esc(m.sender_name || m.username || '');
-      const avatar = m.sender_avatar || m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name||'U')}&background=0D9488&color=fff`;
+      const avatar = avatarUrl(name, m.sender_avatar || m.avatar);
       const mine = m.sender_id ? (m.sender_id===S.user.id) : (name===S.me.name);
       const liked_by = Array.isArray(m.liked_by) ? m.liked_by : [];
       const liked = liked_by.includes?.(S.user?.id);
       const likeBtn = `<button class="inline-flex items-center gap-1 text-xs ${liked?'font-semibold':''}" onclick="toggleLike('${m.id}')">❤ <span>${liked_by.length||0}</span></button>`;
+      const time = m.created_at ? `<span class='text-[11px] opacity-70'>${formatTime(m.created_at)}</span>` : '';
       return `
         <div id="msg-${m.id}" class="flex items-start gap-3 ${mine?'justify-end':''}">
           ${mine?'':`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`}
-          <div class="max-w-[80%] ${mine?'bg-slate-900 text-white':'bg-white'} rounded-2xl px-4 py-3 shadow-sm border ${mine?'border-slate-900':'border-slate-200'}">
+          <div class="max-w-[90%] sm:max-w-[80%] ${mine?'bg-gradient-to-br from-slate-900 to-slate-800 text-white':'bg-white'} rounded-2xl px-4 py-3 shadow-sm border ${mine?'border-slate-900':'border-slate-200'}">
             ${mine?'':`<div class='text-xs font-medium mb-1 text-slate-500'>${name}</div>`}
             <div class="whitespace-pre-wrap leading-relaxed">${linkify(esc(m.content||''))}</div>
-            <div class="mt-2 ${mine?'text-slate-200':'text-slate-500'}">${likeBtn}</div>
+            <div class="mt-2 flex items-center gap-3 ${mine?'text-slate-200':'text-slate-500'}">${likeBtn} ${time}</div>
           </div>
           ${mine?`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`:''}
         </div>`;
@@ -198,7 +223,9 @@
 
     // send
     $composer.addEventListener('submit', async (e)=>{
-      e.preventDefault(); const txt=$input.value.trim(); if(!txt) return;
+      e.preventDefault();
+      const txt=$input.value.trim();
+      if(!txt) return;
       $input.value=''; autoResize($input);
       const row={ username:S.me.name, avatar:S.me.avatar, content:txt, sender_id:S.user.id, sender_name:S.me.name, sender_avatar:S.me.avatar };
       const { error } = await sb.from('messages').insert(row);
@@ -206,7 +233,7 @@
       await loadMessages();
     });
 
-    // likes (optimistic)
+    // likes (optimистично)
     window.toggleLike = async function(id){
       const msg = S.messages.get(id); if(!msg) return;
       const uid = S.user.id;
@@ -219,21 +246,51 @@
       if (error){ msg.liked_by = prev; S.messages.set(id,msg); if(mnt) mnt.outerHTML = messageHtml(msg); alert('Грешка при харесване: '+error.message); }
     }
 
-    // Emoji picker
+    // Emoji picker + Twemoji
     function initEmoji(){
       $emojiPanel.innerHTML = EMOJIS.map(e=>`<button type="button" class="emoji-btn">${e}</button>`).join('');
+      renderTwemoji($emojiPanel);
       $btnEmoji.addEventListener('click', ()=>{ $emojiPanel.classList.toggle('hidden'); });
-      $emojiPanel.addEventListener('click', (e)=>{ if(e.target.matches('.emoji-btn')){ $input.value += e.target.textContent; $input.focus(); autoResize($input); } });
+      $emojiPanel.addEventListener('click', (e)=>{ const btn=e.target.closest('.emoji-btn'); if(btn){ $input.value += btn.textContent; $input.focus(); autoResize($input); } });
       document.addEventListener('click', (e)=>{ if(!e.composedPath().includes($emojiPanel) && !e.composedPath().includes($btnEmoji)) $emojiPanel.classList.add('hidden'); });
+    }
+
+    // Notifications & sound
+    function enableNotifications(){
+      if ('Notification' in window && Notification.permission==='default'){
+        try{ Notification.requestPermission(); }catch(e){}
+      }
+      document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) clearUnread(); });
+    }
+    let audioCtx;
+    function beep(){
+      try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(audioCtx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.2); o.stop(audioCtx.currentTime+0.2);}catch(e){}
+    }
+    function markUnread(){ const b=document.getElementById('unread'); b&&b.classList.remove('hidden'); document.title='• Нови - T‑MAP Chat'; }
+    function clearUnread(){ const b=document.getElementById('unread'); b&&b.classList.add('hidden'); document.title='T‑MAP Chat — simple'; }
+    function notifyIfNeeded(m){
+      if(!S.user) return; const name = m.sender_name || m.username || 'Новo съобщение';
+      const mine = m.sender_id ? (m.sender_id===S.user.id) : (name===S.me.name);
+      if (mine) return;
+      beep();
+      if (document.hidden){
+        markUnread();
+        if ('Notification' in window && Notification.permission==='granted'){
+          try{ const n=new Notification('T‑MAP чат', { body: `${name}: ${(m.content||'').slice(0,100)}`, icon: m.sender_avatar || m.avatar || undefined }); setTimeout(()=>n.close(),5000); }catch(e){}
+        }
+      }
     }
 
     // connection ping
     setInterval(async()=>{ const { error } = await sb.from('online_users').select('count').limit(1); $conn.textContent = error? 'Офлайн' : 'Онлайн'; $conn.className = 'ml-auto text-xs px-2 py-1 rounded-full ' + (error?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'); }, 5000);
 
-    // utils
+    // helpers
+    function avatarUrl(name, url){ return url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name||'U')}&background=0D9488&color=fff`; }
+    function renderTwemoji(el){ try{ if (window.twemoji) twemoji.parse(el||document.body,{folder:'svg',ext:'.svg'}); }catch(_){} }
     function esc(s){return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
     function linkify(t){return t.replace(/https?:\/\/[^\s]+/g,u=>`<a class='underline' target='_blank' rel='noopener' href='${u}'>${u}</a>`);}  
-    function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(120, el.scrollHeight)+'px'; }
+    function formatTime(iso){ try{ const d=new Date(iso); return d.toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return ''; } }
+    function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(140, el.scrollHeight)+'px'; }
   </script>
 </body>
 </html>
