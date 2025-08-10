@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>T‑MAP Chat — simple</title>
+  <title>T‑MAP Chat — clean build</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Twemoji: надеждни емоджита (SVG) -->
+  <!-- Twemoji (SVG) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js" crossorigin="anonymous"></script>
   <style>
     html { scroll-behavior: smooth; }
@@ -20,7 +20,7 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
-  <!-- AUTH -->
+  <!-- AUTH GATE -->
   <section id="auth" class="min-h-screen grid place-items-center p-6 hidden">
     <div class="w-full max-w-sm bg-white border rounded-2xl shadow-sm p-6 space-y-4">
       <h1 class="text-xl font-semibold">Вход в чата</h1>
@@ -66,7 +66,6 @@
         <div id="emojiPanel" class="emoji-panel hidden"></div>
       </form>
 
-      <!-- Toast -->
       <div id="toast" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-lg text-sm"></div>
     </main>
   </div>
@@ -78,6 +77,7 @@
 
     const HEARTBEAT_SEC = 20;
     const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+    const TWE_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/';
 
     const { createClient } = supabase;
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true } });
@@ -86,7 +86,7 @@
     const EMOJIS = "😀😁😂🤣😊😍😘😎🤩😇😉🙂🙃😐😑😴🤔🤨😮😢😭😡👍👎👏🙏🔥✨🎉❤️💙💚💛🧡💜🤍🤎".split("");
     let lastMsgAt = 0;
 
-    // DOM
+    // DOM refs
     const $auth = document.getElementById('auth');
     const $btnGoogle = document.getElementById('btnGoogle');
     const $app = document.getElementById('app');
@@ -105,18 +105,15 @@
     const $menu = document.getElementById('menu');
     const $toast = document.getElementById('toast');
 
-    // mobile menu toggle
-    $menu?.addEventListener('click', ()=>{
-      const aside = document.querySelector('aside');
-      aside.classList.toggle('hidden');
-    });
+    // Mobile menu
+    $menu?.addEventListener('click', ()=>{ document.querySelector('aside').classList.toggle('hidden'); });
 
+    // Boot
     boot();
     async function boot(){
       const { data } = await sb.auth.getUser();
       if (data?.user) onLoggedIn(data.user); else showAuth(true);
     }
-
     sb.auth.onAuthStateChange((_e, session) => { if (session?.user) onLoggedIn(session.user); else showAuth(true); });
 
     function showAuth(show){ $auth.classList.toggle('hidden', !show); $app.classList.toggle('hidden', show); }
@@ -140,7 +137,7 @@
 
       await upsertPresence();
       heartbeat();
-      refreshUsers();
+      await refreshUsers();
       subscribePresence();
       subscribeMessages();
       await loadMessages();
@@ -227,7 +224,7 @@
     }
     function renderMessage(m){ $messages.insertAdjacentHTML('beforeend', messageHtml(m)); }
 
-    // send
+    // Send
     $composer.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const txt=$input.value.trim();
@@ -239,7 +236,7 @@
       await loadMessages();
     });
 
-    // likes (optimистично)
+    // Likes (optimistic)
     window.toggleLike = async function(id){
       const msg = S.messages.get(id); if(!msg) return;
       const uid = S.user.id;
@@ -252,19 +249,19 @@
       if (error){ msg.liked_by = prev; S.messages.set(id,msg); if(mnt) mnt.outerHTML = messageHtml(msg); alert('Грешка при харесване: '+error.message); }
     }
 
-    // Emoji picker + Twemoji
+    // Emoji panel + Twemoji
     function initEmoji(){
-      const base='https://twemoji.maxcdn.com/v/latest/svg/';
+      const base=TWE_BASE + 'svg/';
       $emojiPanel.innerHTML = EMOJIS.map(e=>{
         const cp = (window.twemoji?.convert?.toCodePoint(e) || toCodePoint(e));
         return `<button type="button" class="emoji-btn" data-e="${e}"><img class="twemoji" src="${base}${cp}.svg" alt="${e}"/></button>`;
       }).join('');
       $btnEmoji.addEventListener('click', ()=>{ $emojiPanel.classList.toggle('hidden'); });
-      $emojiPanel.addEventListener('click', (e)=>{ const btn=e.target.closest('.emoji-btn'); if(btn){ $input.value += btn.dataset.e; $input.focus(); autoResize($input); } });
-      document.addEventListener('click', (e)=>{ if(!e.composedPath().includes($emojiPanel) && !e.composedPath().includes($btnEmoji)) $emojiPanel.classList.add('hidden'); });
+      $emojiPanel.addEventListener('click', (ev)=>{ const btn=ev.target.closest('.emoji-btn'); if(btn){ $input.value += btn.dataset.e; $input.focus(); autoResize($input); }});
+      document.addEventListener('click', (ev)=>{ if(!ev.composedPath().includes($emojiPanel) && !ev.composedPath().includes($btnEmoji)) $emojiPanel.classList.add('hidden'); });
     }
 
-    // ===== Notifications =====
+    // ===== Notifications / sound / toast =====
     function enableNotifications(){
       if ('Notification' in window && Notification.permission==='default'){
         try{ Notification.requestPermission(); }catch(e){}
@@ -272,31 +269,37 @@
       document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) clearUnread(); });
     }
 
-    let audioCtx;
+    let audioCtx; let soundEnabled=false;
+    function unlockAudio(){
+      try{
+        audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+        audioCtx.resume && audioCtx.resume();
+        soundEnabled = true;
+      }catch(_){ }
+    }
+    document.addEventListener('pointerdown', unlockAudio, {passive:true});
+    $composer?.addEventListener('submit', unlockAudio);
+    $btnEmoji?.addEventListener('click', unlockAudio);
+
     function beep(){
+      if(!soundEnabled) return;
       try{
         audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
         const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
-        o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(audioCtx.destination);
-        o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.2); o.stop(audioCtx.currentTime+0.2);
+        o.type='sine'; o.frequency.value=880; g.gain.value=0.08; o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime+0.12);
       }catch(e){}
     }
-
     function vibrate(){ try{ navigator.vibrate && navigator.vibrate([25, 30, 25]); }catch(_){} }
 
-    function showToast(text){
-      if(!$toast) return; $toast.textContent = text; $toast.classList.remove('hidden');
-      setTimeout(()=>{ $toast.classList.add('hidden'); }, 2500);
-    }
-
+    function showToast(text){ if(!$toast) return; $toast.textContent = text; $toast.classList.remove('hidden'); setTimeout(()=>{ $toast.classList.add('hidden'); }, 2500); }
     function markUnread(){ const b=document.getElementById('unread'); b&&b.classList.remove('hidden'); document.title='• Нови - T‑MAP Chat'; }
-    function clearUnread(){ const b=document.getElementById('unread'); b&&b.classList.add('hidden'); document.title='T‑MAP Chat — simple'; }
+    function clearUnread(){ const b=document.getElementById('unread'); b&&b.classList.add('hidden'); document.title='T‑MAP Chat — clean build'; }
 
     function notifyIfNeeded(m){
       if(!S.user) return; const name = m.sender_name || m.username || 'Новo съобщение';
       const mine = m.sender_id ? (m.sender_id===S.user.id) : (name===S.me.name);
       if (mine) return;
-      // звук + вибрация
       beep(); vibrate();
       if (document.hidden){
         markUnread();
@@ -308,15 +311,15 @@
       }
     }
 
-    // fallback poller (ако Realtime е блокиран)
+    // Fallback poller (ако Realtime е блокиран)
     setInterval(async()=>{ try{ const { data, error } = await sb.from('messages').select('created_at').order('created_at',{ascending:false}).limit(1); if(!error && data && data[0]){ const ts=Date.parse(data[0].created_at); if(ts>lastMsgAt){ await loadMessages(); } } }catch(e){} }, 7000);
 
-    // connection ping
+    // Connection ping
     setInterval(async()=>{ const { error } = await sb.from('online_users').select('count').limit(1); $conn.textContent = error? 'Офлайн' : 'Онлайн'; $conn.className = 'ml-auto text-xs px-2 py-1 rounded-full ' + (error?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'); }, 5000);
 
-    // Helpers
+    // ===== Helpers =====
     function avatarUrl(name, url){ return url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name||'U')}&background=0D9488&color=fff`; }
-    function renderTwemoji(el){ try{ if (window.twemoji) twemoji.parse(el||document.body,{folder:'svg',ext:'.svg'}); }catch(_){} }
+    function renderTwemoji(el){ try{ if (window.twemoji) twemoji.parse(el||document.body,{base:TWE_BASE,folder:'svg',ext:'.svg'}); }catch(_){ } }
     function toCodePoint(str){ try{ return Array.from(str).map(s=>s.codePointAt(0).toString(16)).join('-'); }catch(_){ return ''; } }
     function esc(s){return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
     function linkify(t){return t.replace(/https?:\/\/[^\s]+/g,u=>`<a class='underline' target='_blank' rel='noopener' href='${u}'>${u}</a>`);}  
