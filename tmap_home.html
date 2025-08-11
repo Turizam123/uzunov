@@ -1,77 +1,346 @@
 
-<!DOCTYPE html>
-<html lang="bg">
+<!doctype html>
+<html lang="bg" class="h-full">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>T-MAP – Начална страница</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>T‑MAP – Начална страница</title>
+  <meta name="description" content="T‑MAP – туристическа карта и общност. Виж обекти, добавяй локации и включи се в чата." />
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #f9f9f9;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-
-    img {
-      width: 120px;
-      height: auto;
-      margin-bottom: 20px;
-    }
-
-    h1 {
-      color: #18796e;
-      font-size: 2.5em;
-      margin: 0.2em 0;
-    }
-
-    p {
-      color: #555;
-      font-size: 1.2em;
-      margin-bottom: 40px;
-    }
-
-    .buttons {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .buttons a {
-      text-decoration: none;
-      padding: 12px 24px;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 1em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .dashboard-btn {
-      background-color: #007bff;
-    }
-
-    .map-btn {
-      background-color: #28a745;
-    }
+    /* Изчистен, светъл фон */
+    body { background:
+      radial-gradient(1000px 500px at 120% -10%, rgba(16,185,129,.12), rgba(255,255,255,0)) no-repeat,
+      radial-gradient(900px 450px at -20% 0%, rgba(59,130,246,.08), rgba(255,255,255,0)) no-repeat; }
+    .glass { backdrop-filter: saturate(180%) blur(8px); }
   </style>
+  <!-- Favicon injector: конфиг + външен скрипт (по избор) + fallback -->
+  <script>
+    window.__FAVICON_URL__ = 'https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo01082025-removebg-preview.png?1754135840';
+  </script>
   <script src="favicon-injector.js"></script>
+  <script>
+    // Fallback, ако външният файл липсва
+    (function(){
+      if (window.__faviconInjected) return; // ако външният скрипт вече е закачил иконата
+      var href = window.__FAVICON_URL__;
+      if(!href) return;
+      function setIcon(rel, sizes){
+        var sel = 'link[rel="'+rel+'"]' + (sizes?('[sizes="'+sizes+'"]'):'');
+        var link = document.querySelector(sel);
+        if(!link){ link = document.createElement('link'); link.rel = rel; if(sizes) link.sizes = sizes; document.head.appendChild(link); }
+        link.href = href;
+      }
+      setIcon('icon','16x16');
+      setIcon('icon','32x32');
+      var apple = document.querySelector('link[rel="apple-touch-icon"]');
+      if(!apple){ apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; apple.sizes = '180x180'; document.head.appendChild(apple); }
+      apple.href = href;
+      window.__faviconInjected = true;
+    })();
+  </script>
 </head>
-<body>
-  <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo01082025-removebg-preview.png?1754135840" alt="T-MAP Logo">
-  <h1>Добре дошли в T-MAP</h1>
-  <p>Интерактивна туристическа карта на България</p>
-  <div class="buttons">
-    <a href="dashboard.html" class="dashboard-btn">📄 Моето табло</a>
-    <a href="tmap.html" class="map-btn">🗺️ Виж картата (T-MAP)</a>
-  </div>
+<body class="h-full text-gray-800">
+  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-white text-gray-900 px-3 py-2 rounded-md shadow">Към съдържанието</a>
+
+  <!-- Хедър / Навигация -->
+  <header class="fixed inset-x-0 top-0 z-50 border-b border-black/5 bg-white md:bg-white/80 md:backdrop-blur">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex h-16 items-center justify-between">
+        <div class="flex items-center gap-3 select-none pointer-events-none" aria-label="T‑MAP">
+          <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo01082025-removebg-preview.png?1754135840" alt="T‑MAP" class="h-8 w-auto" />
+          <span class="text-lg font-bold tracking-tight">T‑MAP</span>
+        </div>
+
+        <!-- Desktop навигация (без Админ) -->
+        <nav class="hidden">
+          <!-- скрито за desktop/лаптоп; менюто е само мобилно (drawer) -->
+        </nav>
+
+        <!-- Десни бутони (desktop) -->
+        <div class="hidden"></div>
+
+        <!-- Mobile burger -->
+        <button id="menuBtn" class="md:hidden rounded-xl p-2 hover:bg-white/70" aria-label="Меню" aria-expanded="false">
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Overlay + Drawer (мобилно интерактивно меню) -->
+    <div id="overlay" class="md:hidden fixed inset-0 bg-black/40 hidden"></div>
+    <aside id="mobileDrawer" class="md:hidden fixed top-0 right-0 h-full w-80 max-w-[85%] translate-x-full transition-transform duration-300 ease-out bg-white shadow-xl border-l border-black/5 transform">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-black/5">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-600/10">
+            <svg class="h-4 w-4 text-emerald-700" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-7.2 8-13a8 8 0 10-16 0c0 5.8 8 13 8 13z" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+          <span class="font-semibold">Меню</span>
+        </div>
+        <button id="closeDrawer" class="rounded-lg p-2 hover:bg-gray-50" aria-label="Затвори меню">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <nav class="px-3 py-4 space-y-1">
+        <a href="tmap.html" class="block rounded-xl px-3 py-3 hover:bg-gray-50">Карта</a>
+        <a href="https://turizam123.github.io/uzunov/dashboard.html" class="block rounded-xl px-3 py-3 hover:bg-gray-50">Моето табло</a>
+        <div class="pt-2">
+          <p class="px-3 pb-1 text-xs uppercase tracking-wide text-gray-500">Чат</p>
+          <a href="#" data-chat-link class="block rounded-xl px-3 py-3 hover:bg-gray-50">Общ чат</a>
+          <a href="#" data-open-policy="chat_rules" class="block rounded-xl px-3 py-3 hover:bg-gray-50">Правила на чата</a>
+        </div>
+        <div class="pt-4 flex gap-2">
+          <a href="#" data-chat-link class="flex-1 rounded-2xl border border-black/5 bg-white px-4 py-2 text-center text-sm font-semibold shadow-sm">Влез в чата</a>
+          <a href="tmap.html" class="flex-1 rounded-2xl bg-emerald-600 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm">Към картата</a>
+        </div>
+      </nav>
+    </aside>
+  </header>
+
+  <main id="main" class="pt-24">
+    <!-- Hero секция -->
+    <section class="relative overflow-hidden">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center py-12 lg:py-20">
+          <div>
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight">Добре дошли в <span class="text-emerald-600">T‑MAP</span></h1>
+            <p class="mt-4 text-lg text-gray-700">Интерактивна туристическа карта на България — разглеждай обекти, добавяй места и общувай с общността в чата.</p>
+            <div class="mt-6 flex flex-wrap gap-3">
+              <a href="tmap.html" class="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-7.2 8-13a8 8 0 10-16 0c0 5.8 8 13 8 13z" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="9" r="3"/></svg>
+                Виж картата (T‑MAP)
+              </a>
+              <a href="#" data-chat-link class="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-black/5 hover:bg-gray-50">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H8l-4 4V5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Влез в чата
+              </a>
+              <a href="https://turizam123.github.io/uzunov/dashboard.html" class="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-black/5 hover:bg-gray-50">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M5 7h14M5 17h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Добави обект
+              </a>
+            </div>
+            <div class="mt-6 flex items-center gap-2 text-sm text-gray-600">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Без регистрация • Публичен достъп • Лек интерфейс
+            </div>
+          </div>
+          <div class="relative">
+            <div class="aspect-[16/10] w-full rounded-3xl border border-black/5 bg-gradient-to-br from-emerald-50 to-white shadow-xl overflow-hidden">
+              <div class="absolute inset-0 p-3 sm:p-6 grid grid-cols-12 gap-2 opacity-90">
+                <div class="col-span-9 rounded-2xl bg-white/90 ring-1 ring-black/5"></div>
+                <div class="col-span-3 space-y-2">
+                  <div class="h-10 rounded-xl bg-white/90 ring-1 ring-black/5"></div>
+                  <div class="h-10 rounded-xl bg-white/90 ring-1 ring-black/5"></div>
+                  <div class="h-10 rounded-xl bg-white/90 ring-1 ring-black/5"></div>
+                </div>
+              </div>
+              <div class="absolute bottom-3 right-3">
+                <a href="#" data-chat-link class="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-700">
+                  Отвори чата
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Бързи връзки -->
+    <section class="py-8 lg:py-12">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <article class="rounded-2xl border border-black/5 bg-white/80 p-5 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="rounded-xl bg-emerald-600/10 p-2">
+                <svg class="h-5 w-5 text-emerald-700" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-7.2 8-13a8 8 0 10-16 0c0 5.8 8 13 8 13z" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="9" r="3"/></svg>
+              </div>
+              <h3 class="font-semibold">Обекти с един клик</h3>
+            </div>
+            <p class="mt-2 text-sm text-gray-600">Лесно добавяне и преглед на забележителности. Одобрение от админ преди показване.</p>
+          </article>
+          <article class="rounded-2xl border border-black/5 bg-white/80 p-5 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="rounded-xl bg-blue-600/10 p-2">
+                <svg class="h-5 w-5 text-blue-700" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H8l-4 4V5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <h3 class="font-semibold">Вграден общ чат</h3>
+            </div>
+            <p class="mt-2 text-sm text-gray-600">Говори с останалите в реално време. Без регистрации и усложнения.</p>
+          </article>
+          <article class="rounded-2xl border border-black/5 bg-white/80 p-5 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="rounded-xl bg-amber-600/10 p-2">
+                <svg class="h-5 w-5 text-amber-700" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <h3 class="font-semibold">PWA готовност</h3>
+            </div>
+            <p class="mt-2 text-sm text-gray-600">Инсталирай като приложение и ползвай офлайн тракинг (планувано).</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-black/5 bg-white">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-600">
+      <p>© <span id="year"></span> T‑MAP • Туристическа карта</p>
+      <nav class="flex flex-wrap items-center gap-4 text-sm">
+        <button type="button" data-open-policy="privacy" class="hover:underline">Политика за поверителност</button>
+        <button type="button" data-open-policy="terms" class="hover:underline">Условия за ползване</button>
+        <button type="button" data-open-policy="cookies" class="hover:underline">Политика за бисквитки</button>
+        <button type="button" data-open-policy="chat_rules" class="hover:underline">Правила на чата</button>
+        <span class="hidden sm:inline-block h-5 w-px bg-gray-300"></span>
+        <a href="https://turistibg.weebly.com" target="_blank" rel="noopener" class="hover:underline">Основен сайт</a>
+        <a href="https://www.facebook.com/turizamworld?locale=bg_BG" target="_blank" rel="noopener" aria-label="Facebook страница" class="inline-flex items-center gap-1 hover:underline">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.06C22 6.53 17.52 2 12 2S2 6.53 2 12.06c0 4.99 3.66 9.13 8.44 9.94v-7.03H7.9v-2.9h2.54V9.41c0-2.5 1.49-3.88 3.77-3.88 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.81 8.44-4.95 8.44-9.94z"/></svg>
+          <span class="sr-only">Facebook</span>
+        </a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- Модали: Политики -->
+  <div id="policy-overlay" class="fixed inset-0 bg-black/50 hidden z-50"></div>
+  <section id="policy-modal" class="fixed inset-x-4 top-10 md:inset-x-auto md:right-6 md:left-auto z-50 hidden max-w-2xl md:w-[640px] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden">
+    <header class="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+      <h2 id="policy-title" class="text-base font-semibold">Политики</h2>
+      <button type="button" id="policy-close" class="rounded-lg p-2 hover:bg-gray-50" aria-label="Затвори">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+    <article id="policy-content" class="px-5 py-4 max-h-[70vh] overflow-y-auto text-sm leading-6 text-gray-700 space-y-3">
+      <!-- динамично съдържание -->
+    </article>
+    <footer class="px-5 py-3 border-t border-gray-200 text-right">
+      <button type="button" id="policy-ok" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm">ОК</button>
+    </footer>
+  </section>
+
+  <script>
+    // Текуща година
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Drawer логика (само мобилно)
+    const menuBtn = document.getElementById('menuBtn');
+    const overlay = document.getElementById('overlay');
+    const drawer = document.getElementById('mobileDrawer');
+    const closeDrawer = document.getElementById('closeDrawer');
+
+    function openDrawer() {
+      overlay.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        drawer.classList.remove('translate-x-full');
+      });
+      menuBtn.setAttribute('aria-expanded', 'true');
+    }
+    function hideDrawer() {
+      drawer.classList.add('translate-x-full');
+      overlay.classList.add('hidden');
+      menuBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    menuBtn?.addEventListener('click', openDrawer);
+    overlay?.addEventListener('click', hideDrawer);
+    closeDrawer?.addEventListener('click', hideDrawer);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideDrawer(); });
+
+    // Централизирана връзка към чата / входа
+    const CHAT_URL = 'https://turizam123.github.io/uzunov/tmap_chat.html'; // смени тук при нужда (напр. 'tmap_chat.html#login')
+    document.querySelectorAll('[data-chat-link]').forEach(a => {
+      a.setAttribute('href', CHAT_URL);
+    });
+      // Логика за модалите с политики
+    const policyOverlay = document.getElementById('policy-overlay');
+    const policyModal = document.getElementById('policy-modal');
+    const policyTitle = document.getElementById('policy-title');
+    const policyContent = document.getElementById('policy-content');
+    const policyClose = document.getElementById('policy-close');
+    const policyOk = document.getElementById('policy-ok');
+
+    const POLICY_TEXT = {
+      privacy: {
+        title: 'Политика за поверителност',
+        html: `
+          <p>Ние уважаваме личните данни на посетителите. Събираме минимална информация, необходима за работата на платформата T‑MAP, като например технически логове (IP, user‑agent) за сигурност и диагностика.</p>
+          <p>Данни, които доброволно ни предоставяте (напр. заглавие/описание на обект, координати) се използват само за показване на картата и модериране. Не продаваме и не споделяме данни с трети страни извън необходимите доставчици (напр. хостинг/Supabase) съгласно техните политики.</p>
+          <p>Можете да поискате преглед/изтриване на свои данни чрез контакт на администраторa.</p>
+        `
+      },
+      terms: {
+        title: 'Условия за ползване',
+        html: `
+          <p>Използвайки сайта, се съгласявате да публикувате само вярно и законосъобразно съдържание, да уважавате авторски права и лични данни.</p>
+          <p>Администраторът може да редактира/премахва съдържание и да ограничава достъп при нарушения. Услугата се предоставя "както е" без гаранции за непрекъснатост.</p>
+          <p>Добавените от потребители обекти се публикуват след одобрение.</p>
+        `
+      },
+      cookies: {
+        title: 'Политика за бисквитки',
+        html: `
+          <p>Използваме основни бисквитки за запомняне на предпочитания (напр. видени обекти) и статистически/функционални бисквитки за подобряване на услугата.</p>
+          <p>Можете да изтриете или блокирате бисквитки от настройките на браузъра си. Някои функции може да не работят оптимално без бисквитки.</p>
+        `
+      }, chat_rules: {
+        title: 'Правила на чата',
+        html: `
+          <h3 class="font-semibold">1) Уважение и тон</h3>
+          <ul class="list-disc pl-5">
+            <li>Без обиди, реч на омраза, дискриминация или токсично поведение.</li>
+            <li>Без спам и агресивна реклама. Партньорски/търговски линкове – само след одобрение.</li>
+          </ul>
+          <h3 class="font-semibold mt-3">2) Поверителност и безопасност</h3>
+          <ul class="list-disc pl-5">
+            <li>Не публикувай лични данни (телефони, имейли, адреси) без съгласие.</li>
+            <li>Не споделяй точни координати на частни домове/имоти. За защитени територии – следвай местните правила.</li>
+            <li>Снимки на други хора – само ако имаш право да ги споделиш.</li>
+          </ul>
+          <h3 class="font-semibold mt-3">3) Съдържание и тема</h3>
+          <ul class="list-disc pl-5">
+            <li>Остани по темата: туризъм, маршрути, обекти, безопасност, екипировка.</li>
+            <li>Фалшива/подвеждаща информация и опасни съвети са забранени.</li>
+            <li>NSFW/неподходящо съдържание не е позволено.</li>
+          </ul>
+          <h3 class="font-semibold mt-3">4) Модерация</h3>
+          <ul class="list-disc pl-5">
+            <li>Модераторите могат да редактират/изтриват съобщения и да ограничават достъп при нарушения.</li>
+            <li>Стъпки: предупреждение → временно ограничение → постоянна забрана (при сериозни/повтарящи се нарушения).</li>
+          </ul>
+          <h3 class="font-semibold mt-3">5) Съхранение на съобщения</h3>
+          <ul class="list-disc pl-5">
+            <li>Чатът е краткоживеещ: съобщенията се изчистват автоматично (в момента: приблизително до 1 час).</li>
+            <li>Архив не се поддържа, освен минимални технически логове за сигурност.</li>
+          </ul>
+          <h3 class="font-semibold mt-3">6) Сигнализиране</h3>
+          <ul class="list-disc pl-5">
+            <li>Сигнализирай проблемно съдържание на: <a class="underline" href="mailto:82angeluzunov@gmail.com">82angeluzunov@gmail.com</a>.</li>
+          </ul>
+          <p class="text-sm text-gray-600 mt-3">При използване на чата приемаш тези правила. Може да бъдат актуализирани при нужда.</p>
+        `
+      }
+    };
+
+    function openPolicy(key){
+      const p = POLICY_TEXT[key];
+      if(!p) return;
+      policyTitle.textContent = p.title;
+      policyContent.innerHTML = p.html;
+      policyOverlay.classList.remove('hidden');
+      policyModal.classList.remove('hidden');
+    }
+    function closePolicy(){
+      policyOverlay.classList.add('hidden');
+      policyModal.classList.add('hidden');
+    }
+
+    document.querySelectorAll('[data-open-policy]')?.forEach(btn => {
+      btn.addEventListener('click', () => {
+        try { hideDrawer(); } catch (e) {}
+        openPolicy(btn.getAttribute('data-open-policy'));
+      });
+    });
+    policyOverlay.addEventListener('click', closePolicy);
+    policyClose.addEventListener('click', closePolicy);
+    policyOk.addEventListener('click', closePolicy);
+  </script>
 </body>
 </html>
