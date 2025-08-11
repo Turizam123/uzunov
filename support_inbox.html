@@ -1,0 +1,115 @@
+
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>T‑MAP • Support Inbox</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <div class="max-w-5xl mx-auto p-4 sm:p-6">
+    <header class="flex items-center justify-between gap-3 mb-4">
+      <h1 class="text-2xl font-extrabold">Support Inbox</h1>
+      <div id="authBox" class="text-sm"></div>
+    </header>
+
+    <div id="guard" class="hidden p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">
+      Нямате права за достъп. Влезте с администраторския Gmail.
+    </div>
+
+    <section id="listWrap" class="space-y-3"></section>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SB_URL  = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
+    const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
+    const ADMIN_EMAIL = '82angeluzunov@gmail.com';
+
+    const supabase = createClient(SB_URL, SB_ANON, { auth:{ persistSession:true, detectSessionInUrl:true } });
+
+    const $ = (s)=>document.querySelector(s);
+    const listWrap = $('#listWrap');
+    const guard = $('#guard');
+    const authBox = $('#authBox');
+
+    async function renderAuth(){
+      const { data } = await supabase.auth.getSession();
+      if(data?.session){
+        const email = data.session.user.email;
+        authBox.innerHTML = `<span class="text-slate-600">Влязъл като <b>${email}</b></span> <button id="out" class="ml-2 px-3 py-1 rounded-lg border bg-white">Изход</button>`;
+        $('#out').onclick = async()=>{ await supabase.auth.signOut(); location.reload(); };
+        if(email !== ADMIN_EMAIL){ guard.classList.remove('hidden'); return false; }
+        guard.classList.add('hidden'); return true;
+      } else {
+        authBox.innerHTML = `<button id="in" class="px-3 py-1 rounded-lg border bg-white">Влез с Google</button>`;
+        $('#in').onclick = signInGoogle; return false;
+      }
+    }
+
+    async function signInGoogle(){
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider:'google',
+        options:{ skipBrowserRedirect:true, redirectTo: location.href }
+      });
+      if(error) { alert('Грешка при вход: '+error.message); return; }
+      const w=520,h=600,l=(screen.width-w)/2,t=(screen.height-h)/2;
+      const popup = window.open(data.url,'tmap_support_admin',`width=${w},height=${h},left=${l},top=${t}`);
+      const iv = setInterval(async()=>{
+        const { data } = await supabase.auth.getSession();
+        if(data?.session){ clearInterval(iv); try{popup.close()}catch{} location.reload(); }
+      }, 800);
+    }
+
+    function esc(s){return s?.replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))||''}
+
+    async function load(){
+      listWrap.innerHTML = '<div class="text-slate-500">Зареждане…</div>';
+      const { data, error } = await supabase.from('support_tickets').select('*').order('created_at', { ascending:false });
+      if(error){ listWrap.textContent = 'Грешка: '+error.message; return; }
+      if(!data.length){ listWrap.innerHTML = '<div class="text-slate-500">Няма запитвания.</div>'; return; }
+      listWrap.innerHTML = data.map(t=>{
+        const st = t.status||'open';
+        const chip = st==='open'? 'bg-indigo-50 text-indigo-700' : st==='answered'? 'bg-cyan-50 text-cyan-700' : 'bg-rose-50 text-rose-700';
+        return `<article class="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
+          <header class="flex items-center justify-between gap-3">
+            <div class="font-semibold">${esc(t.subject)}</div>
+            <span class="text-xs px-2 py-0.5 rounded-full ${chip}">${st}</span>
+          </header>
+          <div class="text-sm text-slate-500">${new Date(t.created_at).toLocaleString()} • ${esc(t.email)}</div>
+          <div class="whitespace-pre-wrap">${esc(t.message)}</div>
+          ${t.page_url?`<a class="text-sm text-emerald-700 underline" href="${esc(t.page_url)}" target="_blank">Отвори страница</a>`:''}
+          <div class="grid gap-2">
+            <label class="text-sm font-medium">Отговор</label>
+            <textarea id="r-${t.id}" class="w-full rounded-lg border p-2" rows="4">${esc(t.admin_reply||'')}</textarea>
+            <div class="flex items-center gap-2">
+              <select id="s-${t.id}" class="rounded-lg border p-1.5 text-sm">
+                <option value="open" ${st==='open'?'selected':''}>open</option>
+                <option value="answered" ${st==='answered'?'selected':''}>answered</option>
+                <option value="closed" ${st==='closed'?'selected':''}>closed</option>
+              </select>
+              <button data-id="${t.id}" class="save px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm">Запази</button>
+            </div>
+          </div>
+        </article>`
+      }).join('');
+      document.querySelectorAll('.save').forEach(btn=>btn.addEventListener('click', async()=>{
+        const id = btn.getAttribute('data-id');
+        const reply = document.getElementById('r-'+id).value;
+        const status = document.getElementById('s-'+id).value;
+        const payload = { admin_reply: reply, status, replied_at: new Date().toISOString() };
+        const { error } = await supabase.from('support_tickets').update(payload).eq('id', id);
+        if(error){ alert('Грешка: '+error.message); return; }
+        load();
+      }));
+    }
+
+    const channel = supabase.channel('support_tickets_updates');
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, load).subscribe();
+
+    (async()=>{ if(await renderAuth()) await load(); })();
+  </script>
+</body>
+</html>
