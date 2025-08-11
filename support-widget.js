@@ -55,7 +55,7 @@ const svgChat = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 const root = host.shadowRoot;
 root.innerHTML = `
   <style>${css}</style>
-  <button class="fab" id="fab" title="Въпрос към админа">${svgChat}Въпрос към админа</button>
+  <button class="fab" id="fab" title="Поддръжка">${svgChat}Поддръжка</button>
   <div class="backdrop" id="backdrop"></div>
   <section class="modal" id="modal" role="dialog" aria-modal="true">
     <div class="hd">Поддръжка • T‑MAP <button id="x" class="btn btn-ghost" aria-label="Затвори">✕</button></div>
