@@ -90,6 +90,9 @@
       realtime: { headers: {} }
     });
 
+    /* КЪДЕ ДА ВРЪЩАМЕ СЛЕД ВХОД/ИЗХОД */
+    const HOME_URL = 'https://turizam123.github.io/uzunov/tmap_home.html';
+
     // ---------- Auth UI ----------
     let currentUser = null;
     async function refreshAuthUI() {
@@ -116,14 +119,23 @@
     document.getElementById('signInBtn').addEventListener('click', async () => {
       await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { queryParams: { access_type: 'offline', prompt: 'consent' }, redirectTo: window.location.href }
+        options: {
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+          // първо се връщаме в tmap.html, след което ще редиректнем към HOME_URL
+          redirectTo: window.location.href
+        }
       });
     });
     document.getElementById('signOutBtn').addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      await refreshAuthUI();
+      try { await supabase.auth.signOut(); }
+      finally { window.location.replace(HOME_URL); } // към началната
     });
-    supabase.auth.onAuthStateChange((_event, _session) => { refreshAuthUI(); });
+    // при всяка промяна в сесията – ако сме влезли/излезли, пращаме към началната
+    supabase.auth.onAuthStateChange((event, session) => {
+      refreshAuthUI();
+      if (event === 'SIGNED_IN')  window.location.replace(HOME_URL);
+      if (event === 'SIGNED_OUT') window.location.replace(HOME_URL);
+    });
 
     // ---------- Base layers ----------
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
@@ -273,6 +285,12 @@
         </div>';
       }).join('');
     }
+    async function attachCommentsUI(container, comments) {
+      const list = container.querySelector('.cmt-list');
+      if (!list) return;
+      if (!comments.length) { list.innerHTML = '<div class="muted">Все още няма коментари.</div>'; return; }
+      renderComments(container, comments);
+    }
     async function attachCommentsUI(containerEl, objectId) {
       if (containerEl.querySelector('.cmt-wrap')) return;
       const wrap = document.createElement('div');
@@ -318,7 +336,6 @@
       if (Array.isArray(obj.image_urls)) arr.push(...obj.image_urls.filter(Boolean));
       if (Array.isArray(obj.images)) arr.push(...obj.images.filter(Boolean));
       if (typeof obj.images_csv === 'string') arr.push(...obj.images_csv.split(',').map(s=>s.trim()).filter(Boolean));
-      // премахни дублиращи
       return [...new Set(arr)];
     }
 
