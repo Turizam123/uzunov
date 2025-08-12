@@ -21,6 +21,14 @@
     .popup-title { font-weight: 700; margin-bottom: 6px; }
     .popup-img { display:block; max-width:100%; height:auto; border-radius:8px; margin-top:8px; box-shadow:0 2px 8px rgba(0,0,0,.15); }
 
+    /* Галерия вътре в Leaflet попъп (ръчен слайдър) */
+    .leaflet-popup-content .gallery{position:relative;margin:10px 0}
+    .leaflet-popup-content .gallery img{width:100%;display:block;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+    .leaflet-popup-content .gallery .g-nav{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:999px;border:0;cursor:pointer;background:rgba(0,0,0,.45);color:#fff;font-size:22px;line-height:1}
+    .leaflet-popup-content .gallery .g-prev{left:6px}
+    .leaflet-popup-content .gallery .g-next{right:6px}
+    .leaflet-popup-content .gallery .g-count{position:absolute;bottom:6px;right:8px;font-size:12px;background:rgba(0,0,0,.45);color:#fff;padding:2px 8px;border-radius:10px}
+
     .visit-badge { background: transparent; border: none; }
     .visit-badge .badge {
       display: inline-block;
@@ -39,10 +47,7 @@
       padding: 6px 10px; box-shadow: 0 8px 22px rgba(0,0,0,.12);
       font: 13px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
-    .authbar button {
-      appearance: none; border: 0; border-radius: 999px; padding: 8px 12px;
-      font-weight: 700; cursor: pointer;
-    }
+    .authbar button { appearance: none; border: 0; border-radius: 999px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
     .btn-primary { background: #0ea5e9; color: #fff; box-shadow: 0 6px 16px rgba(14,165,233,.35); }
     .btn-ghost   { background: transparent; color: #0f172a; border: 1px solid rgba(0,0,0,0.08); }
     .auth-avatar { width: 28px; height: 28px; border-radius: 999px; object-fit: cover; box-shadow: 0 0 0 1px rgba(0,0,0,.08); display:none; }
@@ -56,30 +61,14 @@
     .cmt-content { white-space: pre-wrap; word-break: break-word; }
 
     .cmt-form { display:grid; gap:6px; margin-top:8px; }
-    .cmt-form textarea {
-      width:100%; min-height:60px; resize:vertical; padding:8px 10px;
-      border:1px solid #e2e8f0; border-radius:10px; background:#fff;
-      font: 13px/1.45 system-ui;
-    }
+    .cmt-form textarea { width:100%; min-height:60px; resize:vertical; padding:8px 10px; border:1px solid #e2e8f0; border-radius:10px; background:#fff; font: 13px/1.45 system-ui; }
     .cmt-form button { justify-self: end; }
     .muted { color:#94a3b8; font-size:12px; }
 
     /* Контрол за скриване/показване на панела със слоевете */
-    .leaflet-control.tmap-layers-toggle button {
-      background: rgba(255,255,255,0.92);
-      border: 1px solid rgba(0,0,0,0.08);
-      border-radius: 10px; padding: 8px 10px; cursor: pointer;
-      font: 12px/1.2 system-ui; box-shadow: 0 6px 16px rgba(0,0,0,.12);
-    }
-    .leaflet-control-layers.tmap-layers-panel {
-      transition: transform .18s ease, opacity .18s ease;
-      will-change: transform, opacity;
-      margin-bottom: 8px;
-    }
-    .leaflet-control-layers.tmap-hidden {
-      transform: translateY(6px);
-      opacity: 0; pointer-events: none;
-    }
+    .leaflet-control.tmap-layers-toggle button { background: rgba(255,255,255,0.92); border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 8px 10px; cursor: pointer; font: 12px/1.2 system-ui; box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+    .leaflet-control-layers.tmap-layers-panel { transition: transform .18s ease, opacity .18s ease; will-change: transform, opacity; margin-bottom: 8px; }
+    .leaflet-control-layers.tmap-hidden { transform: translateY(6px); opacity: 0; pointer-events: none; }
   </style>
   <script src="favicon-injector.js"></script>
 </head>
@@ -187,8 +176,7 @@
     function toggleLayersVisibility() {
       const el = getLayersPanelEl();
       if (!el) return;
-      const nowHidden = !el.classList.toggle('tmap-hidden'); // toggle returns boolean if class present after op; we want inverse
-      // Correction of logic: compute hidden = el.classList.contains('tmap-hidden')
+      el.classList.toggle('tmap-hidden');
       const hidden = el.classList.contains('tmap-hidden');
       localStorage.setItem('tmap_layers_hidden', hidden ? '1' : '0');
     }
@@ -209,7 +197,7 @@
     });
     map.addControl(new LayersToggle());
 
-    // ---------- Останалите функции (маркери, посещения, коментари, realtime) ---------- (маркери, посещения, коментари, realtime) ----------
+    // ---------- Останалите функции (маркери, посещения, коментари, realtime) ----------
     const ICON_URL = 'logo01082025.svg';
     const customIcon = L.icon({ iconUrl: ICON_URL, iconSize: [52, 52], iconAnchor: [26, 48], popupAnchor: [0, -40], className: 'tmap-pin' });
 
@@ -253,7 +241,7 @@
 
     // Коментари
     function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-    function initials(name) { const parts = String(name || '??').trim().split(/\\s+/).slice(0,2); return parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U'; }
+    function initials(name) { const parts = String(name || '??').trim().split(/\s+/).slice(0,2); return parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U'; }
     function fmtDate(iso) { try { const d = new Date(iso); return d.toLocaleString('bg-BG', { dateStyle:'short', timeStyle:'short' }); } catch { return ''; } }
 
     async function loadComments(objectId) {
@@ -323,16 +311,69 @@
       openCommentContainers.set(String(objectId), wrap);
     }
 
+    // === Галерия в попъпа ===
+    function buildImagesArray(obj){
+      const arr = [];
+      if (obj.image_url) arr.push(String(obj.image_url));
+      if (Array.isArray(obj.image_urls)) arr.push(...obj.image_urls.filter(Boolean));
+      if (Array.isArray(obj.images)) arr.push(...obj.images.filter(Boolean));
+      if (typeof obj.images_csv === 'string') arr.push(...obj.images_csv.split(',').map(s=>s.trim()).filter(Boolean));
+      // премахни дублиращи
+      return [...new Set(arr)];
+    }
+
+    function popupHtml(obj){
+      const imgs = buildImagesArray(obj);
+      const enc  = encodeURIComponent(JSON.stringify(imgs));
+      const first = imgs[0] || '';
+      const hasMany = imgs.length > 1;
+      return `
+        <div id="popup-${obj.id}">
+          <div class="popup-title">${obj.title ? escapeHtml(obj.title) : 'Без заглавие'}</div>
+          ${obj.description ? `<div>${escapeHtml(obj.description)}</div>` : ''}
+          ${imgs.length ? `
+            <div class="gallery" data-images="${enc}" data-index="0">
+              ${hasMany ? '<button class="g-nav g-prev" aria-label="Предишна">‹</button>' : ''}
+              <img src="${escapeHtml(first)}" alt="">
+              ${hasMany ? '<button class="g-nav g-next" aria-label="Следваща">›</button>' : ''}
+              ${hasMany ? `<span class="g-count">1 / ${imgs.length}</span>` : ''}
+            </div>` : ''}
+        </div>`;
+    }
+
     // Попъпи и маркери
     function bindPopupToMarker(marker, obj) {
-      marker.bindPopup('<div id="popup-'+obj.id+'">\
-        <div class="popup-title">'+ (obj.title ? escapeHtml(obj.title) : 'Без заглавие') +'</div>\
-        '+ (obj.description ? '<div>'+ escapeHtml(obj.description) +'</div>' : '') +'\
-        '+ (obj.image_url ? '<img class="popup-img" src="'+ escapeHtml(String(obj.image_url)) +'" alt="">' : '') +'\
-      </div>');
+      marker.bindPopup(popupHtml(obj));
       marker.on('popupopen', async () => {
         const container = document.getElementById('popup-' + obj.id);
         if (!container) return;
+
+        // Галерия wiring
+        const gal = container.querySelector('.gallery');
+        if (gal) {
+          const imgs = JSON.parse(decodeURIComponent(gal.dataset.images || '[]'));
+          const img  = gal.querySelector('img');
+          const cnt  = gal.querySelector('.g-count');
+          function render(i){
+            gal.dataset.index = i;
+            img.src = imgs[i];
+            if (cnt) cnt.textContent = `${i+1} / ${imgs.length}`;
+          }
+          function step(d){
+            if (!imgs.length) return;
+            let i = +gal.dataset.index || 0;
+            i = (i + d + imgs.length) % imgs.length;
+            render(i);
+          }
+          const prev = gal.querySelector('.g-prev');
+          const next = gal.querySelector('.g-next');
+          prev && prev.addEventListener('click', ev => { ev.stopPropagation(); step(-1); });
+          next && next.addEventListener('click', ev => { ev.stopPropagation(); step(1); });
+          // swipe
+          let x0=null; gal.addEventListener('touchstart', t=> x0 = t.touches[0].clientX, {passive:true});
+          gal.addEventListener('touchend', t=>{ if(x0==null) return; const dx = t.changedTouches[0].clientX - x0; if(Math.abs(dx)>40) step(dx<0?1:-1); x0=null; }, {passive:true});
+        }
+
         await attachVisitUIToPopup(container, String(obj.id));
         await attachCommentsUI(container, String(obj.id));
       });
