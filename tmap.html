@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="bg">
 <head>
   <meta charset="utf-8" />
@@ -21,14 +21,6 @@
     .popup-title { font-weight: 700; margin-bottom: 6px; }
     .popup-img { display:block; max-width:100%; height:auto; border-radius:8px; margin-top:8px; box-shadow:0 2px 8px rgba(0,0,0,.15); }
 
-    /* Галерия вътре в Leaflet попъп (ръчен слайдър) */
-    .leaflet-popup-content .gallery{position:relative;margin:10px 0}
-    .leaflet-popup-content .gallery img{width:100%;display:block;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-    .leaflet-popup-content .gallery .g-nav{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:999px;border:0;cursor:pointer;background:rgba(0,0,0,.45);color:#fff;font-size:22px;line-height:1}
-    .leaflet-popup-content .gallery .g-prev{left:6px}
-    .leaflet-popup-content .gallery .g-next{right:6px}
-    .leaflet-popup-content .gallery .g-count{position:absolute;bottom:6px;right:8px;font-size:12px;background:rgba(0,0,0,.45);color:#fff;padding:2px 8px;border-radius:10px}
-
     .visit-badge { background: transparent; border: none; }
     .visit-badge .badge {
       display: inline-block;
@@ -47,7 +39,10 @@
       padding: 6px 10px; box-shadow: 0 8px 22px rgba(0,0,0,.12);
       font: 13px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
-    .authbar button { appearance: none; border: 0; border-radius: 999px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
+    .authbar button {
+      appearance: none; border: 0; border-radius: 999px; padding: 8px 12px;
+      font-weight: 700; cursor: pointer;
+    }
     .btn-primary { background: #0ea5e9; color: #fff; box-shadow: 0 6px 16px rgba(14,165,233,.35); }
     .btn-ghost   { background: transparent; color: #0f172a; border: 1px solid rgba(0,0,0,0.08); }
     .auth-avatar { width: 28px; height: 28px; border-radius: 999px; object-fit: cover; box-shadow: 0 0 0 1px rgba(0,0,0,.08); display:none; }
@@ -61,16 +56,31 @@
     .cmt-content { white-space: pre-wrap; word-break: break-word; }
 
     .cmt-form { display:grid; gap:6px; margin-top:8px; }
-    .cmt-form textarea { width:100%; min-height:60px; resize:vertical; padding:8px 10px; border:1px solid #e2e8f0; border-radius:10px; background:#fff; font: 13px/1.45 system-ui; }
+    .cmt-form textarea {
+      width:100%; min-height:60px; resize:vertical; padding:8px 10px;
+      border:1px solid #e2e8f0; border-radius:10px; background:#fff;
+      font: 13px/1.45 system-ui;
+    }
     .cmt-form button { justify-self: end; }
     .muted { color:#94a3b8; font-size:12px; }
 
     /* Контрол за скриване/показване на панела със слоевете */
-    .leaflet-control.tmap-layers-toggle button { background: rgba(255,255,255,0.92); border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 8px 10px; cursor: pointer; font: 12px/1.2 system-ui; box-shadow: 0 6px 16px rgba(0,0,0,.12); }
-    .leaflet-control-layers.tmap-layers-panel { transition: transform .18s ease, opacity .18s ease; will-change: transform, opacity; margin-bottom: 8px; }
-    .leaflet-control-layers.tmap-hidden { transform: translateY(6px); opacity: 0; pointer-events: none; }
+    .leaflet-control.tmap-layers-toggle button {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 10px; padding: 8px 10px; cursor: pointer;
+      font: 12px/1.2 system-ui; box-shadow: 0 6px 16px rgba(0,0,0,.12);
+    }
+    .leaflet-control-layers.tmap-layers-panel {
+      transition: transform .18s ease, opacity .18s ease;
+      will-change: transform, opacity;
+      margin-bottom: 8px;
+    }
+    .leaflet-control-layers.tmap-hidden {
+      transform: translateY(6px);
+      opacity: 0; pointer-events: none;
+    }
   </style>
-  <script src="favicon-injector.js"></script>
 </head>
 <body>
   <div id="map"></div>
@@ -89,9 +99,6 @@
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
       realtime: { headers: {} }
     });
-
-    /* КЪДЕ ДА ВРЪЩАМЕ СЛЕД ВХОД/ИЗХОД */
-    const HOME_URL = 'https://turizam123.github.io/uzunov/tmap_home.html';
 
     // ---------- Auth UI ----------
     let currentUser = null;
@@ -119,29 +126,20 @@
     document.getElementById('signInBtn').addEventListener('click', async () => {
       await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          queryParams: { access_type: 'offline', prompt: 'consent' },
-          // първо се връщаме в tmap.html, след което ще редиректнем към HOME_URL
-          redirectTo: window.location.href
-        }
+        options: { queryParams: { access_type: 'offline', prompt: 'consent' }, redirectTo: window.location.href }
       });
     });
     document.getElementById('signOutBtn').addEventListener('click', async () => {
-      try { await supabase.auth.signOut(); }
-      finally { window.location.replace(HOME_URL); } // към началната
+      await supabase.auth.signOut();
+      await refreshAuthUI();
     });
-    // при всяка промяна в сесията – ако сме влезли/излезли, пращаме към началната
-    supabase.auth.onAuthStateChange((event, session) => {
-      refreshAuthUI();
-      if (event === 'SIGNED_IN')  window.location.replace(HOME_URL);
-      if (event === 'SIGNED_OUT') window.location.replace(HOME_URL);
-    });
+    supabase.auth.onAuthStateChange((_event, _session) => { refreshAuthUI(); });
 
     // ---------- Base layers ----------
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
     const positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap contributors &copy; CARTO' });
     const opentopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)' });
-    const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, GIS User Community' });
+    const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, GIS User Community' });
     const cyclOSM = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', { attribution: 'Map data: &copy; OpenStreetMap contributors | Style: CyclOSM' });
 
     // ---------- Overlay thematic layers ----------
@@ -151,7 +149,13 @@
     const ski = L.tileLayer('https://tiles.openskimap.org/openskimap/{z}/{x}/{y}.png', { opacity: 0.8, attribution: '&copy; OpenSkiMap' });
 
     // ---------- Map init ----------
-    const map = L.map('map', { center: [42.7339, 25.4858], zoom: 7, layers: [opentopo] });
+    const map = L.map('map', {
+      center: [42.7339, 25.4858],
+      zoom: 7,
+      layers: [opentopo] // по подразбиране детайлен терен
+    });
+
+    // Scale control
     L.control.scale({ metric: true, imperial: false }).addTo(map);
 
     const baseLayers = {
@@ -167,8 +171,6 @@
       'ЖП линии (OpenRailwayMap)': railways,
       'Ски курорти (OpenSkiMap)': ski
     };
-
-    // Позиционираме панела долу вдясно, за да не се засича с auth бара
     const layerCtl = L.control.layers(baseLayers, overlays, { collapsed: true, position: 'bottomright' }).addTo(map);
 
     // Достъп до елемента и анимационно скриване/показване + запомняне в localStorage
@@ -188,7 +190,8 @@
     function toggleLayersVisibility() {
       const el = getLayersPanelEl();
       if (!el) return;
-      el.classList.toggle('tmap-hidden');
+      const nowHidden = !el.classList.toggle('tmap-hidden'); // toggle returns boolean if class present after op; we want inverse
+      // Correction of logic: compute hidden = el.classList.contains('tmap-hidden')
       const hidden = el.classList.contains('tmap-hidden');
       localStorage.setItem('tmap_layers_hidden', hidden ? '1' : '0');
     }
@@ -285,12 +288,6 @@
         </div>';
       }).join('');
     }
-    async function attachCommentsUI(container, comments) {
-      const list = container.querySelector('.cmt-list');
-      if (!list) return;
-      if (!comments.length) { list.innerHTML = '<div class="muted">Все още няма коментари.</div>'; return; }
-      renderComments(container, comments);
-    }
     async function attachCommentsUI(containerEl, objectId) {
       if (containerEl.querySelector('.cmt-wrap')) return;
       const wrap = document.createElement('div');
@@ -329,68 +326,16 @@
       openCommentContainers.set(String(objectId), wrap);
     }
 
-    // === Галерия в попъпа ===
-    function buildImagesArray(obj){
-      const arr = [];
-      if (obj.image_url) arr.push(String(obj.image_url));
-      if (Array.isArray(obj.image_urls)) arr.push(...obj.image_urls.filter(Boolean));
-      if (Array.isArray(obj.images)) arr.push(...obj.images.filter(Boolean));
-      if (typeof obj.images_csv === 'string') arr.push(...obj.images_csv.split(',').map(s=>s.trim()).filter(Boolean));
-      return [...new Set(arr)];
-    }
-
-    function popupHtml(obj){
-      const imgs = buildImagesArray(obj);
-      const enc  = encodeURIComponent(JSON.stringify(imgs));
-      const first = imgs[0] || '';
-      const hasMany = imgs.length > 1;
-      return `
-        <div id="popup-${obj.id}">
-          <div class="popup-title">${obj.title ? escapeHtml(obj.title) : 'Без заглавие'}</div>
-          ${obj.description ? `<div>${escapeHtml(obj.description)}</div>` : ''}
-          ${imgs.length ? `
-            <div class="gallery" data-images="${enc}" data-index="0">
-              ${hasMany ? '<button class="g-nav g-prev" aria-label="Предишна">‹</button>' : ''}
-              <img src="${escapeHtml(first)}" alt="">
-              ${hasMany ? '<button class="g-nav g-next" aria-label="Следваща">›</button>' : ''}
-              ${hasMany ? `<span class="g-count">1 / ${imgs.length}</span>` : ''}
-            </div>` : ''}
-        </div>`;
-    }
-
     // Попъпи и маркери
     function bindPopupToMarker(marker, obj) {
-      marker.bindPopup(popupHtml(obj));
+      marker.bindPopup('<div id="popup-'+obj.id+'">\
+        <div class="popup-title">'+ (obj.title ? escapeHtml(obj.title) : 'Без заглавие') +'</div>\
+        '+ (obj.description ? '<div>'+ escapeHtml(obj.description) +'</div>' : '') +'\
+        '+ (obj.image_url ? '<img class="popup-img" src="'+ escapeHtml(String(obj.image_url)) +'" alt="">' : '') +'\
+      </div>');
       marker.on('popupopen', async () => {
         const container = document.getElementById('popup-' + obj.id);
         if (!container) return;
-
-        // Галерия wiring
-        const gal = container.querySelector('.gallery');
-        if (gal) {
-          const imgs = JSON.parse(decodeURIComponent(gal.dataset.images || '[]'));
-          const img  = gal.querySelector('img');
-          const cnt  = gal.querySelector('.g-count');
-          function render(i){
-            gal.dataset.index = i;
-            img.src = imgs[i];
-            if (cnt) cnt.textContent = `${i+1} / ${imgs.length}`;
-          }
-          function step(d){
-            if (!imgs.length) return;
-            let i = +gal.dataset.index || 0;
-            i = (i + d + imgs.length) % imgs.length;
-            render(i);
-          }
-          const prev = gal.querySelector('.g-prev');
-          const next = gal.querySelector('.g-next');
-          prev && prev.addEventListener('click', ev => { ev.stopPropagation(); step(-1); });
-          next && next.addEventListener('click', ev => { ev.stopPropagation(); step(1); });
-          // swipe
-          let x0=null; gal.addEventListener('touchstart', t=> x0 = t.touches[0].clientX, {passive:true});
-          gal.addEventListener('touchend', t=>{ if(x0==null) return; const dx = t.changedTouches[0].clientX - x0; if(Math.abs(dx)>40) step(dx<0?1:-1); x0=null; }, {passive:true});
-        }
-
         await attachVisitUIToPopup(container, String(obj.id));
         await attachCommentsUI(container, String(obj.id));
       });
@@ -446,10 +391,10 @@
       const count = await getVisitCount(objectId);
       containerEl.insertAdjacentHTML('beforeend',
         '<div class="tmap-visit" data-oid="' + objectId + '">\
-          <div class="tmap-visit-row" style="margin-bottom:6px;">Посетили: <strong>' + count + '</strong> души</div>\
-          <button class="btn-ghost tmap-visit-btn">Отбележи се</button>\
-          <div class="muted tmap-visit-msg"></div>\
-        </div>'
+            <div class="tmap-visit-row" style="margin-bottom:6px;">Посетили: <strong>' + count + '</strong> души</div>\
+            <button class="btn-ghost tmap-visit-btn">Отбележи се</button>\
+            <div class="muted tmap-visit-msg"></div>\
+          </div>'
       );
       const root = containerEl.querySelector('.tmap-visit[data-oid="' + objectId + '"]');
       const btn  = root.querySelector('.tmap-visit-btn');
@@ -471,7 +416,6 @@
       }, { passive: true });
     }
 
-    // Старт
     (async function init() {
       await refreshAuthUI();
       await loadObjects();
