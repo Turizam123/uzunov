@@ -6,36 +6,51 @@
 <title>BGX · Мулти‑маршрути (Leaflet)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <style>
 :root{ --bg:#0b1420; --text:#dbe7ff; --muted:#b3c7ff; --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.14); --accent:#00e5ff; }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:600 16px/1.25 system-ui,Segoe UI,Roboto}
 header{position:fixed;left:0;right:0;top:0;z-index:20;display:flex;gap:.6rem;align-items:center;padding:.55rem .8rem;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent)}
 .badge{padding:.5rem .8rem;border:1px solid var(--border);border-radius:14px;background:var(--panel)}
+.btn{padding:.6rem .8rem;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer;color:var(--text)}
+.btn.primary{outline:1.5px solid var(--accent)}
+
 #map{position:fixed;inset:0}
 #tray{position:fixed;left:0;right:0;bottom:0;z-index:25;padding:10px}
-.sheet{margin:0 auto;max-width:1000px;background:rgba(10,20,36,.9);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+#tray.hidden{display:none}
+.sheet{margin:0 auto;max-width:1100px;background:rgba(10,20,36,.9);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:0 10px 40px rgba(0,0,0,.45)}
 .sheet h3{margin:0 0 8px 0;font-size:15px;color:var(--muted);display:flex;gap:8px;align-items:center}
 .controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
 .controls input[type=search]{flex:1;min-width:180px;padding:.6rem .7rem;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text)}
-.btn{padding:.6rem .8rem;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer}
-.btn.primary{outline:1.5px solid var(--accent)}
 .list{max-height:42vh;overflow:auto;border:1px solid var(--border);border-radius:12px}
-.item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px dashed rgba(255,255,255,.08)}
+.item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:12px;border-bottom:1px dashed rgba(255,255,255,.08)}
 .item:last-child{border-bottom:none}
-.item input[type=checkbox]{transform:scale(1.1)}
+.item input[type=checkbox]{transform:scale(1.1);margin-right:6px}
 .item .meta{font:600 12px/1.2 system-ui;color:var(--muted)}
 .color{width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.45)}
 .counter{margin-left:auto;color:var(--muted);font-size:13px}
+
 .leaflet-overlay-pane svg path.route{stroke:#00e5ff;stroke-width:3.5;fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(0,229,255,.45))}
-.leaflet-overlay-pane svg path.route.alt{stroke:#ff9a5a}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:30;background:rgba(10,20,36,.95);border:1px solid var(--border);border-radius:12px;padding:.6rem .8rem;opacity:0;transition:.25s}
 .toast.show{opacity:1}
-@media (min-width: 900px){
-  .sheet{max-width:1200px}
+
+/* бърза търсачка в хедъра */
+.qs-wrap{ position:relative; min-width:260px; }
+#qs{ width:100%; padding:.5rem .6rem; border:1px solid var(--border);
+     border-radius:10px; background:rgba(255,255,255,.06); color:var(--text); }
+.qs-drop{
+  position:absolute; left:0; right:0; top: calc(100% + 6px);
+  background:rgba(10,20,36,.98); border:1px solid var(--border); border-radius:10px;
+  max-height:46vh; overflow:auto; z-index:9999; box-shadow:0 12px 34px rgba(0,0,0,.45);
+}
+.qs-item{ padding:.5rem .6rem; cursor:pointer; border-bottom:1px dashed rgba(255,255,255,.08); outline:none }
+.qs-item:last-child{ border-bottom:none; }
+.qs-item:hover, .qs-item:focus{ background:rgba(255,255,255,.06); }
+.qs-name{ font-weight:700 }
+.qs-meta{ font-size:12px; color:var(--muted) }
+mark{background:transparent;color:var(--accent)}
+@media (min-width: 1200px){
+  .sheet{max-width:1250px}
 }
 </style>
 </head>
@@ -44,7 +59,15 @@ header{position:fixed;left:0;right:0;top:0;z-index:20;display:flex;gap:.6rem;ali
   <div class="badge"><strong>BGX</strong> · Мулти‑маршрути</div>
   <div class="badge">Заредени: <span id="loaded">0</span> / <span id="total">0</span></div>
   <div class="badge">Офлайн: <span id="offline">не</span></div>
+
+  <button class="btn" id="btnToggleTray" title="Покажи/скрий панела">Маршрути</button>
+
+  <div class="qs-wrap">
+    <input id="qs" type="search" placeholder="Търси… (Enter = покажи)" />
+    <div id="qsDrop" class="qs-drop" hidden></div>
+  </div>
 </header>
+
 <div id="map"></div>
 
 <div id="tray">
@@ -65,7 +88,7 @@ header{position:fixed;left:0;right:0;top:0;z-index:20;display:flex;gap:.6rem;ali
 
 <script>
 const DATA_PREFIX = './data/';
-const DEFAULT_BASE = 'routes/'; // поддиректория за маршрутите
+const DEFAULT_BASE = 'routes/';
 const COLOR_DEFAULT = '#00e5ff';
 
 const toast = (m,ms=2200)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);};
@@ -77,22 +100,37 @@ const routesGroup = L.layerGroup().addTo(map);
 const state = {
   manifest: null,
   base: DEFAULT_BASE,
-  items: [],          // филтриран списък за UI
-  layers: new Map(),  // id -> { layer, added, meta }
+  items: [],
+  layers: new Map(), // id -> {layer, meta}
   loadedCount: 0
 };
+
 document.getElementById('offline').textContent = navigator.onLine ? 'не' : 'да';
 window.addEventListener('online', ()=> document.getElementById('offline').textContent='не');
 window.addEventListener('offline', ()=> document.getElementById('offline').textContent='да');
 
+// ------- Tray show/hide (remember) -------
+const tray = document.getElementById('tray');
+const btnToggleTray = document.getElementById('btnToggleTray');
+const TRAY_KEY = 'bgx_tray_visible';
+const wasVisible = localStorage.getItem(TRAY_KEY);
+if (wasVisible === '0') tray.classList.add('hidden');
+btnToggleTray.addEventListener('click', ()=>{
+  tray.classList.toggle('hidden');
+  localStorage.setItem(TRAY_KEY, tray.classList.contains('hidden') ? '0' : '1');
+});
+window.addEventListener('keydown', (e)=>{
+  if (e.key === 'm' || e.key === 'M') btnToggleTray.click();
+  else if (e.key === 'Escape') tray.classList.add('hidden');
+  else if (e.key === '/') { e.preventDefault(); qs.focus(); }
+});
+
 init().catch(e=>{ console.error(e); toast('Грешка при инициализация'); });
 
 async function init(){
-  // Опитай да заредиш локално vendor/togeojson.min.js (ако съществува)
-  await ensureToGeoJSON();
-  // Зареди манифеста
+  await ensureToGeoJSON(); // локален vendor/togeojson.min.js (ако има)
   const m = await fetchJson(DATA_PREFIX+'tracks.json').catch(()=>null);
-  if(!m || !Array.isArray(m.tracks)) {
+  if(!m || !Array.isArray(m.tracks)){
     toast('Липсва tracks.json или е празен.');
     state.manifest = { base: DEFAULT_BASE, tracks: [] };
   } else state.manifest = m;
@@ -112,6 +150,9 @@ function renderList(arr){
     row.className = 'item';
     row.dataset.id = t.id || t.file;
 
+    const left = document.createElement('div');
+    left.style.display='flex'; left.style.alignItems='center';
+
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.checked = !!t.visible;
@@ -120,6 +161,10 @@ function renderList(arr){
     const color = document.createElement('div');
     color.className = 'color';
     color.style.background = t.color || COLOR_DEFAULT;
+    color.style.marginLeft = '8px';
+
+    left.appendChild(cb);
+    left.appendChild(color);
 
     const main = document.createElement('div');
     const name = document.createElement('div');
@@ -136,11 +181,10 @@ function renderList(arr){
     btn.className = 'btn';
     btn.addEventListener('click', async()=>{
       await toggleTrack(t, true);
-      focusTrack(t.id || t.file);
+      tray.classList.add('hidden');
     });
 
-    row.appendChild(cb);
-    row.appendChild(color);
+    row.appendChild(left);
     row.appendChild(main);
     row.appendChild(btn);
     list.appendChild(row);
@@ -152,6 +196,7 @@ function updateCounter(){
   document.getElementById('counter').textContent = `${state.loadedCount} заредени · ${state.items.length} общо`;
 }
 
+// Панелна търсачка
 document.getElementById('q').addEventListener('input', (e)=>{
   const q = e.target.value.trim().toLowerCase();
   const res = !q ? state.manifest.tracks : state.manifest.tracks.filter(t=> (t.name||'').toLowerCase().includes(q) || (t.id||'').toLowerCase().includes(q) || (t.file||'').toLowerCase().includes(q));
@@ -181,11 +226,11 @@ document.getElementById('btnLoadSel').onclick = async()=>{
 async function toggleTrack(t, forceShow=false){
   const id = t.id || t.file;
   if(state.layers.has(id)){
-    // вече е зареден
-    return state.layers.get(id).layer;
+    const entry = state.layers.get(id);
+    if(forceShow) try{ map.fitBounds(entry.layer.getBounds(), {padding:[32,32]}); }catch(e){}
+    return entry.layer;
   }
   const url = DATA_PREFIX + state.base + t.file;
-  // Поддържаме .geojson/.json нативно; .gpx/.kml – ако има локален togeojson
   let gj = null;
   if(/\.(geo)?json$/i.test(t.file)){
     gj = await fetchJson(url).catch(()=>null);
@@ -219,15 +264,75 @@ async function toggleTrack(t, forceShow=false){
   return layer;
 }
 
-function focusTrack(id){
-  const entry = state.layers.get(id);
-  if(!entry) return;
-  try{ map.fitBounds(entry.layer.getBounds(), {padding:[32,32]}); }catch(e){}
+// ------- Бърза търсачка в хедъра -------
+const qs     = document.getElementById('qs');
+const qsDrop = document.getElementById('qsDrop');
+
+qs.addEventListener('input', ()=>{
+  const q = qs.value.trim().toLowerCase();
+  if (!q) { qsDrop.hidden = true; qsDrop.innerHTML=''; return; }
+  const matches = state.manifest?.tracks?.filter(t =>
+    (t.name||'').toLowerCase().includes(q) ||
+    (t.id||'').toLowerCase().includes(q) ||
+    (t.file||'').toLowerCase().includes(q)
+  ).slice(0,5) || [];
+  renderQuickResults(matches, q);
+});
+
+qs.addEventListener('keydown', async (e)=>{
+  if (e.key === 'Enter') {
+    const q = qs.value.trim().toLowerCase();
+    if (!q) return;
+    const best = state.manifest?.tracks?.find(t =>
+      (t.name||'').toLowerCase().includes(q) ||
+      (t.id||'').toLowerCase().includes(q) ||
+      (t.file||'').toLowerCase().includes(q)
+    );
+    if (best) {
+      await toggleTrack(best, true);
+      tray.classList.add('hidden');
+      qsDrop.hidden = true;
+    } else {
+      toast('Няма съвпадение.');
+    }
+  } else if (e.key === 'ArrowDown') {
+    const first = qsDrop.querySelector('.qs-item');
+    if (first) first.focus();
+  }
+});
+
+function renderQuickResults(items, q){
+  qsDrop.innerHTML = '';
+  if (!items.length) { qsDrop.hidden = true; return; }
+  for (const t of items) {
+    const el = document.createElement('div');
+    el.tabIndex = 0;
+    el.className = 'qs-item';
+    el.innerHTML = `
+      <div class="qs-name">${highlight(t.name||t.id||t.file, q)}</div>
+      <div class="qs-meta">${t.file}${t.km?` · ${t.km} км`:''}</div>`;
+    el.addEventListener('click', async ()=>{
+      await toggleTrack(t, true);
+      tray.classList.add('hidden');
+      qsDrop.hidden = true;
+    });
+    el.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter') el.click();
+    });
+    qsDrop.appendChild(el);
+  }
+  qsDrop.hidden = false;
+}
+
+function highlight(txt, q){
+  if (!txt) return '';
+  const i = txt.toLowerCase().indexOf(q);
+  if (i<0) return txt;
+  return txt.slice(0,i) + '<mark>'+ txt.slice(i,i+q.length) +'</mark>' + txt.slice(i+q.length);
 }
 
 // Utils
 async function ensureToGeoJSON(){
-  // зареди локално ако го има; иначе игнорирай (ще работи само с GeoJSON)
   try{
     const resp = await fetch('./vendor/togeojson.min.js', {cache:'no-store'});
     if(!resp.ok) return;
