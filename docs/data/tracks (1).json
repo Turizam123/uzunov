@@ -1,0 +1,19 @@
+{
+  "base": "routes/",
+  "tracks": [
+    {
+      "id": "et-shipka",
+      "name": "Етъра → вр. Шипка",
+      "file": "aek.Etara-vr.Shipka.geojson",
+      "color": "#00e5ff",
+      "visible": true
+    },
+    {
+      "id": "sofia-burgas",
+      "name": "София → Бургас (пример)",
+      "file": "sofia-burgas.geojson",
+      "color": "#ff9a5a",
+      "visible": false
+    }
+  ]
+}
