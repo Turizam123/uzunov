@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>BGX · Debug loader</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.0/dist/togeojson.min.js"></script>
+<style>
+html,body{height:100%;margin:0;font:14px system-ui}
+#map{position:fixed;inset:0}
+#log{position:fixed;left:8px;top:8px;z-index:9999;max-width:46vw;background:#fff;border:1px solid #ccc;padding:8px;border-radius:8px;box-shadow:0 5px 18px rgba(0,0,0,.2);white-space:pre-wrap;max-height:45vh;overflow:auto}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<pre id="log">Лог...</pre>
+<script>
+const log = (...a)=>{ document.getElementById('log').textContent += '\\n' + a.join(' '); };
+const map = L.map('map').setView([42.7,25.3],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OSM'}).addTo(map);
+const routesLayer = L.layerGroup().addTo(map);
+const DATA_PREFIX = './data/';
+const bust = '?v=' + Date.now();
+
+(async ()=>{
+  let ok=false;
+  ok = await tryFile('route.gpx','gpx') || ok;
+  ok = await tryFile('route.kml','kml') || ok;
+  ok = await tryGeoJSON('route.json') || ok;
+  if(!ok) log('Не открих валиден маршрут.');
+})();
+
+async function tryFile(name, type){
+  const url = DATA_PREFIX + name + bust;
+  let res;
+  try{ res = await fetch(url); }catch(e){ log(name,'fetch error',e); return false; }
+  log(name,'status',res.status,'ok',res.ok);
+  if(!res.ok) return false;
+  const txt = await res.text();
+  log(name,'bytes',txt.length);
+  const xml = new DOMParser().parseFromString(txt,'text/xml');
+  let gj;
+  try{
+    gj = (type==='gpx') ? toGeoJSON.gpx(xml) : toGeoJSON.kml(xml);
+  }catch(e){ log(name,'togeojson error',e); return false; }
+  if(!gj || !gj.features || !gj.features.length){ log(name,'togeojson features=0'); return false; }
+  draw(gj,name);
+  return true;
+}
+
+async function tryGeoJSON(name){
+  const url = DATA_PREFIX + name + bust;
+  let res;
+  try{ res = await fetch(url); }catch(e){ log(name,'fetch error',e); return false; }
+  log(name,'status',res.status,'ok',res.ok);
+  if(!res.ok) return false;
+  const gj = await res.json().catch(e=>{ log(name,'json error',e); return null; });
+  if(!gj || !gj.features || !gj.features.length){ log(name,'features=0'); return false; }
+  draw(gj,name);
+  return true;
+}
+
+function draw(gj,label){
+  const layer = L.geoJSON(gj, {
+    style: f => f.geometry && f.geometry.type && f.geometry.type.includes('Line') ? {color:'#00e5ff',weight:4} : undefined,
+    pointToLayer: (f,latlng)=> L.circleMarker(latlng,{radius:4,color:'#00e5ff'})
+  }).addTo(routesLayer);
+  map.fitBounds(layer.getBounds(),{padding:[30,30]});
+  log(label,'features',gj.features.length,'— нарисувано.');
+}
+</script>
+</body>
+</html>
