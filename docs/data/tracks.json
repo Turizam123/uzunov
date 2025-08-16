@@ -26,7 +26,7 @@
     },
     {
   "id": "zeleni-preslap-kabul",
-  "name": "Зелени преслап – вр.Кабул",
+  "name": "Зелени преслап – вр.Кабул - вр. Отовица",
   "file": "ZeleniPreslap-OtovishkiVrah.geojson",
   "color": "#22c55e",
   "km": 8.21,
@@ -35,7 +35,7 @@
    {
       "id": "haramiyata",
       "name": "Седемте езера → вр. Харамията",
-      "file": "sedemte-ezera-haramiyata.gpx",
+      "file": ",sedemte-ezera-haramiyata.geojson" 
       "color": "#f97316",
       "visible": false
     }
