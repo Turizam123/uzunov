@@ -13,31 +13,31 @@
       "name": "Боровец → х. Ястребец → вр. Мусала",
       "file": "kk.Borovets-h.Yastrebets-vr.Musala.geojson",
       "color": "#3ad37a",
-      "visible": true,
-      "km": 11.99
+      "km": 11.99,
+      "visible": true
     },
     {
-  "id": "verila-traverse",
-  "name": "Белчин – вр.Голям Дебелец - Ярлово",
-  "file": "Belchin-Golem_Debelec-Qrlovo.geojson",
-  "color": "#16a34a",
-  "visible": true,
-  "km": 26.07
+      "id": "verila-traverse",
+      "name": "Белчин – вр.Голям Дебелец - Ярлово",
+      "file": "Belchin-Golem_Debelec-Qrlovo.geojson",
+      "color": "#16a34a",
+      "km": 26.07,
+      "visible": true
     },
     {
-  "id": "zeleni-preslap-kabul",
-  "name": "Зелени преслап – вр.Кабул - вр. Отовица",
-  "file": "ZeleniPreslap-OtovishkiVrah.geojson",
-  "color": "#22c55e",
-  "km": 8.21,
-  "visible": true
+      "id": "zeleni-preslap-kabul",
+      "name": "Зелени преслап – вр.Кабул - вр. Отовица",
+      "file": "ZeleniPreslap-OtovishkiVrah.geojson",
+      "color": "#22c55e",
+      "km": 8.21,
+      "visible": true
     },
     {
-    "id": "haramiyata",
-    "name": "Седемте езера → вр. Харамията",
-    "file": ",sedemte-ezera-haramiyata.geojson" 
-    "color": "#f97316",
-    "visible": true
+      "id": "haramiyata",
+      "name": "Седемте езера → вр. Харамията",
+      "file": "sedemte-ezera-haramiyata.geojson",
+      "color": "#f97316",
+      "visible": true
     }
   ]
 }
