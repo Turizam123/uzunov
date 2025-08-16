@@ -1,9 +1,0 @@
-{
-  "name": "BGX · Нова карта на България",
-  "short_name": "BGX",
-  "start_url": "./bgx.html",
-  "display": "standalone",
-  "background_color": "#0b1420",
-  "theme_color": "#0b1420",
-  "icons": []
-}
