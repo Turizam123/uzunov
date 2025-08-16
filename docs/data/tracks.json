@@ -33,11 +33,14 @@
   "visible": true
     },
     {
-  "id": "sedemte-haramiyata",
-  "name": "х. Седемте езера → вр. Харамията",
-  "file": "h.Sedemte_ezera-vr.Haramiyata.gpx",
-  "color": "#2dd4bf",
-  "visible": true
+  "id": "sedemte-ezera-haramiyata",
+  "name": "Седемте езера → вр. Харамията",
+  "short": "Езера → Харамията",
+  "color": "#16a34a",
+  "km": 3.9,
+  "source": "gpx->geojson",
+  "createdAt": "2025-08-16T00:00:00Z",
+  "copyright": "© T-MAP / BGX"
     }
   ]
 }
