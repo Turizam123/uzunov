@@ -31,6 +31,13 @@
   "color": "#22c55e",
   "km": 8.21,
   "visible": true
+    },
+    {
+  "id": "sedemte-haramiyata",
+  "name": "х. Седемте езера → вр. Харамията",
+  "file": "h.Sedemte_ezera-vr.Haramiyata.gpx",
+  "color": "#2dd4bf",
+  "visible": true
     }
   ]
 }
