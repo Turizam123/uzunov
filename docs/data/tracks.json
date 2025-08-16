@@ -17,12 +17,12 @@
       "km": 11.99
     },
     {
-      "id": "verila-traverse",
-      "name": "ВЕРИЛА – траверс",
-      "file": "verila.geojson",
-      "color": "#16a34a",
-      "km": 26.07,
-      "visible": true
+  "id": "verila-traverse",
+  "name": "ВЕРИЛА – траверс",
+  "file": "Belchin-Golem_Debelec-Qrlovo.geojson",
+  "color": "#16a34a",
+  "visible": true,
+  "km": 26.07
     }
   ]
 }
