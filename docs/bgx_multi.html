@@ -45,8 +45,13 @@ header{
 #tray{ position:fixed; left:0; right:0; bottom:0; z-index:25; padding:10px;
        padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 #tray.hidden{display:none}
-.sheet{margin:0 auto;max-width:1100px;background:rgba(10,20,36,.9);backdrop-filter:blur(6px);
-       border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+.sheet{
+  margin:0 auto;max-width:1100px;
+  background:rgba(10,20,36,.9);backdrop-filter:blur(6px);
+  border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:0 10px 40px rgba(0,0,0,.45);
+  position:relative;                    /* за плаващото лого */
+  padding-top:44px;                     /* място под по-голямото лого */
+}
 .sheet h3{margin:0 0 8px 0;font-size:15px;color:var(--muted);display:flex;gap:8px;align-items:center}
 .list{max-height:42vh;overflow:auto;border:1px solid var(--border);border-radius:12px}
 .item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:12px;border-bottom:1px dashed rgba(255,255,255,.08)}
@@ -56,6 +61,22 @@ header{
 .color{width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.45)}
 .counter{margin-left:auto;color:var(--muted);font-size:13px}
 
+/* Плаващо лого – ПРОЗРАЧНО и по-голямо */
+.logo-float{
+  position:absolute; left:50%; top:0;
+  transform:translate(-50%,-68%);      /* малко повече „стърчене“ */
+  display:inline-flex; align-items:center; justify-content:center;
+  background:transparent;               /* прозрачно */
+  border:none; padding:0; box-shadow:none;
+  z-index:5; pointer-events:auto;       /* кликаемо */
+}
+.logo-float img{
+  height:56px;                          /* по-голямо логото */
+  width:auto; display:block;
+  filter:drop-shadow(0 8px 18px rgba(0,0,0,.45)); /* мека сянка за отделяне от картата */
+}
+
+/* стил на линиите */
 .leaflet-overlay-pane svg path.route{stroke:#00e5ff;stroke-width:3.5;fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(0,229,255,.45))}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:30;background:rgba(10,20,36,.95);border:1px solid var(--border);border-radius:12px;padding:.6rem .8rem;opacity:0;transition:.25s}
 .toast.show{opacity:1}
@@ -80,16 +101,21 @@ mark{background:transparent;color:var(--accent)}
 @media (max-width: 640px){
   :root{ --header-h:52px; }
   header{ gap:.45rem; padding:.45rem .55rem; padding-top:calc(.45rem + env(safe-area-inset-top)); }
-  header .badge{ display:none; }           /* скрий „тежките“ бейджове на телефони */
+  header .badge{ display:none; }           /* скрий бейджове на телефони */
   .btn{ padding:.5rem .55rem; border-radius:9px; }
   .brand{ width:38px;height:38px }
   .brand img{height:24px}
   .qs-wrap{ min-width:0; flex:1; }
   #qs{ padding:.45rem .55rem; font-size:15px; }
   .qs-drop{ top: calc(100% + 4px); max-height:48vh; }
+
+  .sheet{ padding-top:38px; }              /* място под мобилното лого */
+  .logo-float img{ height:48px; }          /* по-голямо и на телефон */
+  .logo-float{ transform:translate(-50%,-72%); }
 }
 
-/* Heading arrow */
+/* Заглавие */
+.sheet h3.tray-title{ position:relative; }
 .heading{ width:30px;height:30px; transform-origin:15px 15px; filter:drop-shadow(0 0 4px rgba(0,229,255,.6)); }
 .heading svg{ width:30px;height:30px; display:block; }
 </style>
@@ -97,8 +123,6 @@ mark{background:transparent;color:var(--accent)}
 <body>
 <header>
   <div class="badge"><strong>BGX</strong> · Търсене на маршрути</div>
-
-  <!-- брояч: заредени / общо -->
   <div class="badge">Заредени: <span id="loaded">0</span> / <span id="total">0</span></div>
 
   <button class="btn" id="btnToggleTray" title="Покажи/скрий панела">Маршрути</button>
@@ -117,11 +141,15 @@ mark{background:transparent;color:var(--accent)}
 
 <div id="map"></div>
 
-<!-- Долен панел: текущо заредени -->
+<!-- Долен панел с ПРОЗРАЧНО по-голямо плаващо лого -->
 <div id="tray">
   <div class="sheet">
-    <h3>
-      Заредени маршрути
+    <a class="logo-float" href="https://t-map.bg" target="_blank" rel="noopener" title="T-MAP">
+      <img src="./logo-header-40.png" alt="T-MAP">
+    </a>
+
+    <h3 class="tray-title">
+      <span class="title-left">Заредени маршрути</span>
       <span class="counter"><span id="loaded2">0</span> / <span id="total2">0</span></span>
     </h3>
     <div class="list" id="list"></div>
@@ -135,7 +163,7 @@ mark{background:transparent;color:var(--accent)}
 const DATA_PREFIX = './data/';          // къде е tracks.json
 const DEFAULT_BASE = 'routes/';         // базова папка за файловете
 const COLOR_DEFAULT = '#00e5ff';
-const AUTO_LOAD_VISIBLE = true;         // ← авто-зареждай видимите от tracks.json
+const AUTO_LOAD_VISIBLE = true;         // авто-зареждай видимите от tracks.json
 
 /* ===== UI помощници ===== */
 const toast = (m,ms=2200)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);};
@@ -177,9 +205,43 @@ async function init(){
     }
   }
 
-  // ако няма заредени, покажи празен списък
   renderList();
   updateCounters();
+
+  // активирай Enter в търсачката за бързо зареждане
+  document.getElementById('qs').addEventListener('keydown', async (e)=>{
+    if(e.key==='Enter'){
+      const q=e.target.value.trim().toLowerCase();
+      if(!q) return;
+      const best = state.manifest.tracks.find(t =>
+        (t.name||'').toLowerCase().includes(q) ||
+        (t.id||'').toLowerCase().includes(q) ||
+        (t.file||'').toLowerCase().includes(q)
+      );
+      if(best){ await addAndShow(best); tray.classList.add('hidden'); e.target.blur(); }
+      else toast('Няма съвпадение.');
+    }
+  });
+
+  // live dropdown
+  document.getElementById('qs').addEventListener('input', ()=>{
+    const q = qs.value.trim().toLowerCase();
+    const box = document.getElementById('qsDrop');
+    if(!q){ box.hidden=true; box.innerHTML=''; return; }
+    const list = state.manifest.tracks.filter(t =>
+      (t.name||'').toLowerCase().includes(q) ||
+      (t.id||'').toLowerCase().includes(q) ||
+      (t.file||'').toLowerCase().includes(q)
+    ).slice(0,8);
+    box.innerHTML = list.map(t => `<div class="qs-item" tabindex="0">
+      <div class="qs-name">${(t.name||t.id||t.file).replace(new RegExp(q,'i'),m=>'<mark>'+m+'</mark>')}</div>
+      <div class="qs-meta">${t.km?`${t.km} км`:''}</div></div>`).join('');
+    [...box.children].forEach((el,i)=>{
+      el.onclick = async ()=>{ await addAndShow(list[i]); box.hidden=true; tray.classList.add('hidden'); };
+      el.onkeydown = (ev)=>{ if(ev.key==='Enter') el.click(); };
+    });
+    box.hidden=false;
+  });
 }
 
 /* ===== Списъкът долу (само заредените) ===== */
@@ -257,58 +319,6 @@ function removeTrack(t){
   const e = state.layers.get(id);
   if (e){ routesGroup.removeLayer(e.layer); state.layers.delete(id); }
   renderList();
-}
-
-/* ===== Търсачка (по tracks.json) ===== */
-const qs     = document.getElementById('qs');
-const qsDrop = document.getElementById('qsDrop');
-
-qs.addEventListener('input', ()=>{
-  const q = qs.value.trim().toLowerCase();
-  if (!q) { qsDrop.hidden = true; qsDrop.innerHTML=''; return; }
-  const matches = state.manifest.tracks.filter(t =>
-    (t.name||'').toLowerCase().includes(q) ||
-    (t.id||'').toLowerCase().includes(q) ||
-    (t.file||'').toLowerCase().includes(q)
-  ).slice(0,8);
-  renderQuickResults(matches, q);
-});
-
-qs.addEventListener('keydown', async (e)=>{
-  if (e.key === 'Enter') {
-    const q = qs.value.trim().toLowerCase();
-    if (!q) return;
-    const best = state.manifest.tracks.find(t =>
-      (t.name||'').toLowerCase().includes(q) ||
-      (t.id||'').toLowerCase().includes(q) ||
-      (t.file||'').toLowerCase().includes(q)
-    );
-    if (best) { await addAndShow(best); qsDrop.hidden = true; qs.blur(); tray.classList.add('hidden'); }
-    else toast('Няма съвпадение.');
-  } else if (e.key === 'ArrowDown') {
-    const first = qsDrop.querySelector('.qs-item'); if (first) first.focus();
-  }
-});
-
-function renderQuickResults(items, q){
-  qsDrop.innerHTML = '';
-  if (!items.length) { qsDrop.hidden = true; return; }
-  for (const t of items) {
-    const el = document.createElement('div'); el.tabIndex=0; el.className='qs-item';
-    el.innerHTML = `<div class="qs-name">${highlight(t.name||t.id||t.file, q)}</div>
-                    <div class="qs-meta">${t.km ? `${t.km} км` : ''}</div>`;
-    el.addEventListener('click', async ()=>{ await addAndShow(t); qsDrop.hidden=true; tray.classList.add('hidden'); });
-    el.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') el.click(); });
-    qsDrop.appendChild(el);
-  }
-  qsDrop.hidden = false;
-}
-
-function highlight(txt, q){
-  if (!txt) return '';
-  const i = txt.toLowerCase().indexOf(q);
-  if (i<0) return txt;
-  return txt.slice(0,i) + '<mark>'+ txt.slice(i,i+q.length) +'</mark>' + txt.slice(i+q.length);
 }
 
 /* ===== Follow (геолокация + стрелка) ===== */
