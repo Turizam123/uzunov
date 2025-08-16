@@ -7,15 +7,14 @@
       "file": "aek.Etara-vr.Shipka.geojson",
       "color": "#00e5ff",
       "visible": true
-    }
-{
-  "base": "routes/",
-  "tracks": [
+    },
     {
-  "id": "borovets-yastrebets-musala",
-  "name": "Боровец → х. Ястребец → вр. Мусала",
-  "file": "kk.Borovets-h.Yastrebets-vr.Musala.geojson",
-  "color": "#3ad37a",
-  "visible": true,
-  "km": 11.99
+      "id": "borovets-yastrebets-musala",
+      "name": "Боровец → х. Ястребец → вр. Мусала",
+      "file": "kk.Borovets-h.Yastrebets-vr.Musala.geojson",
+      "color": "#3ad37a",
+      "visible": true,
+      "km": 11.99
+    }
+  ]
 }
