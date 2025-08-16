@@ -52,6 +52,10 @@ mark{background:transparent;color:var(--accent)}
 @media (min-width: 1200px){
   .sheet{max-width:1250px}
 }
+
+/* икона/стрелка за посоката */
+.heading{ width:30px;height:30px; transform-origin:15px 15px; filter:drop-shadow(0 0 4px rgba(0,229,255,.6)); }
+.heading svg{ width:30px;height:30px; display:block; }
 </style>
 </head>
 <body>
@@ -61,6 +65,7 @@ mark{background:transparent;color:var(--accent)}
   <div class="badge">Офлайн: <span id="offline">не</span></div>
 
   <button class="btn" id="btnToggleTray" title="Покажи/скрий панела">Маршрути</button>
+  <button class="btn" id="btnFollow" title="Следвай ме (F)">Следвай</button>
 
   <div class="qs-wrap">
     <input id="qs" type="search" placeholder="Търси… (Enter = покажи)" />
@@ -169,12 +174,15 @@ function renderList(arr){
     const main = document.createElement('div');
     const name = document.createElement('div');
     name.textContent = t.name || t.id || t.file;
-    const meta = document.createElement('div');
-    meta.className = 'meta';
-    meta.textContent = t.file + (t.km ? ` · ${t.km} км` : '') + (t.bbox ? ' · bbox' : '');
-
     main.appendChild(name);
-    main.appendChild(meta);
+
+    // показваме само километри, без името на файла
+    if (t.km) {
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = `${t.km} км`;
+      main.appendChild(meta);
+    }
 
     const btn = document.createElement('button');
     btn.textContent = 'Покажи';
@@ -310,7 +318,7 @@ function renderQuickResults(items, q){
     el.className = 'qs-item';
     el.innerHTML = `
       <div class="qs-name">${highlight(t.name||t.id||t.file, q)}</div>
-      <div class="qs-meta">${t.file}${t.km?` · ${t.km} км`:''}</div>`;
+      <div class="qs-meta">${t.km ? `${t.km} км` : ''}</div>`;
     el.addEventListener('click', async ()=>{
       await toggleTrack(t, true);
       tray.classList.add('hidden');
@@ -330,6 +338,64 @@ function highlight(txt, q){
   if (i<0) return txt;
   return txt.slice(0,i) + '<mark>'+ txt.slice(i,i+q.length) +'</mark>' + txt.slice(i+q.length);
 }
+
+// --------- Следване с геолокация + стрелка ---------
+const btnFollow = document.getElementById('btnFollow');
+let followActive = false;
+let watchId = null;
+let meMarker = null;
+let prevPos = null;
+let lastBearing = 0;
+
+btnFollow.addEventListener('click', ()=> followActive ? stopFollow() : startFollow());
+window.addEventListener('keydown', (e)=>{ if(e.key==='f' || e.key==='F') btnFollow.click(); });
+
+function createHeadingIcon(angle){
+  const html = `<div class="heading" style="transform:rotate(${angle||0}deg)">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2 L21 22 L12 17 L3 22 Z" fill="${COLOR_DEFAULT}" stroke="white" stroke-width="1"/>
+    </svg>
+  </div>`;
+  return L.divIcon({ html, className:'', iconSize:[30,30], iconAnchor:[15,15] });
+}
+function rotateIcon(marker, angle){
+  const el = marker?.getElement();
+  if(!el) return;
+  const n = el.querySelector('.heading');
+  if(n) n.style.transform = `rotate(${angle||0}deg)`;
+}
+function computeBearing(a,b){
+  const toRad = x=>x*Math.PI/180, toDeg=x=>x*180/Math.PI;
+  const dLon = toRad(b[1]-a[1]);
+  const y = Math.sin(dLon)*Math.cos(toRad(b[0]));
+  const x = Math.cos(toRad(a[0]))*Math.sin(toRad(b[0])) - Math.sin(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.cos(dLon);
+  let br = toDeg(Math.atan2(y,x)); br=(br+360)%360; return br;
+}
+function startFollow(){
+  if(watchId) return;
+  followActive = true;
+  btnFollow.classList.add('primary'); btnFollow.textContent = 'Следвам…';
+  if(!meMarker) meMarker = L.marker(map.getCenter(), { icon:createHeadingIcon(0), zIndexOffset:1000 }).addTo(map);
+  try{
+    watchId = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy:true, maximumAge:2000, timeout:15000 });
+  }catch(e){ toast('Геолокацията не е достъпна.'); stopFollow(); }
+}
+function stopFollow(){
+  followActive = false;
+  btnFollow.classList.remove('primary'); btnFollow.textContent = 'Следвай';
+  if(watchId){ navigator.geolocation.clearWatch(watchId); watchId=null; }
+}
+function onPos(p){
+  const { latitude:lat, longitude:lng, heading } = p.coords;
+  const ll = [lat,lng];
+  meMarker.setLatLng(ll);
+  let br = (heading!=null && !isNaN(heading)) ? heading : (prevPos ? computeBearing(prevPos,ll) : lastBearing);
+  lastBearing = br||0;
+  rotateIcon(meMarker, lastBearing);
+  if(followActive){ map.panTo(ll, {animate:true}); }
+  prevPos = ll;
+}
+function onPosErr(e){ toast('Геолокация: '+e.message); stopFollow(); }
 
 // Utils
 async function ensureToGeoJSON(){
