@@ -32,12 +32,12 @@
   "km": 8.21,
   "visible": true
     },
-   {
-      "id": "haramiyata",
-      "name": "Седемте езера → вр. Харамията",
-      "file": ",sedemte-ezera-haramiyata.geojson" 
-      "color": "#f97316",
-      "visible": false
+    {
+    "id": "haramiyata",
+    "name": "Седемте езера → вр. Харамията",
+    "file": ",sedemte-ezera-haramiyata.geojson" 
+    "color": "#f97316",
+    "visible": true
     }
   ]
 }
