@@ -3,19 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>BGX · Вариант 1 (Leaflet + маршрут)</title>
+<title>BGX · Вариант 1 (Leaflet + маршрут, FIX)</title>
 <meta name="theme-color" content="#0b1420" />
 <link rel="manifest" href="manifest.webmanifest">
-
-<!-- Leaflet -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- MarkerCluster (за голям брой точки, ако добавим НТО/хижи) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
 <style>
 :root{ --bg:#0b1420; --text:#dbe7ff; --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.14); --accent:#00e5ff; --ok:#62ffa6; }
 *{box-sizing:border-box}
@@ -29,15 +24,8 @@ footer{padding:.6rem;display:flex;gap:.6rem;background:linear-gradient(0deg,rgba
 .tab.active{outline:1.5px solid var(--accent);box-shadow:0 0 0 1px rgba(0,229,255,.35) inset}
 .toast{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);padding:.65rem 1rem;border:1px solid var(--border);border-radius:12px;background:var(--panel);opacity:0;transition:opacity .25s;z-index:30}
 .toast.show{opacity:1}
-/* neon route */
-.leaflet-overlay-pane svg path.route-main{
-  stroke:#00e5ff; stroke-width:4; fill:none; stroke-linecap:round; stroke-linejoin:round;
-  filter: drop-shadow(0 0 5px rgba(0,229,255,.5));
-}
-.leaflet-overlay-pane svg path.route-alt{
-  stroke:#ff9a5a; stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round;
-  filter: drop-shadow(0 0 4px rgba(255,154,90,.45));
-}
+.leaflet-overlay-pane svg path.route-main{stroke:#00e5ff; stroke-width:4; fill:none; stroke-linecap:round; stroke-linejoin:round; filter: drop-shadow(0 0 5px rgba(0,229,255,.5));}
+.leaflet-overlay-pane svg path.route-alt{stroke:#ff9a5a; stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round; filter: drop-shadow(0 0 4px rgba(255,154,90,.45));}
 .marker-hut{background:#0e241a;border:1px solid rgba(88,255,155,.6);box-shadow:0 0 10px rgba(88,255,155,.35);width:11px;height:11px;border-radius:50%}
 .marker-nto{background:#24120e;border:1px solid rgba(255,120,70,.6);box-shadow:0 0 10px rgba(255,120,70,.35);width:11px;height:11px;border-radius:2px;transform:rotate(45deg)}
 </style>
@@ -62,31 +50,24 @@ footer{padding:.6rem;display:flex;gap:.6rem;background:linear-gradient(0deg,rgba
 <script>
 const toast = (m,ms=2200)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);};
 
-// --- map ---
 const map = L.map('map',{zoomControl:true}).setView([42.75,25.35],7);
-const base = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
 
-// --- layers ---
 const routesLayer = L.layerGroup().addTo(map);
 const ntoCluster = L.markerClusterGroup({chunkedLoading:true});
 const hutsCluster = L.markerClusterGroup({chunkedLoading:true});
-
 const icon = cls => L.divIcon({className:cls, iconSize:[12,12]});
 
-// --- load huts / nto if files exist ---
 fetch('huts_bg.geojson').then(r=>r.ok?r.json():Promise.reject()).then(g=>{
   const layer = L.geoJSON(g,{pointToLayer:(f,latlng)=> L.marker(latlng,{icon:icon('marker-hut')}).bindPopup('<b>'+ (f.properties.name||'Хижа') +'</b>')});
-  hutsCluster.addLayer(layer); // не добавяме веднага – бутонът ще ги включи
-  toast('Хижи: '+g.features.length);
+  hutsCluster.addLayer(layer);
 }).catch(()=>{});
 
 fetch('nto_bg.geojson').then(r=>r.ok?r.json():Promise.reject()).then(g=>{
   const layer = L.geoJSON(g,{pointToLayer:(f,latlng)=> L.marker(latlng,{icon:icon('marker-nto')}).bindPopup('<b>'+ (f.properties.name||'Обект') +'</b>')});
   ntoCluster.addLayer(layer);
-  toast('НТО: '+g.features.length);
 }).catch(()=>{});
 
-// --- tabs ---
 document.querySelectorAll('.tab').forEach(el=>el.onclick=()=>{
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); el.classList.add('active');
   const which = el.dataset.tab;
@@ -95,31 +76,37 @@ document.querySelectorAll('.tab').forEach(el=>el.onclick=()=>{
   if(which==='huts'){ map.removeLayer(routesLayer); map.removeLayer(ntoCluster); map.addLayer(hutsCluster); }
 });
 
-// --- distance helper ---
 function lengthMeters(latlngs){
   if(!latlngs || latlngs.length < 2) return 0;
-  let d = 0;
-  for (let i = 1; i < latlngs.length; i++) d += map.distance(latlngs[i-1], latlngs[i]);
+  let d = 0; for (let i = 1; i < latlngs.length; i++) d += map.distance(latlngs[i-1], latlngs[i]);
   return d;
 }
 
-// --- ROUTE LOADER (auto-load from /docs/data) ---
-const DATA_PREFIX = './data/'; // Папка в /docs/data/
+const DATA_PREFIX = './data/';
 loadRoutes();
 
 async function loadRoutes(){
-  // GPX
-  try{ await addGPX(DATA_PREFIX+'route.gpx'); }catch{}
-  // KML
-  try{ await addKML(DATA_PREFIX+'route.kml'); }catch{}
-  // GeoJSON
-  try{ await addGeoJSON(DATA_PREFIX+'route.json'); }catch{}
+  try{ await addGPX(DATA_PREFIX+'route.gpx'); }catch(e){}
+  try{ await addKML(DATA_PREFIX+'route.kml'); }catch(e){}
+  try{ await addGeoJSON(DATA_PREFIX+'route.json'); }catch(e){}
+  if(!routesLayer.getLayers().length) toast('Не открих валиден маршрут (GPX/KML/GeoJSON).');
 }
 
 async function addGPX(url){
-  const txt = await (await fetch(url)).text();
+  const res = await fetch(url); if(!res.ok) return;
+  const txt = await res.text();
   const xml = new DOMParser().parseFromString(txt, "text/xml");
-  const pts = [...xml.querySelectorAll('trkpt')].map(n=>[+n.getAttribute('lat'), +n.getAttribute('lon')]);
+
+  // 1) trkpt
+  let pts = [...xml.querySelectorAll('trkpt')].map(n=>[+n.getAttribute('lat'), +n.getAttribute('lon')]);
+  // 2) rtept (ако няма trkpt)
+  if (!pts.length) pts = [...xml.querySelectorAll('rtept')].map(n=>[+n.getAttribute('lat'), +n.getAttribute('lon')]);
+  // 3) wpt като точки
+  [...xml.querySelectorAll('wpt')].forEach(n=>{
+    const lat=+n.getAttribute('lat'), lon=+n.getAttribute('lon');
+    if(!isNaN(lat)&&!isNaN(lon)) L.circleMarker([lat,lon],{radius:5,color:'#00e5ff'}).addTo(routesLayer);
+  });
+
   if (pts.length) {
     const line = L.polyline(pts, {className:'route-main'}).addTo(routesLayer);
     map.fitBounds(line.getBounds(), {padding:[40,40]});
@@ -129,21 +116,37 @@ async function addGPX(url){
 }
 
 async function addKML(url){
-  const txt = await (await fetch(url)).text();
+  const res = await fetch(url); if(!res.ok) return;
+  const txt = await res.text();
   const xml = new DOMParser().parseFromString(txt, "text/xml");
-  // LineString
+
+  // 1) LineString
   const coordsTxt = xml.querySelector('LineString > coordinates')?.textContent?.trim();
   if (coordsTxt) {
     const pts = coordsTxt.split(/\s+/).map(t=>{ const [lng,lat] = t.split(','); return [Number(lat), Number(lng)]; });
+    if (pts.length) {
+      const line = L.polyline(pts, {className:'route-alt'}).addTo(routesLayer);
+      map.fitBounds(line.getBounds(), {padding:[40,40]});
+      const km = (lengthMeters(pts)/1000).toFixed(2);
+      line.bindPopup(`<b>KML трак</b><br>${km} км`);
+      return;
+    }
+  }
+
+  // 2) gx:Track -> gx:coord (lon lat alt)
+  const gxCoords = [...xml.querySelectorAll('gx\:coord, coord')].map(n=>n.textContent.trim().split(/\s+/));
+  if (gxCoords.length) {
+    const pts = gxCoords.map(([lng,lat])=>[Number(lat), Number(lng)]);
     const line = L.polyline(pts, {className:'route-alt'}).addTo(routesLayer);
     map.fitBounds(line.getBounds(), {padding:[40,40]});
     const km = (lengthMeters(pts)/1000).toFixed(2);
-    line.bindPopup(`<b>KML трак</b><br>${km} км`);
+    line.bindPopup(`<b>KML (gx:Track)</b><br>${km} км`);
   }
-  // Placemark → Point (ако има точки)
+
+  // точки (Placemark Point)
   [...xml.querySelectorAll('Placemark Point coordinates')].forEach(n=>{
     const [lng,lat] = n.textContent.trim().split(',').map(Number);
-    L.circleMarker([lat,lng], {radius:5, color:'#00e5ff'}).addTo(routesLayer);
+    if(!isNaN(lat)&&!isNaN(lng)) L.circleMarker([lat,lng], {radius:5, color:'#00e5ff'}).addTo(routesLayer);
   });
 }
 
@@ -158,12 +161,10 @@ async function addGeoJSON(url){
   if (layer.getLayers().length) map.fitBounds(layer.getBounds(), {padding:[40,40]});
 }
 
-// --- PWA сигнал ---
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
 window.addEventListener('online', ()=> document.getElementById('offline').textContent='не');
 window.addEventListener('offline', ()=> document.getElementById('offline').textContent='да');
 
-// --- запис на трак (кратък) ---
 let watchId=null, path=[], dist=0, startTs=0, last=null, recording=false;
 const km = m => (m/1000).toFixed(2), hhmm = s => `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
 document.getElementById('rec').onclick=()=>{
