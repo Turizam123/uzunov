@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>BGX · Вариант 1 (Leaflet + маршрут, FIX)</title>
+<title>BGX · Вариант 1 (Leaflet + маршрут, togeojson)</title>
 <meta name="theme-color" content="#0b1420" />
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
@@ -11,6 +11,9 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<!-- Robust GPX/KML parser -->
+<script src="https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.0/dist/togeojson.min.js"></script>
+
 <style>
 :root{ --bg:#0b1420; --text:#dbe7ff; --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.14); --accent:#00e5ff; --ok:#62ffa6; }
 *{box-sizing:border-box}
@@ -58,16 +61,6 @@ const ntoCluster = L.markerClusterGroup({chunkedLoading:true});
 const hutsCluster = L.markerClusterGroup({chunkedLoading:true});
 const icon = cls => L.divIcon({className:cls, iconSize:[12,12]});
 
-fetch('huts_bg.geojson').then(r=>r.ok?r.json():Promise.reject()).then(g=>{
-  const layer = L.geoJSON(g,{pointToLayer:(f,latlng)=> L.marker(latlng,{icon:icon('marker-hut')}).bindPopup('<b>'+ (f.properties.name||'Хижа') +'</b>')});
-  hutsCluster.addLayer(layer);
-}).catch(()=>{});
-
-fetch('nto_bg.geojson').then(r=>r.ok?r.json():Promise.reject()).then(g=>{
-  const layer = L.geoJSON(g,{pointToLayer:(f,latlng)=> L.marker(latlng,{icon:icon('marker-nto')}).bindPopup('<b>'+ (f.properties.name||'Обект') +'</b>')});
-  ntoCluster.addLayer(layer);
-}).catch(()=>{});
-
 document.querySelectorAll('.tab').forEach(el=>el.onclick=()=>{
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); el.classList.add('active');
   const which = el.dataset.tab;
@@ -86,79 +79,48 @@ const DATA_PREFIX = './data/';
 loadRoutes();
 
 async function loadRoutes(){
-  try{ await addGPX(DATA_PREFIX+'route.gpx'); }catch(e){}
-  try{ await addKML(DATA_PREFIX+'route.kml'); }catch(e){}
-  try{ await addGeoJSON(DATA_PREFIX+'route.json'); }catch(e){}
-  if(!routesLayer.getLayers().length) toast('Не открих валиден маршрут (GPX/KML/GeoJSON).');
+  let added = false;
+  try{ added = await addViaToGeoJSON(DATA_PREFIX+'route.gpx','gpx') || added; }catch(e){}
+  try{ added = await addViaToGeoJSON(DATA_PREFIX+'route.kml','kml') || added; }catch(e){}
+  try{ await addGeoJSON(DATA_PREFIX+'route.json'); added = true; }catch(e){}
+  if(!added) toast('Не открих валиден маршрут (GPX/KML/GeoJSON).');
 }
 
-async function addGPX(url){
-  const res = await fetch(url); if(!res.ok) return;
+// Parse GPX/KML to GeoJSON using togeojson (most robust)
+async function addViaToGeoJSON(url, type){
+  const res = await fetch(url); if(!res.ok) return false;
   const txt = await res.text();
   const xml = new DOMParser().parseFromString(txt, "text/xml");
+  let gj = null;
+  try{
+    gj = (type==='gpx') ? toGeoJSON.gpx(xml) : toGeoJSON.kml(xml);
+  }catch(e){ return false; }
+  if(!gj || !gj.features || !gj.features.length) return false;
 
-  // 1) trkpt
-  let pts = [...xml.querySelectorAll('trkpt')].map(n=>[+n.getAttribute('lat'), +n.getAttribute('lon')]);
-  // 2) rtept (ако няма trkpt)
-  if (!pts.length) pts = [...xml.querySelectorAll('rtept')].map(n=>[+n.getAttribute('lat'), +n.getAttribute('lon')]);
-  // 3) wpt като точки
-  [...xml.querySelectorAll('wpt')].forEach(n=>{
-    const lat=+n.getAttribute('lat'), lon=+n.getAttribute('lon');
-    if(!isNaN(lat)&&!isNaN(lon)) L.circleMarker([lat,lon],{radius:5,color:'#00e5ff'}).addTo(routesLayer);
-  });
-
-  if (pts.length) {
-    const line = L.polyline(pts, {className:'route-main'}).addTo(routesLayer);
-    map.fitBounds(line.getBounds(), {padding:[40,40]});
+  const layer = L.geoJSON(gj, {
+    style: f=> f.geometry.type.includes('Line') ? {color:'#00e5ff', weight:4, opacity:1} : undefined,
+    pointToLayer: (f,latlng)=> L.circleMarker(latlng, {radius:5, color:'#00e5ff'})
+  }).addTo(routesLayer);
+  map.fitBounds(layer.getBounds(), {padding:[40,40]});
+  // Try get total length if first feature is LineString
+  const f0 = gj.features.find(f=>f.geometry && (f.geometry.type==='LineString'||f.geometry.type==='MultiLineString'));
+  if(f0 && f0.geometry.type==='LineString'){
+    const pts = f0.geometry.coordinates.map(([lng,lat])=> L.latLng(lat,lng));
     const km = (lengthMeters(pts)/1000).toFixed(2);
-    line.bindPopup(`<b>GPX трак</b><br>${km} км`);
+    layer.bindPopup(`<b>Маршрут</b><br>${km} км`);
   }
-}
-
-async function addKML(url){
-  const res = await fetch(url); if(!res.ok) return;
-  const txt = await res.text();
-  const xml = new DOMParser().parseFromString(txt, "text/xml");
-
-  // 1) LineString
-  const coordsTxt = xml.querySelector('LineString > coordinates')?.textContent?.trim();
-  if (coordsTxt) {
-    const pts = coordsTxt.split(/\s+/).map(t=>{ const [lng,lat] = t.split(','); return [Number(lat), Number(lng)]; });
-    if (pts.length) {
-      const line = L.polyline(pts, {className:'route-alt'}).addTo(routesLayer);
-      map.fitBounds(line.getBounds(), {padding:[40,40]});
-      const km = (lengthMeters(pts)/1000).toFixed(2);
-      line.bindPopup(`<b>KML трак</b><br>${km} км`);
-      return;
-    }
-  }
-
-  // 2) gx:Track -> gx:coord (lon lat alt)
-  const gxCoords = [...xml.querySelectorAll('gx\:coord, coord')].map(n=>n.textContent.trim().split(/\s+/));
-  if (gxCoords.length) {
-    const pts = gxCoords.map(([lng,lat])=>[Number(lat), Number(lng)]);
-    const line = L.polyline(pts, {className:'route-alt'}).addTo(routesLayer);
-    map.fitBounds(line.getBounds(), {padding:[40,40]});
-    const km = (lengthMeters(pts)/1000).toFixed(2);
-    line.bindPopup(`<b>KML (gx:Track)</b><br>${km} км`);
-  }
-
-  // точки (Placemark Point)
-  [...xml.querySelectorAll('Placemark Point coordinates')].forEach(n=>{
-    const [lng,lat] = n.textContent.trim().split(',').map(Number);
-    if(!isNaN(lat)&&!isNaN(lng)) L.circleMarker([lat,lng], {radius:5, color:'#00e5ff'}).addTo(routesLayer);
-  });
+  return true;
 }
 
 async function addGeoJSON(url){
   const res = await fetch(url); if(!res.ok) return;
-  const geo = await res.json();
-  if (!geo || !geo.features || !geo.features.length) return;
-  const layer = L.geoJSON(geo, {
+  const gj = await res.json();
+  if(!gj || !gj.features || !gj.features.length) return;
+  const layer = L.geoJSON(gj, {
     style: {color:'#00e5ff', weight:4, opacity:1},
     pointToLayer: (f,latlng)=> L.circleMarker(latlng, {radius:5, color:'#00e5ff'})
   }).addTo(routesLayer);
-  if (layer.getLayers().length) map.fitBounds(layer.getBounds(), {padding:[40,40]});
+  map.fitBounds(layer.getBounds(), {padding:[40,40]});
 }
 
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
