@@ -3,302 +3,179 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>BGX · Нова карта</title>
-<link rel="manifest" href="manifest.webmanifest">
+<title>BGX · Вариант 1 (Leaflet + маршрут)</title>
 <meta name="theme-color" content="#0b1420" />
+<link rel="manifest" href="manifest.webmanifest">
 
-<!-- Leaflet от jsDelivr (по-надежден за Pages) -->
+<!-- Leaflet -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<!-- MarkerCluster (за голям брой точки, ако добавим НТО/хижи) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
 <style>
-:root{
-  --bg:#0b1420; --panel:#0e1b2a; --glass:rgba(255,255,255,.04);
-  --accent:#00e5ff; --accent-2:#58ff9b; --text:#dbe7ff;
-}
+:root{ --bg:#0b1420; --text:#dbe7ff; --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.14); --accent:#00e5ff; --ok:#62ffa6; }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:500 16px/1.3 system-ui,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:600 16px/1.25 system-ui,Segoe UI,Roboto}
 #app{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto}
-header{display:flex;gap:.6rem;align-items:center;padding:.6rem .8rem;background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.15) 50%,transparent)}
-.badge{padding:.45rem .75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.03);backdrop-filter:blur(6px)}
-button.badge{cursor:pointer}
-.badge strong{letter-spacing:.02em}
-#map{position:relative;isolation:isolate}
-.leaflet-container{background:#07101a}
-footer{padding:.5rem;display:flex;gap:.6rem;align-items:center;justify-content:space-between;background:linear-gradient(0deg,rgba(0,0,0,.45),rgba(0,0,0,.0))}
-.tabs{display:flex;gap:.6rem;flex:1}
-.tab{flex:1;padding:.9rem;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);text-align:center;cursor:pointer}
-.tab.active{outline:1.5px solid var(--accent);background:rgba(0,229,255,.06);box-shadow:0 0 0 1px rgba(0,229,255,.3) inset}
-.toast{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);padding:.7rem 1rem;border:1px solid rgba(255,255,255,.2);background:#0d1a28; border-radius:12px;z-index:9999;opacity:0;pointer-events:none;transition:opacity .25s}
+header{display:flex;gap:.6rem;align-items:center;padding:.55rem .8rem;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent);z-index:5}
+.badge{padding:.5rem .8rem;border:1px solid var(--border);border-radius:14px;background:var(--panel)} button.badge{cursor:pointer}
+#map{position:relative} .leaflet-container{background:#06121b}
+footer{padding:.6rem;display:flex;gap:.6rem;background:linear-gradient(0deg,rgba(0,0,0,.45),transparent)}
+.tab{flex:1;padding:.9rem;border-radius:14px;border:1px solid var(--border);background:var(--panel);text-align:center;cursor:pointer}
+.tab.active{outline:1.5px solid var(--accent);box-shadow:0 0 0 1px rgba(0,229,255,.35) inset}
+.toast{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);padding:.65rem 1rem;border:1px solid var(--border);border-radius:12px;background:var(--panel);opacity:0;transition:opacity .25s;z-index:30}
 .toast.show{opacity:1}
-#fx-overlay, #grid-overlay, #vignette{
-  position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;z-index:3;opacity:.65
+/* neon route */
+.leaflet-overlay-pane svg path.route-main{
+  stroke:#00e5ff; stroke-width:4; fill:none; stroke-linecap:round; stroke-linejoin:round;
+  filter: drop-shadow(0 0 5px rgba(0,229,255,.5));
 }
-#vignette{ mix-blend-mode:multiply; opacity:.9;
-  background: radial-gradient(70% 60% at 50% 40%, rgba(0,0,0,0) 40%, rgba(0,0,0,.30) 85%, rgba(0,0,0,.55) 100%);
+.leaflet-overlay-pane svg path.route-alt{
+  stroke:#ff9a5a; stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round;
+  filter: drop-shadow(0 0 4px rgba(255,154,90,.45));
 }
-#grid-overlay{
-  background:
-   repeating-linear-gradient(0deg, rgba(112,181,255,.12) 0 1px, transparent 1px 20px),
-   repeating-linear-gradient(90deg, rgba(112,181,255,.12) 0 1px, transparent 1px 20px);
-  animation:gridMove 18s linear infinite;
-  mix-blend-mode:screen; opacity:.45; filter:hue-rotate(190deg) saturate(1.5);
-}
-@keyframes gridMove{ from{transform:translate3d(0,0,0)} to{transform:translate3d(-40px,-40px,0)} }
-#fx-overlay{
-  --x:50%; --y:50%;
-  background:
-   radial-gradient(400px 400px at var(--x) var(--y),
-    rgba(0,229,255,.20), rgba(0,229,255,.10) 35%, rgba(0,0,0,0) 60%),
-   radial-gradient(900px 900px at var(--x) var(--y),
-    rgba(90,255,180,.10), rgba(0,0,0,0) 70%);
-  filter:saturate(1.7) blur(.2px);
-  transition:background-position .12s linear;
-}
-.leaflet-tile{filter:grayscale(.5) brightness(.9) contrast(1.15)}
-body.neon .leaflet-tile{filter:grayscale(.3) brightness(.85) contrast(1.25) hue-rotate(165deg) saturate(1.2)}
-body.blueprint .leaflet-tile{filter:grayscale(1) brightness(.8) contrast(1.4) hue-rotate(190deg)}
-body.mono .leaflet-tile{filter:grayscale(1) brightness(.75) contrast(1.35)}
-.marker-neon{background:#081e28;border:1px solid rgba(0,229,255,.5);box-shadow:0 0 10px rgba(0,229,255,.3), 0 0 20px rgba(0,255,180,.15);width:12px;height:12px;border-radius:6px}
 .marker-hut{background:#0e241a;border:1px solid rgba(88,255,155,.6);box-shadow:0 0 10px rgba(88,255,155,.35);width:11px;height:11px;border-radius:50%}
 .marker-nto{background:#24120e;border:1px solid rgba(255,120,70,.6);box-shadow:0 0 10px rgba(255,120,70,.35);width:11px;height:11px;border-radius:2px;transform:rotate(45deg)}
-#heading{ position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:18px solid var(--accent);filter:drop-shadow(0 0 6px rgba(0,229,255,.6));display:none; }
-.controls{position:absolute;z-index:10;right:.75rem;bottom:6.5rem;display:flex;flex-direction:column;gap:.5rem}
-.controls button{padding:.6rem .8rem;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--text);cursor:pointer}
-.drop{position:absolute;inset:auto .75rem .75rem auto;z-index:11;padding:.55rem .8rem;border:1px dashed rgba(255,255,255,.25);border-radius:12px;background:rgba(255,255,255,.04)}
-.drop:hover{background:rgba(255,255,255,.07)}
-@media (max-width:700px){ header{flex-wrap:wrap} .drop{font-size:.95em} }
 </style>
 </head>
-<body class="neon">
+<body>
 <div id="app">
   <header>
-    <div class="badge"><strong>BGX</strong> · Нова карта</div>
-    <div class="badge">Офлайн: <span id="offline">не</span></div>
-    <button id="style" class="badge">🔮 Стил</button>
+    <div class="badge"><strong>BGX</strong> · Вариант 1 (Leaflet)</div>
     <button id="rec" class="badge">◉ Старт</button>
-    <div class="badge" id="gps">📍 неактивна</div>
     <div class="badge"><span id="km">0.00 км</span> · <span id="tm">0:00</span></div>
+    <div class="badge">Офлайн: <span id="offline">не</span></div>
   </header>
-
-  <main id="map">
-    <div id="fx-overlay"></div>
-    <div id="grid-overlay" hidden></div>
-    <div id="vignette" hidden></div>
-    <div id="heading"></div>
-    <div class="controls">
-      <button id="center">Центрирай ме</button>
-      <button id="export">Експорт GPX</button>
-    </div>
-    <div class="drop" id="drop">Пусни тук KML/GPX/GeoJSON (100 НТО, Хижи, Пътеки)</div>
-  </main>
-
+  <main id="map"></main>
   <footer>
-    <div class="tabs">
-      <div class="tab active" data-tab="nto">100 НТО</div>
-      <div class="tab" data-tab="huts">Хижи</div>
-      <div class="tab" data-tab="trails">Пътеки</div>
-    </div>
-    <div class="badge" id="install" hidden>📲 Инсталирай</div>
+    <div class="tab active" data-tab="routes">Маршрут</div>
+    <div class="tab" data-tab="nto">100 НТО</div>
+    <div class="tab" data-tab="huts">Хижи</div>
   </footer>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
-const toast = (msg, ms=2600)=>{ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), ms); }
-const km = (m)=> (m/1000).toFixed(2);
-const hhmm = (s)=>`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+const toast = (m,ms=2200)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);};
 
-/* карта */
-const map = L.map('map',{zoomControl:false}).setView([42.75,25.35], 7);
-L.control.zoom({position:'topright'}).addTo(map);
-const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom:19, attribution:'© OSM' }).addTo(map);
-const hot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',{ maxZoom:19, attribution:'© OSM HOT' });
-osm.on('tileerror', ()=>{ if(!map.hasLayer(hot)){ map.addLayer(hot); toast('Проблем с плочките · показвам резервен слой'); }});
-setTimeout(()=>map.invalidateSize(), 100);
+// --- map ---
+const map = L.map('map',{zoomControl:true}).setView([42.75,25.35],7);
+const base = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
 
-/* визуални стилове */
-const body = document.body;
-const fx = document.getElementById('fx-overlay');
-const grid = document.getElementById('grid-overlay');
-const vign = document.getElementById('vignette');
-let styleMode = 0;
-document.getElementById('style').onclick = ()=>{
-  styleMode = (styleMode+1)%3;
-  body.classList.remove('neon','blueprint','mono');
-  fx.hidden = grid.hidden = vign.hidden = true;
-  if(styleMode===0){ body.classList.add('neon'); fx.hidden=false; toast('Стил: NEON');}
-  if(styleMode===1){ body.classList.add('blueprint'); grid.hidden=false; toast('Стил: BLUEPRINT');}
-  if(styleMode===2){ body.classList.add('mono'); vign.hidden=false; toast('Стил: MONO');}
+// --- layers ---
+const routesLayer = L.layerGroup().addTo(map);
+const ntoCluster = L.markerClusterGroup({chunkedLoading:true});
+const hutsCluster = L.markerClusterGroup({chunkedLoading:true});
+
+const icon = cls => L.divIcon({className:cls, iconSize:[12,12]});
+
+// --- load huts / nto if files exist ---
+fetch('huts_bg.geojson').then(r=>r.ok?r.json():Promise.reject()).then(g=>{
+  const layer = L.geoJSON(g,{pointToLayer:(f,latlng)=> L.marker(latlng,{icon:icon('marker-hut')}).bindPopup('<b>'+ (f.properties.name||'Хижа') +'</b>')});
+  hutsCluster.addLayer(layer); // не добавяме веднага – бутонът ще ги включи
+  toast('Хижи: '+g.features.length);
+}).catch(()=>{});
+
+fetch('nto_bg.geojson').then(r=>r.ok?r.json():Promise.reject()).then(g=>{
+  const layer = L.geoJSON(g,{pointToLayer:(f,latlng)=> L.marker(latlng,{icon:icon('marker-nto')}).bindPopup('<b>'+ (f.properties.name||'Обект') +'</b>')});
+  ntoCluster.addLayer(layer);
+  toast('НТО: '+g.features.length);
+}).catch(()=>{});
+
+// --- tabs ---
+document.querySelectorAll('.tab').forEach(el=>el.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); el.classList.add('active');
+  const which = el.dataset.tab;
+  if(which==='routes'){ map.addLayer(routesLayer); map.removeLayer(ntoCluster); map.removeLayer(hutsCluster); }
+  if(which==='nto'){ map.removeLayer(routesLayer); map.addLayer(ntoCluster); map.removeLayer(hutsCluster); }
+  if(which==='huts'){ map.removeLayer(routesLayer); map.removeLayer(ntoCluster); map.addLayer(hutsCluster); }
+});
+
+// --- distance helper ---
+function lengthMeters(latlngs){
+  if(!latlngs || latlngs.length < 2) return 0;
+  let d = 0;
+  for (let i = 1; i < latlngs.length; i++) d += map.distance(latlngs[i-1], latlngs[i]);
+  return d;
+}
+
+// --- ROUTE LOADER (auto-load from /docs/data) ---
+const DATA_PREFIX = './data/'; // Папка в /docs/data/
+loadRoutes();
+
+async function loadRoutes(){
+  // GPX
+  try{ await addGPX(DATA_PREFIX+'route.gpx'); }catch{}
+  // KML
+  try{ await addKML(DATA_PREFIX+'route.kml'); }catch{}
+  // GeoJSON
+  try{ await addGeoJSON(DATA_PREFIX+'route.json'); }catch{}
+}
+
+async function addGPX(url){
+  const txt = await (await fetch(url)).text();
+  const xml = new DOMParser().parseFromString(txt, "text/xml");
+  const pts = [...xml.querySelectorAll('trkpt')].map(n=>[+n.getAttribute('lat'), +n.getAttribute('lon')]);
+  if (pts.length) {
+    const line = L.polyline(pts, {className:'route-main'}).addTo(routesLayer);
+    map.fitBounds(line.getBounds(), {padding:[40,40]});
+    const km = (lengthMeters(pts)/1000).toFixed(2);
+    line.bindPopup(`<b>GPX трак</b><br>${km} км`);
+  }
+}
+
+async function addKML(url){
+  const txt = await (await fetch(url)).text();
+  const xml = new DOMParser().parseFromString(txt, "text/xml");
+  // LineString
+  const coordsTxt = xml.querySelector('LineString > coordinates')?.textContent?.trim();
+  if (coordsTxt) {
+    const pts = coordsTxt.split(/\s+/).map(t=>{ const [lng,lat] = t.split(','); return [Number(lat), Number(lng)]; });
+    const line = L.polyline(pts, {className:'route-alt'}).addTo(routesLayer);
+    map.fitBounds(line.getBounds(), {padding:[40,40]});
+    const km = (lengthMeters(pts)/1000).toFixed(2);
+    line.bindPopup(`<b>KML трак</b><br>${km} км`);
+  }
+  // Placemark → Point (ако има точки)
+  [...xml.querySelectorAll('Placemark Point coordinates')].forEach(n=>{
+    const [lng,lat] = n.textContent.trim().split(',').map(Number);
+    L.circleMarker([lat,lng], {radius:5, color:'#00e5ff'}).addTo(routesLayer);
+  });
+}
+
+async function addGeoJSON(url){
+  const res = await fetch(url); if(!res.ok) return;
+  const geo = await res.json();
+  if (!geo || !geo.features || !geo.features.length) return;
+  const layer = L.geoJSON(geo, {
+    style: {color:'#00e5ff', weight:4, opacity:1},
+    pointToLayer: (f,latlng)=> L.circleMarker(latlng, {radius:5, color:'#00e5ff'})
+  }).addTo(routesLayer);
+  if (layer.getLayers().length) map.fitBounds(layer.getBounds(), {padding:[40,40]});
+}
+
+// --- PWA сигнал ---
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
+window.addEventListener('online', ()=> document.getElementById('offline').textContent='не');
+window.addEventListener('offline', ()=> document.getElementById('offline').textContent='да');
+
+// --- запис на трак (кратък) ---
+let watchId=null, path=[], dist=0, startTs=0, last=null, recording=false;
+const km = m => (m/1000).toFixed(2), hhmm = s => `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+document.getElementById('rec').onclick=()=>{
+  recording=!recording; document.getElementById('rec').textContent = recording?'■ Стоп':'◉ Старт';
+  if(recording){ dist=0; path=[]; last=null; startTs=Date.now(); if(!watchId) watchId = navigator.geolocation?.watchPosition?.(onPos, console.warn, {enableHighAccuracy:true}); toast('Запис започна'); }
+  else { if(watchId) {navigator.geolocation.clearWatch(watchId); watchId=null;} toast('Запис спрян'); }
 };
-map.on('mousemove', e=>{ fx.style.setProperty('--x', e.containerPoint.x+'px'); fx.style.setProperty('--y', e.containerPoint.y+'px'); });
-
-/* слоеве */
-const hutsLayer = L.layerGroup().addTo(map);
-const ntoLayer  = L.layerGroup().addTo(map);
-const trailsLayer = L.layerGroup().addTo(map);
-const neonIcon = (cls)=> L.divIcon({className:cls, iconSize:[12,12]});
-
-/* геолокация + трак */
-let watchId=null, path=[], dist=0, startTs=0, last=null;
-const arrow = document.getElementById('heading');
-const recBtn = document.getElementById('rec');
-const gpsBadge = document.getElementById('gps');
-const kmEl = document.getElementById('km'), tmEl=document.getElementById('tm');
-let poly = L.polyline([], {color:'#00e5ff', weight:3, opacity:.9}).addTo(map).bringToFront();
-
-function startWatch(){
-  if(watchId) return;
-  if(!('geolocation' in navigator)){ toast('Геолокацията не е налична'); return; }
-  watchId = navigator.geolocation.watchPosition(onPos, onErr, {enableHighAccuracy:true, maximumAge:1000, timeout:10000});
-  gpsBadge.textContent='📍 активна';
-  arrow.style.display='block';
-}
-function stopWatch(){
-  if(watchId){ navigator.geolocation.clearWatch(watchId); watchId=null; }
-  gpsBadge.textContent='📍 неактивна';
-  arrow.style.display='none';
-}
 function onPos(p){
-  const {latitude:lat, longitude:lng, heading} = p.coords;
-  const ll=[lat,lng];
-  if(!last){ map.setView(ll, 15); }
-  arrow.style.transform = `translate(-50%,-50%) rotate(${(heading||0)}deg)`;
-  const px = map.latLngToContainerPoint(ll);
-  fx.style.setProperty('--x', px.x+'px'); fx.style.setProperty('--y', px.y+'px');
-
-  if(recording){
-    path.push(ll);
-    poly.setLatLngs(path);
-    if(last){
-      dist += map.distance(last, ll);
-      kmEl.textContent = `${km(dist)} км`;
-      tmEl.textContent = hhmm(Math.floor((Date.now()-startTs)/1000));
-    }
-    last = ll;
-  }
+  const ll=[p.coords.latitude, p.coords.longitude];
+  if(!last){ map.setView(ll,15,{animate:true}); }
+  if(recording){ path.push(ll); if(last){ dist+=map.distance(last,ll); } last=ll; document.getElementById('km').textContent = km(dist)+' км'; document.getElementById('tm').textContent = hhmm(Math.floor((Date.now()-startTs)/1000)); }
 }
-function onErr(e){ console.warn(e); }
-
-let recording=false;
-recBtn.onclick = ()=>{
-  recording = !recording;
-  recBtn.textContent = recording ? '■ Стоп' : '◉ Старт';
-  if(recording){
-    dist=0; path=[]; last=null; poly.setLatLngs(path); startTs=Date.now(); startWatch(); toast('Запис започна');
-  }else{
-    stopWatch(); toast('Запис спрян');
-  }
-};
-document.getElementById('center').onclick = ()=>{ if(last) map.setView(last, 16,{animate:true}); else toast('Няма позиция още'); };
-
-/* GPX експорт */
-document.getElementById('export').onclick = ()=>{
-  if(path.length<2){ toast('Няма трак за експорт'); return; }
-  const gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="BGX" xmlns="http://www.topografix.com/GPX/1/1">
-<trk><name>BGX Track</name><trkseg>
-${path.map(p=>`<trkpt lat="${p[0].toFixed(6)}" lon="${p[1].toFixed(6)}"></trkpt>`).join('\n')}
-</trkseg></trk></gpx>`;
-  const blob = new Blob([gpx], {type:'application/gpx+xml'});
-  const url = URL.createObjectURL(blob);
-  const a = Object.assign(document.createElement('a'), {href:url, download:`bgx-track-${Date.now()}.gpx`});
-  a.click(); URL.revokeObjectURL(url);
-};
-
-/* Drag & Drop */
-const drop = document.getElementById('drop');
-['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.style.background='rgba(255,255,255,.08)'}));
-['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.style.background='rgba(255,255,255,.04)'}));
-drop.addEventListener('drop', async e=>{
-  const f = e.dataTransfer.files[0]; if(!f) return;
-  const txt = await f.text();
-  if(f.name.endsWith('.kml')||f.name.endsWith('.kmz')) loadKML(txt);
-  else if(f.name.endsWith('.gpx')) loadGPX(txt);
-  else if(f.name.endsWith('.geojson')||f.type.includes('json')) loadGeoJSON(JSON.parse(txt));
-  else toast('Непознат формат');
-});
-
-/* Парсери */
-function loadKML(text){
-  try{
-    const xml = new DOMParser().parseFromString(text, "text/xml");
-    const points = [...xml.querySelectorAll('Placemark Point coordinates')].map(n=>{
-      const [lng,lat] = n.textContent.trim().split(/\s+/)[0].split(',').map(Number);
-      const name = n.closest('Placemark')?.querySelector('name')?.textContent?.trim() || 'Обект';
-      return {lat, lng, name};
-    });
-    const lines = [...xml.querySelectorAll('Placemark LineString coordinates')].map(n=>{
-      const coords = n.textContent.trim().split(/\s+/).map(t=>{ const [lng,lat]=t.split(','); return [Number(lat),Number(lng)]; });
-      const name = n.closest('Placemark')?.querySelector('name')?.textContent?.trim() || 'Пътека';
-      return {name, coords};
-    });
-    if(points.length){
-      const isHut = (n)=>/хижа|hut|х\./i.test(n);
-      const target = points.some(p=>isHut(p.name)) ? hutsLayer : ntoLayer;
-      points.forEach(p=>{
-        const cls = target===hutsLayer ? 'marker-hut' : 'marker-nto';
-        L.marker([p.lat,p.lng], {icon:neonIcon(cls)}).addTo(target).bindPopup(`<b>${p.name}</b>`);
-      });
-      map.fitBounds(L.latLngBounds(points.map(p=>[p.lat,p.lng])), {padding:[40,40]});
-      toast(`${target===hutsLayer?'Хижи':'НТО'}: ${points.length}`);
-    }
-    if(lines.length){
-      lines.forEach(l=>{
-        L.polyline(l.coords, {color:'#ff9a5a', weight:3, opacity:.9}).addTo(trailsLayer).bindPopup(`<b>${l.name}</b>`);
-      });
-      toast(`Пътеки: ${lines.length}`);
-    }
-  }catch(e){ console.error(e); toast('Грешка при KML'); }
-}
-function loadGPX(text){
-  try{
-    const xml = new DOMParser().parseFromString(text, "text/xml");
-    const trkpts = [...xml.querySelectorAll('trkpt')].map(n=>[Number(n.getAttribute('lat')), Number(n.getAttribute('lon'))]);
-    if(trkpts.length){
-      L.polyline(trkpts, {color:'#ff9a5a', weight:3, opacity:.95}).addTo(trailsLayer);
-      map.fitBounds(L.latLngBounds(trkpts), {padding:[40,40]});
-      toast(`GPX точки: ${trkpts.length}`);
-    }else{
-      toast('Не намерих трак в GPX');
-    }
-  }catch(e){ console.error(e); toast('Грешка при GPX'); }
-}
-function loadGeoJSON(geo){
-  try{
-    const layer = L.geoJSON(geo, {
-      pointToLayer:(f,latlng)=> L.marker(latlng,{icon:neonIcon('marker-neon')})
-    }).addTo(trailsLayer);
-    map.fitBounds(layer.getBounds(), {padding:[40,40]});
-    toast('Зареден GeoJSON');
-  }catch(e){ console.error(e); toast('Грешка при GeoJSON'); }
-}
-
-/* табове */
-document.querySelectorAll('.tab').forEach(el=>{
-  el.onclick=()=>{
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    el.classList.add('active');
-    toast(`Таб: ${el.textContent.trim()}`);
-  };
-});
-
-/* офлайн / PWA */
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js');
-  window.addEventListener('appinstalled', ()=> toast('Инсталирано като приложение'));
-}
-window.addEventListener('online', ()=>{document.getElementById('offline').textContent='не'; toast('Онлайн');});
-window.addEventListener('offline', ()=>{document.getElementById('offline').textContent='да'; toast('Офлайн режим');});
-
-let deferredPrompt=null;
-window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt=e; document.getElementById('install').hidden=false; });
-document.getElementById('install').onclick=async()=>{
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt(); const {outcome}=await deferredPrompt.userChoice;
-  toast(outcome==='accepted'?'Инсталиране...':'Отказано'); deferredPrompt=null; document.getElementById('install').hidden=true;
-};
 </script>
 </body>
 </html>
