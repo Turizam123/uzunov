@@ -11,10 +11,9 @@
   ]
 }
 {
-  "id": "borovets-yastrebets-musala",
-  "name": "Боровец → х. Ястребец → вр. Мусала",
-  "file": "kk.Borovets-h.Yastrebets-vr.Musala.geojson",
-  "color": "#3ad37a",
-  "visible": true,
-  "km": 11.99
+  "base": "routes/",
+  "tracks": [
+    { ... други маршрути ... },
+    { "id": "borovets-yastrebets-musala", ... }
+  ]
 }
