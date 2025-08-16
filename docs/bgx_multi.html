@@ -23,7 +23,7 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:600 16px/1.25 system-ui,Segoe UI,Roboto}
 
-/* ===== Header (mobile-first) ===== */
+/* ===== Header ===== */
 header{
   position:fixed; inset:0 0 auto 0; z-index:1000;
   display:flex; gap:.6rem; align-items:center;
@@ -34,14 +34,11 @@ header{
 .btn{padding:.6rem .8rem;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer;color:var(--text)}
 .btn.primary{outline:1.5px solid var(--accent)}
 
-/* ЛОГОТО – между „Следвай“ и търсачката */
 .brand{display:flex;align-items:center;justify-content:center;
        width:40px;height:40px;border:1px solid var(--border);border-radius:10px;background:var(--panel)}
 .brand img{height:26px;width:auto;display:block}
 
 #map{position:fixed; inset:0}
-
-/* Премести zoom контролите под header-а */
 .leaflet-top.leaflet-left{ top: calc(var(--header-h) + env(safe-area-inset-top) + 6px); }
 
 /* ==== Долен панел ==== */
@@ -79,10 +76,7 @@ header{
 .qs-meta{ font-size:12px; color:var(--muted) }
 mark{background:transparent;color:var(--accent)}
 
-/* Desktop по-голямо лого */
 @media (min-width: 1200px){ .sheet{max-width:1250px} .brand img{height:30px} }
-
-/* Компактен мобилен вид */
 @media (max-width: 640px){
   :root{ --header-h:52px; }
   header{ gap:.45rem; padding:.45rem .55rem; padding-top:calc(.45rem + env(safe-area-inset-top)); }
@@ -103,29 +97,33 @@ mark{background:transparent;color:var(--accent)}
 <body>
 <header>
   <div class="badge"><strong>BGX</strong> · Търсене на маршрути</div>
-  <div class="badge">Заредени: <span id="loaded">0</span></div>
+
+  <!-- брояч: заредени / общо -->
+  <div class="badge">Заредени: <span id="loaded">0</span> / <span id="total">0</span></div>
 
   <button class="btn" id="btnToggleTray" title="Покажи/скрий панела">Маршрути</button>
   <button class="btn" id="btnFollow" title="Следвай ме (F)">Следвай</button>
 
-  <!-- ЛОГО ТУК (между „Следвай“ и търсачката) -->
   <a class="brand" href="https://t-map.bg" target="_blank" rel="noopener" title="T-MAP">
     <img src="./logo-header-40.png" alt="T-MAP">
   </a>
 
   <!-- Търсачка -->
   <div class="qs-wrap">
-    <input id="qs" type="search" placeholder="Търси… (пример: Боровец, Шипка) – Enter = зареди" />
+    <input id="qs" type="search" placeholder="Търси… (Боровец, Шипка) – Enter = зареди" />
     <div id="qsDrop" class="qs-drop" hidden></div>
   </div>
 </header>
 
 <div id="map"></div>
 
-<!-- Долен панел: текущи заредени маршрути -->
+<!-- Долен панел: текущо заредени -->
 <div id="tray">
   <div class="sheet">
-    <h3>Заредени маршрути <span class="counter" id="counter"></span></h3>
+    <h3>
+      Заредени маршрути
+      <span class="counter"><span id="loaded2">0</span> / <span id="total2">0</span></span>
+    </h3>
     <div class="list" id="list"></div>
   </div>
 </div>
@@ -133,19 +131,23 @@ mark{background:transparent;color:var(--accent)}
 <div id="toast" class="toast"></div>
 
 <script>
-const DATA_PREFIX = './data/';
-const DEFAULT_BASE = 'routes/';
+/* ===== Конфигурация ===== */
+const DATA_PREFIX = './data/';          // къде е tracks.json
+const DEFAULT_BASE = 'routes/';         // базова папка за файловете
 const COLOR_DEFAULT = '#00e5ff';
-const AUTO_LOAD_VISIBLE = false;
+const AUTO_LOAD_VISIBLE = true;         // ← авто-зареждай видимите от tracks.json
 
+/* ===== UI помощници ===== */
 const toast = (m,ms=2200)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);};
 
+/* ===== Карта ===== */
 const map = L.map('map',{zoomControl:true}).setView([42.75,25.35],7);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(map);
 const routesGroup = L.layerGroup().addTo(map);
 
+/* ===== Състояние ===== */
 const state = {
-  manifest: {base:DEFAULT_BASE, tracks:[]},
+  manifest: { base: DEFAULT_BASE, tracks: [] },
   base: DEFAULT_BASE,
   items: [],
   layers: new Map(),
@@ -158,20 +160,36 @@ init().catch(e=>{ console.error(e); toast('Грешка при инициали�
 
 async function init(){
   await ensureToGeoJSON();
+  // 1) зареди манифеста
   const m = await fetchJson(DATA_PREFIX+'tracks.json').catch(()=>null);
   if(m && Array.isArray(m.tracks)){ state.manifest = m; }
-  state.base = (state.manifest.base || DEFAULT_BASE).replace(/^\.?\/*/,'') + (state.manifest.base?.endsWith('/')? '' : '/');
+  state.base = (state.manifest.base || DEFAULT_BASE).replace(/^\.?\/*/,'');
+  if(!state.base.endsWith('/')) state.base += '/';
+
+  // покажи общия брой
+  document.getElementById('total').textContent  = String(state.manifest.tracks.length);
+  document.getElementById('total2').textContent = String(state.manifest.tracks.length);
+
+  // 2) авто-зареди всички "visible": true
   if (AUTO_LOAD_VISIBLE) {
-    for (const t of state.manifest.tracks) if (t.visible) await addAndShow(t);
+    for (const t of state.manifest.tracks) {
+      if (t.visible) await addAndShow(t);
+    }
   }
+
+  // ако няма заредени, покажи празен списък
   renderList();
-  updateCounter();
+  updateCounters();
 }
 
+/* ===== Списъкът долу (само заредените) ===== */
 function renderList(){
   const list = document.getElementById('list');
   list.innerHTML = '';
-  if(!state.items.length){ list.innerHTML = '<div class="item"><em>Няма заредени маршрути</em></div>'; return; }
+  if(!state.items.length){
+    list.innerHTML = '<div class="item"><em>Няма заредени маршрути</em></div>';
+    return;
+  }
   for(const t of state.items){
     const row = document.createElement('div'); row.className='item'; row.dataset.id=t.id||t.file;
     const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center';
@@ -192,21 +210,23 @@ function renderList(){
     row.appendChild(left); row.appendChild(main); row.appendChild(btn);
     list.appendChild(row);
   }
-  updateCounter();
+  updateCounters();
 }
 
-function updateCounter(){
-  document.getElementById('loaded').textContent = String(state.items.length);
-  const c = document.getElementById('counter');
-  c.textContent = `${state.items.length} заредени`;
+function updateCounters(){
+  const loaded = state.items.length;
+  document.getElementById('loaded').textContent  = String(loaded);
+  document.getElementById('loaded2').textContent = String(loaded);
 }
 
+/* ===== Зареждане/премахване на трак ===== */
 async function addAndShow(t){
-  if (state.items.find(x => (x.id||x.file) === (t.id||t.file))) return;
+  if (state.items.find(x => (x.id||x.file) === (t.id||t.file))) return;   // вече е зареден
 
-  const id = t.id || t.file;
+  const id  = t.id || t.file;
   const url = DATA_PREFIX + state.base + t.file;
   let gj = null;
+
   if(/\.(geo)?json$/i.test(t.file)){
     gj = await fetchJson(url).catch(()=>null);
   } else if(/\.(gpx|kml)$/i.test(t.file)){
@@ -222,10 +242,11 @@ async function addAndShow(t){
     style: f => f.geometry && f.geometry.type && f.geometry.type.includes('Line') ? {color, weight:3.5, opacity:1, className:'route'} : undefined,
     pointToLayer: (f,latlng) => L.circleMarker(latlng, {radius:4, color})
   }).addTo(routesGroup);
+
   state.layers.set(id, { layer, meta: t });
   state.items.push({...t});
-  try{ map.fitBounds(layer.getBounds(), {padding:[32,32]}); }catch(e){}
 
+  try{ map.fitBounds(layer.getBounds(), {padding:[32,32]}); }catch(e){}
   renderList();
 }
 
@@ -238,7 +259,7 @@ function removeTrack(t){
   renderList();
 }
 
-/* ====== Търсачка (по tracks.json) ====== */
+/* ===== Търсачка (по tracks.json) ===== */
 const qs     = document.getElementById('qs');
 const qsDrop = document.getElementById('qsDrop');
 
@@ -290,7 +311,7 @@ function highlight(txt, q){
   return txt.slice(0,i) + '<mark>'+ txt.slice(i,i+q.length) +'</mark>' + txt.slice(i+q.length);
 }
 
-/* ====== Follow (геолокация + стрелка) ====== */
+/* ===== Follow (геолокация + стрелка) ===== */
 const btnFollow = document.getElementById('btnFollow');
 let followActive = false;
 let watchId = null;
@@ -347,7 +368,7 @@ function onPosErr(e){ toast('Геолокация: '+e.message); stopFollow(); }
 /* Vendor loader (за GPX/KML) */
 async function ensureToGeoJSON(){
   try{
-    const resp = await fetch('./vendor/togeojson.min.js', {cache:'no-store'});
+    const resp = await fetch('./data/vendor/togeojson.min.js', {cache:'no-store'});
     if(!resp.ok) return;
     const js = await resp.text();
     const s = document.createElement('script'); s.textContent = js; document.head.appendChild(s);
