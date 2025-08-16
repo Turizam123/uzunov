@@ -16,7 +16,7 @@
 
 <style>
 :root{
-  --bg:#0b1420;           /* фон зад картата (тъмен) */
+  --bg:#0b1420;
   --text:#dbe7ff;
   --muted:#b8c6e6;
   --border:rgba(255,255,255,.14);
@@ -79,8 +79,8 @@ header{
 
 /* списък – скрол при повече от 3 */
 .list{
-  --rowH: 72px;                               /* средна височина на ред */
-  max-height: calc(var(--rowH) * 3 + 10px);   /* ~3 реда, после скрол */
+  --rowH: 72px;
+  max-height: calc(var(--rowH) * 3 + 10px);
   overflow:auto; overscroll-behavior:contain;
   border:1px solid rgba(0,0,0,.08);
   border-radius:12px; background:rgba(255,255,255,.6);
@@ -96,13 +96,20 @@ header{
 .color{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
 .btn.panel{border:1px solid rgba(0,0,0,.1);color:#0b3954;background:linear-gradient(180deg,#ffffff,#f1f7ff);}
 
-/* Плаващо лого – бяло „ореолче“ отзад */
+/* === Плаващо лого – кръгъл „ореол“, без квадрат/рамки === */
 .logo-float{
   position:absolute; left:50%; top:0;
   transform:translate(-50%,-70%);
   display:inline-flex; align-items:center; justify-content:center;
-  z-index:5; pointer-events:auto;
+  z-index:5; pointer-events:auto; cursor:pointer;
+
+  /* зануляваме нативния button */
+  border:none; outline:none; background:transparent; padding:0;
+  -webkit-appearance:none; appearance:none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:none;
 }
+.logo-float:focus{outline:none; box-shadow:none}
 .logo-float::before{
   content:""; position:absolute; inset:-6px; border-radius:50%;
   background:radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(255,255,255,.55) 55%, transparent 70%);
@@ -110,7 +117,16 @@ header{
 }
 .logo-float img{
   height:64px; width:auto; display:block;
+  border-radius:50%;          /* изрязва евентуални ъгли в PNG-а */
+  background:transparent;
   filter:drop-shadow(0 10px 22px rgba(0,0,0,.35));
+}
+/* Индикация при активен режим „Следвай“ */
+.logo-float.following::before{
+  background: radial-gradient(circle, rgba(34,197,94,.95) 0%, rgba(34,197,94,.55) 55%, transparent 70%);
+}
+.logo-float.following img{
+  filter: drop-shadow(0 0 18px rgba(34,197,94,.45));
 }
 
 /* линии на маршрутите */
@@ -160,8 +176,9 @@ mark{background:transparent;color:var(--accent)}
   <button class="btn" id="btnToggleTray" title="Покажи/скрий панела">Маршрути</button>
   <button class="btn" id="btnFollow" title="Следвай ме (F)">Следвай</button>
 
-  <a class="brand" href="https://t-map.bg" target="_blank" rel="noopener" title="T-MAP">
-    <img src="./logo-header-40.png" alt="T-MAP">
+  <!-- Лого горе: връща към началната страница -->
+  <a class="brand" href="https://turizam123.github.io/uzunov/tmap_home.html" title="Начало (T-MAP)">
+    <img src="./logo-header-40.png" alt="T-MAP — начало">
   </a>
 
   <!-- Търсачка -->
@@ -176,9 +193,10 @@ mark{background:transparent;color:var(--accent)}
 <!-- Долен панел (светъл) -->
 <div id="tray">
   <div class="sheet">
-    <a class="logo-float" href="https://t-map.bg" target="_blank" rel="noopener" title="T-MAP">
-      <img src="./logo-header-40.png" alt="T-MAP">
-    </a>
+    <!-- Лого в панела: бутон „Следвай“ -->
+    <button id="logoFollowBtn" class="logo-float" type="button" title="Следвай (вкл/изкл)">
+      <img src="./logo-header-40.png" alt="Следвай позицията">
+    </button>
 
     <h3>
       <span>Заредени маршрути</span>
@@ -396,6 +414,7 @@ function computeBearing(a,b){
 function startFollow(){
   if(watchId) return;
   followActive = true; btnFollow.classList.add('primary'); btnFollow.textContent='Следвам…';
+  document.dispatchEvent(new CustomEvent('follow:state', { detail:{ on:true } })); /* NEW */
   if(!meMarker) meMarker = L.marker(map.getCenter(), { icon:createHeadingIcon(0), zIndexOffset:1000 }).addTo(map);
   try{
     watchId = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy:true, maximumAge:2000, timeout:15000 });
@@ -403,6 +422,7 @@ function startFollow(){
 }
 function stopFollow(){
   followActive = false; btnFollow.classList.remove('primary'); btnFollow.textContent='Следвай';
+  document.dispatchEvent(new CustomEvent('follow:state', { detail:{ on:false } })); /* NEW */
   if(watchId){ navigator.geolocation.clearWatch(watchId); watchId=null; }
 }
 function onPos(p){
@@ -419,7 +439,7 @@ function onPosErr(e){ toast('Геолокация: '+e.message); stopFollow(); }
 
 /* ===== Жестове – скриване на панела ===== */
 function enableSwipeDismiss(){
-  const GRAB_HEIGHT = 58;     // горна „дръжка“
+  const GRAB_HEIGHT = 58;
   const SWIPE = 90;
   const EDGE_LIMIT = 14;
 
@@ -471,6 +491,17 @@ function enableSwipeDismiss(){
   sheet.addEventListener('mousedown', e=>{ mouseDown=true; start(e.clientX,e.clientY); });
   window.addEventListener('mousemove', e=>{ if(mouseDown) move(e.clientX,e.clientY); });
   window.addEventListener('mouseup',   ()=>{ if(mouseDown){ mouseDown=false; end(); } });
+}
+
+/* === Лого-бутон „Следвай“: вързано към официалния бутон === */
+const logoBtn = document.getElementById('logoFollowBtn');
+if (logoBtn) {
+  logoBtn.addEventListener('click', ()=> document.getElementById('btnFollow').click());
+  document.addEventListener('follow:state', (e)=>{
+    const on = !!(e.detail && e.detail.on);
+    logoBtn.classList.toggle('following', on);
+    logoBtn.title = on ? 'Следвай: ВКЛ (тап за изключване)' : 'Следвай (тап за включване)';
+  });
 }
 
 /* Vendor loader (GPX/KML) */
