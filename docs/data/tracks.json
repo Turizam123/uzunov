@@ -8,12 +8,4 @@
       "color": "#00e5ff",
       "visible": true
     },
-    {
-      "id": "sofia-burgas",
-      "name": "София → Бургас (пример)",
-      "file": "sofia-burgas.geojson",
-      "color": "#ff9a5a",
-      "visible": false
-    }
-  ]
 }
