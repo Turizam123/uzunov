@@ -23,6 +23,14 @@
   "color": "#16a34a",
   "visible": true,
   "km": 26.07
+    },
+    {
+  "id": "zeleni-preslap-kabul",
+  "name": "Зелени преслап – вр.Кабул",
+  "file": "ZeleniPreslap-OtovishkiVrah.geojson",
+  "color": "#22c55e",
+  "km": 8.21,
+  "visible": true
     }
   ]
 }
