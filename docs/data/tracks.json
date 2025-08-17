@@ -45,6 +45,14 @@
       "file": "Musalenski-venets-1-1.geojson",
       "color": "#4a90e2",
       "visible": true
+    },
+     {
+      "id": "osogovo-traverse",
+      "name": "х.Осогово – вр. Руен",
+      "file": "route_osogovo_merged.geojson",
+      "color": "#2563eb",
+      "km": 13.37,
+      "visible": true
     }
   ]
 }
