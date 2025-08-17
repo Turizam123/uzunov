@@ -7,8 +7,15 @@
   <meta name="description" content="T-MAP – интерактивна туристическа карта на България с общ чат, добавяне на обекти и превю-слайдер." />
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- FAVICONS – твоето лого -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="favicon-512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#10b981">
+
   <style>
-    /* Фон и утилити */
     body{
       background:
         radial-gradient(900px 500px at 120% -10%, rgba(16,185,129,.10), rgba(255,255,255,0)) no-repeat,
@@ -19,7 +26,6 @@
     .reveal{ opacity:0; transform: translateY(16px); transition: opacity .7s ease, transform .7s ease; }
     .reveal.is-visible{ opacity:1; transform: translateY(0) }
 
-    /* Бутони */
     @keyframes gradientShift{ 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
     .btn-cta{
       border-radius: 15px; padding:.8rem 1rem; font-weight:700; color:#fff;
@@ -31,17 +37,15 @@
     .btn-ghost{ border-radius:14px; background:#fff; box-shadow:0 6px 16px rgba(0,0,0,.06); border:1px solid rgba(0,0,0,.05); transition:.15s ease; }
     .btn-ghost:hover{ transform:translateY(-2px); box-shadow:0 12px 18px rgba(0,0,0,.08) }
 
-    /* Планини */
     @keyframes drift{ 0%{transform:translateX(0)} 100%{transform:translateX(-50px)} }
     .mountain-layer{ transform: translateZ(0); }
     .mountain-layer[data-slow]{ animation:drift 30s ease-in-out infinite alternate; }
     .mountain-layer[data-fast]{ animation:drift 18s ease-in-out infinite alternate-reverse; }
 
-    /* Слайдер */
     .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none; } .no-scrollbar::-webkit-scrollbar{ display:none; }
     .card-overlay{ background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.65) 100%); }
 
-    /* Телефон – наклон вдясно, по-малък, „пернати“ крайща */
+    /* Телефон – наклон вдясно, по-малък */
     .phone-mask{
       -webkit-mask-image: radial-gradient(140% 140% at 50% 50%, #000 72%, rgba(0,0,0,0) 100%);
               mask-image: radial-gradient(140% 140% at 50% 50%, #000 72%, transparent 100%);
@@ -62,31 +66,22 @@
       .phone-wrap:hover{ transform: rotate(7deg) scale(1.01); transition: transform .35s ease; }
     }
   </style>
-
-  <!-- Favicon (инлайн) -->
-  <script>
-    (function(){
-      const href='https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo01082025-removebg-preview.png?1754135840';
-      function setIcon(rel,sizes){
-        let link=document.querySelector('link[rel="'+rel+'"]'+(sizes?('[sizes="'+sizes+'"]'):''));
-        if(!link){ link=document.createElement('link'); link.rel=rel; if(sizes) link.sizes=sizes; document.head.appendChild(link); }
-        link.href=href;
-      }
-      setIcon('icon','32x32'); setIcon('icon','16x16');
-      const apple=document.createElement('link'); apple.rel='apple-touch-icon'; apple.sizes='180x180'; apple.href=href; document.head.appendChild(apple);
-    })();
-  </script>
 </head>
 
 <body class="h-full text-gray-800 selection:bg-emerald-100/70">
   <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-white text-gray-900 px-3 py-2 rounded-md shadow">Към съдържанието</a>
 
-  <!-- Хедър: само лого + бургер (менюто е плътно) -->
+  <!-- Хедър: лого (твое) + бургер -->
   <header class="fixed inset-x-0 top-0 z-50 border-b border-black/5 bg-white md:bg-white/80 md:backdrop-blur">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex h-16 items-center justify-between">
         <a class="flex items-center gap-3" href="tmap.html" aria-label="T-MAP">
-          <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo01082025-removebg-preview.png?1754135840" alt="T-MAP" class="h-8 w-auto" loading="lazy" decoding="async"/>
+          <img
+            src="logo-header-40.png"
+            srcset="logo-header-40.png 1x, logo-header-64.png 2x"
+            alt="T-MAP"
+            class="h-8 w-auto"
+            loading="lazy" decoding="async"/>
           <span class="text-lg font-extrabold tracking-tight">T-MAP</span>
         </a>
         <button id="menuBtn" class="rounded-xl p-2 hover:bg-gray-100" aria-label="Меню" aria-expanded="false">
@@ -95,14 +90,12 @@
       </div>
     </div>
 
-    <!-- Странично меню -->
+    <!-- Странично меню (плътно) -->
     <div id="overlay" class="fixed inset-0 bg-black/40 hidden"></div>
     <aside id="mobileDrawer" class="fixed top-0 right-0 h-full w-80 max-w-[85%] translate-x-full transition-transform duration-300 ease-out bg-white shadow-2xl border-l border-black/5 overflow-y-auto">
       <div class="flex items-center justify-between px-4 py-3 border-b border-black/5 bg-white">
         <div class="flex items-center gap-2">
-          <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-600/10">
-            <svg class="h-4 w-4 text-emerald-700" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-7.2 8-13a8 8 0 10-16 0c0 5.8 8 13 8 13z" stroke="currentColor" stroke-width="1.5"/></svg>
-          </span>
+          <img src="logo-header-40.png" alt="" class="h-5 w-5" />
           <span class="font-semibold">Меню</span>
         </div>
         <button id="closeDrawer" class="rounded-lg p-2 hover:bg-gray-100" aria-label="Затвори меню">
@@ -128,13 +121,11 @@
   <main id="main" class="pt-24">
     <!-- HERO -->
     <section class="relative overflow-hidden">
-      <!-- декоративни орбити -->
       <div class="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl"></div>
       <div class="pointer-events-none absolute top-20 -left-12 h-72 w-72 rounded-full bg-sky-400/20 blur-3xl"></div>
 
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="grid gap-10 lg:grid-cols-2 items-center py-12 lg:py-20">
-          <!-- Ляво: заглавие два реда + CTA -->
           <div class="reveal">
             <h1 class="leading-none text-center lg:text-left">
               <span class="block text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900">
@@ -164,7 +155,7 @@
             </div>
           </div>
 
-          <!-- Дясно: снимка – малка, наклонена вдясно -->
+          <!-- Дясно: снимка – по-малка и наклонена -->
           <div class="reveal">
             <div class="relative max-w-[220px] sm:max-w-[260px] lg:max-w-[300px] mx-auto">
               <div class="absolute -inset-6 bg-gradient-to-br from-emerald-200/40 via-sky-200/35 to-emerald-100/40 blur-3xl rounded-[40px]"></div>
@@ -203,7 +194,7 @@
             <p class="mt-2 text-sm text-gray-600">Разглеждай забележителности, нови и стари маркирани обекти.</p>
           </a>
 
-          <a href="https://turizam123.github.io/uzunов/dashboard.html" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition" rel="noopener">
+          <a href="https://turizam123.github.io/uzunov/dashboard.html" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition" rel="noopener">
             <div class="flex items-center gap-3">
               <div class="h-10 w-10 rounded-xl bg-amber-500/10 grid place-content-center">
                 <svg class="h-5 w-5 text-amber-600 group-hover:animate-bounce" viewBox="0 0 24 24" fill="none">
@@ -219,7 +210,7 @@
             <div class="flex items-center gap-3">
               <div class="h-10 w-10 rounded-xl bg-sky-500/10 grid place-content-center">
                 <svg class="h-5 w-5 text-sky-600 group-hover:animate-pulse" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 5h16v10H8l-4 4V5з" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M4 5h16v10H8l-4 4V5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
               <h3 class="font-semibold">Общ чат</h3>
@@ -230,7 +221,7 @@
       </div>
     </section>
 
-    <!-- ПРЕВЮ-СЛАЙДЕР от Supabase -->
+    <!-- ПРЕВЮ-СЛАЙДЕР -->
     <section class="py-10 lg:py-14 reveal" id="tmap-photo-slider">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-4">
@@ -276,7 +267,7 @@
         </svg>
       </div>
 
-      <!-- плочка с политики (има долно отстояние на мобилни, за да не я покрива sticky bar) -->
+      <!-- плочка с политики (отстояние на мобилни, да не я покрива sticky bar) -->
       <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="glass rounded-3xl border border-black/5 bg-white/70 shadow-xl p-6 md:p-8 mb-24 md:mb-0 relative z-10">
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -328,10 +319,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
-    // текуща година
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // Drawer + заключване на фона
     const menuBtn = document.getElementById('menuBtn');
     const overlay = document.getElementById('overlay');
     const drawer = document.getElementById('mobileDrawer');
@@ -340,11 +329,9 @@
     function hideDrawer(){ drawer.classList.add('translate-x-full'); overlay.classList.add('hidden'); menuBtn.setAttribute('aria-expanded','false'); document.documentElement.classList.remove('overflow-hidden'); document.body.classList.remove('overflow-hidden'); }
     menuBtn?.addEventListener('click', openDrawer); overlay?.addEventListener('click', hideDrawer); closeDrawer?.addEventListener('click', hideDrawer); document.addEventListener('keydown', e=>{ if(e.key==='Escape') hideDrawer(); });
 
-    // Reveal on scroll
     const io = new IntersectionObserver((entries)=>entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('is-visible'); }), { threshold:.12 });
     document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
-    // Политики
     const policyOverlay=document.getElementById('policy-overlay'), policyModal=document.getElementById('policy-modal'), policyTitle=document.getElementById('policy-title'), policyContent=document.getElementById('policy-content');
     const policyClose=document.getElementById('policy-close'), policyOk=document.getElementById('policy-ok');
     const POLICY_TEXT={
@@ -395,7 +382,6 @@
     document.querySelectorAll('[data-open-policy]').forEach(btn=>btn.addEventListener('click', ()=>{ try{ hideDrawer(); }catch(_){} openPolicy(btn.getAttribute('data-open-policy')); }));
     policyOverlay.addEventListener('click', closePolicy); policyClose.addEventListener('click', closePolicy); policyOk.addEventListener('click', closePolicy);
 
-    /* -------- Слайдер от Supabase -------- */
     (async function initPhotoSlider(){
       const client = supabase.createClient(
         'https://cmiylzpmpwqbacjoqtkx.supabase.co',
