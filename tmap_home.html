@@ -4,10 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>T-MAP – Туристическа карта</title>
-  <meta name="description" content="T-MAP – интерактивна туристическа карта на България с общ чат, добавяне на обекти и превю-слайдер." />
+  <meta name="description" content="Игрива и анимирана начална страница на T-MAP – интерактивна туристическа карта на България. Планирай, споделяй и откривай!" />
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- FAVICONS — локални файлове от твоето лого -->
+  <!-- FAVICONS — твоите файлове -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
   <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
@@ -16,92 +16,98 @@
   <meta name="theme-color" content="#10b981">
 
   <style>
+    /* -------------------- Base -------------------- */
+    :root{ --brand1:#10b981; --brand2:#3b82f6; --brand3:#06b6d4; --ink:#0f172a }
+    html,body{ height:100% }
     body{
+      color:var(--ink);
       background:
-        radial-gradient(900px 500px at 120% -10%, rgba(16,185,129,.10), rgba(255,255,255,0)) no-repeat,
+        radial-gradient(1200px 600px at 120% -10%, rgba(16,185,129,.12), rgba(255,255,255,0)) no-repeat,
         radial-gradient(900px 500px at -10% 0%, rgba(59,130,246,.10), rgba(255,255,255,0)) no-repeat,
-        linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+        linear-gradient(180deg,#ffffff 0%,#f9fafb 100%);
     }
-    .glass{ backdrop-filter: saturate(180%) blur(10px); }
-    .reveal{ opacity:0; transform: translateY(16px); transition: opacity .7s ease, transform .7s ease; }
-    .reveal.is-visible{ opacity:1; transform: translateY(0) }
+    .glass{ backdrop-filter:saturate(180%) blur(10px) }
+    .reveal{ opacity:0; transform:translateY(18px); transition:opacity .7s ease, transform .7s ease }
+    .reveal.is-visible{ opacity:1; transform:translateY(0) }
 
-    @keyframes gradientShift{ 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+    /* -------------------- Buttons -------------------- */
+    @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
     .btn-cta{
-      border-radius: 15px; padding:.8rem 1rem; font-weight:700; color:#fff;
-      background: linear-gradient(120deg,#10b981,#3b82f6,#22c55e,#06b6d4);
-      background-size:220% 220%; animation: gradientShift 8s ease infinite;
-      box-shadow:0 10px 20px rgba(16,185,129,.25); transition:.15s ease;
+      border-radius:16px; padding:.85rem 1.1rem; font-weight:800; color:#fff;
+      background:linear-gradient(120deg,var(--brand1),var(--brand2),#22c55e,var(--brand3)); background-size:220% 220%;
+      animation:gradientShift 8s ease infinite;
+      box-shadow:0 10px 20px rgba(16,185,129,.25); transition:.15s ease; position:relative; overflow:hidden;
     }
     .btn-cta:hover{ transform:translateY(-2px); box-shadow:0 16px 28px rgba(16,185,129,.32) }
-    .btn-ghost{ border-radius:14px; background:#fff; box-shadow:0 6px 16px rgba(0,0,0,.06); border:1px solid rgba(0,0,0,.05); transition:.15s ease; }
+    .btn-ghost{ border-radius:14px; background:#fff; box-shadow:0 6px 16px rgba(0,0,0,.06); border:1px solid rgba(0,0,0,.05); transition:.15s ease }
     .btn-ghost:hover{ transform:translateY(-2px); box-shadow:0 12px 18px rgba(0,0,0,.08) }
 
-    @keyframes drift{ 0%{transform:translateX(0)} 100%{transform:translateX(-50px)} }
-    .mountain-layer{ transform: translateZ(0); }
-    .mountain-layer[data-slow]{ animation:drift 30s ease-in-out infinite alternate; }
-    .mountain-layer[data-fast]{ animation:drift 18s ease-in-out infinite alternate-reverse; }
-
-    .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none; } .no-scrollbar::-webkit-scrollbar{ display:none; }
-    .card-overlay{ background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.65) 100%); }
-
-    /* Телефон – наклон вдясно, по-малък */
+    /* -------------------- Hero phone -------------------- */
     .phone-mask{
       -webkit-mask-image: radial-gradient(140% 140% at 50% 50%, #000 72%, rgba(0,0,0,0) 100%);
               mask-image: radial-gradient(140% 140% at 50% 50%, #000 72%, transparent 100%);
-      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-      -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+      -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
     }
-    .phone-wrap{
-      transform: rotate(10deg);
-      filter: drop-shadow(0 20px 34px rgba(16,185,129,.18)) drop-shadow(0 8px 14px rgba(59,130,246,.10));
-    }
-    .phone-frame{
-      border-radius: 24px;
-      background: linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
-      border:1px solid rgba(0,0,0,.06);
-      padding:8px;
-    }
-    @media (prefers-reduced-motion: no-preference){
-      .phone-wrap:hover{ transform: rotate(7deg) scale(1.01); transition: transform .35s ease; }
-    }
+    .phone-wrap{ transform:rotate(10deg); will-change:transform;
+      filter:drop-shadow(0 20px 34px rgba(16,185,129,.18)) drop-shadow(0 8px 14px rgba(59,130,246,.10)) }
+    .phone-frame{ border-radius:24px; background:linear-gradient(180deg,#fff 0%,#f8fafc 100%); border:1px solid rgba(0,0,0,.06); padding:8px }
+    @media (prefers-reduced-motion:no-preference){ .phone-wrap:hover{ transform: rotate(7deg) scale(1.01); transition:transform .35s ease } }
+
+    /* -------------------- Mountains footer -------------------- */
+    @keyframes drift{0%{transform:translateX(0)}100%{transform:translateX(-50px)}}
+    .mountain-layer{ transform:translateZ(0) }
+    .mountain-layer[data-slow]{ animation:drift 30s ease-in-out infinite alternate }
+    .mountain-layer[data-fast]{ animation:drift 18s ease-in-out infinite alternate-reverse }
+
+    /* -------------------- Floating particles -------------------- */
+    #bg-canvas{ position:fixed; inset:0; z-index:-1; opacity:.35 }
+
+    /* -------------------- Command palette -------------------- */
+    .palette-enter{ opacity:0; transform:scale(.98); transition:.12s ease }
+    .palette-enter.show{ opacity:1; transform:scale(1) }
+
+    /* Tilt hover for cards */
+    .hover-tilt{ transform-style:preserve-3d; perspective:800px }
+    .hover-tilt > .tilt-item{ transition: transform .15s ease; transform: translateZ(0) }
   </style>
 </head>
+<body class="selection:bg-emerald-100/70">
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
-<body class="h-full text-gray-800 selection:bg-emerald-100/70">
   <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-white text-gray-900 px-3 py-2 rounded-md shadow">Към съдържанието</a>
 
-  <!-- Хедър: твоето лого по линк + бургер -->
+  <!-- Header -->
   <header class="fixed inset-x-0 top-0 z-50 border-b border-black/5 bg-white md:bg-white/80 md:backdrop-blur">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex h-16 items-center justify-between">
         <a class="flex items-center gap-3" href="tmap.html" aria-label="T-MAP">
-          <img
-            src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo01082025-removebg-preview.png?1754135840"
-            alt="T-MAP"
-            class="h-8 w-auto"
-            decoding="async"/>
+          <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo01082025-removebg-preview.png?1754135840" alt="T-MAP" class="h-8 w-auto" decoding="async"/>
           <span class="text-lg font-extrabold tracking-tight">T-MAP</span>
         </a>
-        <button id="menuBtn" class="rounded-xl p-2 hover:bg-gray-100" aria-label="Меню" aria-expanded="false">
-          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </button>
+        <div class="flex items-center gap-1">
+          <button id="openPalette" class="hidden sm:inline-flex rounded-xl p-2 hover:bg-gray-100" title="Търси / Ctrl/Cmd+K" aria-label="Търси">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+          <button id="menuBtn" class="rounded-xl p-2 hover:bg-gray-100" aria-label="Меню" aria-expanded="false">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Странично меню (плътно) -->
+    <!-- Drawer -->
     <div id="overlay" class="fixed inset-0 bg-black/40 hidden"></div>
     <aside id="mobileDrawer" class="fixed top-0 right-0 h-full w-80 max-w-[85%] translate-x-full transition-transform duration-300 ease-out bg-white shadow-2xl border-l border-black/5 overflow-y-auto">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-black/5 bg-white">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-black/5">
         <div class="flex items-center gap-2">
-          <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo01082025-removebg-preview.png?1754135840" alt="" class="h-5 w-5" />
+          <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo01082025-removebg-preview.png?1754135840" class="h-5 w-5" alt="">
           <span class="font-semibold">Меню</span>
         </div>
         <button id="closeDrawer" class="rounded-lg p-2 hover:bg-gray-100" aria-label="Затвори меню">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </button>
       </div>
-      <nav class="px-3 py-4 space-y-1 bg-white">
+      <nav class="px-3 py-4 space-y-1">
         <a href="tmap.html" class="block rounded-xl px-3 py-3 hover:bg-gray-50">Карта</a>
         <a href="https://turizam123.github.io/uzunov/dashboard.html" class="block rounded-xl px-3 py-3 hover:bg-gray-50" rel="noopener">Моето табло</a>
         <div class="pt-2">
@@ -126,135 +132,129 @@
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="grid gap-10 lg:grid-cols-2 items-center py-12 lg:py-20">
           <div class="reveal">
-            <h1 class="leading-none text-center lg:text-left">
+            <p id="greet" class="text-sm font-semibold tracking-wide text-emerald-700"></p>
+            <h1 class="mt-1 leading-none">
               <span class="block text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900">
-                Открий България с
+                <span id="typewriter"></span>
               </span>
-              <span class="block mt-1 text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight
-                           bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 via-sky-600 to-emerald-500">
+              <span class="block mt-2 text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 via-sky-600 to-emerald-500">
                 T-MAP
               </span>
             </h1>
 
-            <p class="mt-5 text-lg text-gray-700 text-center lg:text-left">
-              Интерактивна туристическа карта. Добавяш локации, общуваш в чат, а скоро – и офлайн тракинг (PWA).
+            <p class="mt-5 text-lg text-gray-700">
+              Интерактивна туристическа карта. Добавяш локации, общуваш в чат, а скоро – офлайн тракинг (PWA).
             </p>
 
-            <div class="mt-7 flex flex-wrap gap-3 justify-center lg:justify-start">
+            <div class="mt-7 flex flex-wrap gap-3">
               <a href="tmap.html" class="btn-cta text-sm px-5 py-3">Виж картата</a>
               <a href="https://turizam123.github.io/uzunov/docs/bgx_multi.html" class="btn-ghost text-sm px-5 py-3" rel="noopener">Трекинг маршрути</a>
               <a href="https://turizam123.github.io/uzunov/dashboard.html" class="btn-ghost text-sm px-5 py-3" rel="noopener">Добави обект</a>
+              <button id="installBtnTop" class="btn-ghost text-sm px-5 py-3 hidden">Инсталирай приложението</button>
             </div>
 
-            <div class="mt-6 flex items-center gap-3 text-sm text-gray-600 justify-center lg:justify-start">
-              <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10">
-                <svg class="h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <!-- Badges -->
+            <div class="mt-6 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+              <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-black/5">
+                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Нови обекти всеки ден
               </span>
-              Без регистрация • Публичен достъп • Лек интерфейс
+              <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-black/5">
+                <svg class="h-4 w-4 text-sky-600" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H8l-4 4V5z" stroke="currentColor" stroke-width="1.5"/></svg> Общ чат в реално време
+              </span>
+              <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-black/5">
+                <svg class="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M5 7h14M5 17h7" stroke="currentColor" stroke-width="1.5"/></svg> Лек интерфейс
+              </span>
             </div>
           </div>
 
-          <!-- Дясно: снимка – по-малка и наклонена -->
+          <!-- Right: tilted phone -->
           <div class="reveal">
-            <div class="relative max-w-[220px] sm:max-w-[260px] lg:max-w-[300px] mx-auto">
+            <div class="relative max-w-[220px] sm:max-w-[260px] lg:max-w-[300px] mx-auto hover-tilt" id="phoneTilt">
               <div class="absolute -inset-6 bg-gradient-to-br from-emerald-200/40 via-sky-200/35 to-emerald-100/40 blur-3xl rounded-[40px]"></div>
-              <div class="relative phone-wrap">
+              <div class="relative phone-wrap tilt-item">
                 <div class="phone-frame">
-                  <img
-                    src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/529016311-1278612336749748-5228008378896628298-n_orig.jpg"
-                    alt="T-MAP на телефон – маршрути, карта и плаващо меню"
-                    class="w-full h-auto rounded-[20px] object-cover phone-mask"
-                    loading="lazy" decoding="async"/>
+                  <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/529016311-1278612336749748-5228008378896628298-n_orig.jpg"
+                       alt="T-MAP на телефон – маршрути и карта"
+                       class="w-full h-auto rounded-[20px] object-cover phone-mask"
+                       loading="lazy" decoding="async"/>
                 </div>
-                <div class="pointer-events-none absolute inset-0 rounded-[24px]">
-                  <div class="absolute -top-8 -right-10 h-24 w-36 bg-white/30 blur-2xl rounded-full"></div>
-                </div>
+                <div class="pointer-events-none absolute inset-0 rounded-[24px]"><div class="absolute -top-8 -right-10 h-24 w-36 bg-white/30 blur-2xl rounded-full"></div></div>
               </div>
             </div>
           </div>
-          <!-- /дясно -->
+        </div>
+
+        <!-- Quick gimmick cards -->
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 reveal">
+          <a href="tmap.html" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition hover-tilt">
+            <div class="tilt-item">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-emerald-600/10 grid place-content-center">
+                  <svg class="h-5 w-5 text-emerald-700 group-hover:animate-pulse" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-7.2 8-13a8 8 0 10-16 0c0 5.8 8 13 8 13z" stroke="currentColor" stroke-width="1.5"/></svg>
+                </div>
+                <h3 class="font-semibold">Отвори T-MAP</h3>
+              </div>
+              <p class="mt-2 text-sm text-gray-600">Забележителности, върхове, водопади и още.</p>
+            </div>
+          </a>
+          <a href="https://turizam123.github.io/uzunov/dashboard.html" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition hover-tilt" rel="noopener">
+            <div class="tilt-item">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-amber-500/10 grid place-content-center">
+                  <svg class="h-5 w-5 text-amber-600 group-hover:animate-bounce" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M5 7h14M5 17h7" stroke="currentColor" stroke-width="1.5"/></svg>
+                </div>
+                <h3 class="font-semibold">Добави обект</h3>
+              </div>
+              <p class="mt-2 text-sm text-gray-600">Сподели любимо място – ние ще го одобрим.</p>
+            </div>
+          </a>
+          <button id="openInstall" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition text-left hover-tilt">
+            <div class="tilt-item">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-sky-500/10 grid place-content-center">
+                  <svg class="h-5 w-5 text-sky-600" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </div>
+                <h3 class="font-semibold">Инсталирай като приложение</h3>
+              </div>
+              <p class="mt-2 text-sm text-gray-600">Работи бързо, има офлайн кеш и икона на началния екран.</p>
+            </div>
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- БЪРЗИ ДЕЙСТВИЯ -->
-    <section class="py-10 lg:py-14 reveal">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <a href="tmap.html" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-xl bg-emerald-600/10 grid place-content-center">
-                <svg class="h-5 w-5 text-emerald-700 group-hover:animate-pulse" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 22s8-7.2 8-13a8 8 0 10-16 0c0 5.8 8 13 8 13z" stroke="currentColor" stroke-width="1.5"/>
-                </svg>
-              </div>
-              <h3 class="font-semibold">Отвори T-MAP</h3>
-            </div>
-            <p class="mt-2 text-sm text-gray-600">Разглеждай забележителности, нови и стари маркирани обекти.</p>
-          </a>
-
-          <a href="https://turizam123.github.io/uzunov/dashboard.html" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition" rel="noopener">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-xl bg-amber-500/10 grid place-content-center">
-                <svg class="h-5 w-5 text-amber-600 group-hover:animate-bounce" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 12h14M5 7h14M5 17h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <h3 class="font-semibold">Добави обект</h3>
-            </div>
-            <p class="mt-2 text-sm text-gray-600">Попълни форма, изчакай одобрение от админ и обектът влиза в картата.</p>
-          </a>
-
-          <a href="https://turizam123.github.io/uzunov/tmap_chat.html" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-xl bg-sky-500/10 grid place-content-center">
-                <svg class="h-5 w-5 text-sky-600 group-hover:animate-pulse" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 5h16v10H8л-4 4V5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <h3 class="font-semibold">Общ чат</h3>
-            </div>
-            <p class="mt-2 text-sm text-gray-600">Реално време, аватари и кратко съхранение на съобщенията.</p>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- ПРЕВЮ-СЛАЙДЕР -->
-    <section class="py-10 lg:py-14 reveal" id="tmap-photo-slider">
+    <!-- Слайдер със снимки от картата -->
+    <section class="py-12 lg:py-16 reveal" id="tmap-photo-slider">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-4">
           <div>
             <h2 class="text-2xl lg:text-3xl font-extrabold">Снимки от T-MAP</h2>
-            <p class="text-gray-600">Подбрани обекти от картата – плъзни надясно/наляво.</p>
+            <p class="text-gray-600">Плъзни – и се вдъхнови за следващата дестинация.</p>
           </div>
           <div class="hidden md:flex items-center gap-2">
             <button type="button" id="pv-prev" class="rounded-xl border border-black/10 bg-white px-3 py-2 shadow-sm hover:shadow-md">←</button>
             <button type="button" id="pv-next" class="rounded-xl border border-black/10 bg-white px-3 py-2 shadow-sm hover:shadow-md">→</button>
           </div>
         </div>
-
         <div class="relative">
           <div class="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-white to-transparent rounded-l-2xl"></div>
           <div class="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-white to-transparent rounded-r-2xl"></div>
-
           <div id="pv-track" class="no-scrollbar snap-x snap-mandatory overflow-x-auto scroll-smooth flex gap-4 pb-2">
+            <!-- скелетони -->
             <div class="shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 animate-pulse"></div>
             <div class="shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 animate-pulse"></div>
             <div class="shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 animate-pulse"></div>
           </div>
         </div>
-
         <div class="mt-4 flex justify-end">
           <a href="tmap.html" class="btn-ghost px-4 py-2 text-sm font-semibold">Виж всички в картата</a>
         </div>
       </div>
     </section>
 
-    <!-- Долен сегмент -->
+    <!-- Долен сегмент с планини -->
     <section class="relative mt-10">
-      <!-- Планини отзад -->
-      <div class="absolute inset-x-0 bottom-0 h-[260px] overflow-hidden pointer-events-none -з-10">
+      <div class="absolute inset-x-0 bottom-0 h-[260px] overflow-hidden pointer-events-none -z-10">
         <svg class="absolute bottom-0 w-[200%] h-[180px] mountain-layer" data-slow viewBox="0 0 1440 320" preserveAspectRatio="none">
           <path fill="#e8f7f0" d="M0,192L48,202.7C96,213,192,235,288,240C384,245,480,235,576,208C672,181,768,139,864,138.7C960,139,1056,181,1152,197.3C1248,213,1344,203,1392,197.3L1440,192L1440,320L0,320Z"></path>
         </svg>
@@ -266,7 +266,6 @@
         </svg>
       </div>
 
-      <!-- плочка с политики -->
       <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="glass rounded-3xl border border-black/5 bg-white/70 shadow-xl p-6 md:p-8 mb-24 md:mb-0 relative z-10">
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -278,9 +277,8 @@
               <button type="button" data-open-policy="chat_rules" class="hover:underline">Правила на чата</button>
               <span class="hidden sm:inline-block h-5 w-px bg-gray-300"></span>
               <a href="https://turistibg.weebly.com" target="_blank" rel="noopener" class="hover:underline">Основен сайт</a>
-              <a href="https://www.facebook.com/turizamworld?locale=bg_BG" target="_blank" rel="noopener" aria-label="Facebook страница" class="inline-flex items-center gap-1 hover:underline">
+              <a href="https://www.facebook.com/turizamworld?locale=bg_BG" target="_blank" rel="noopener" aria-label="Facebook" class="inline-flex items-center gap-1 hover:underline">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.53 17.52 2 12 2S2 6.53 2 12.06c0 4.99 3.66 9.13 8.44 9.94v-7.03H7.9v-2.9h2.54V9.41c0-2.5 1.49-3.88 3.77-3.88 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.81 8.44-4.95 8.44-9.94z"/></svg>
-                <span class="sr-only">Facebook</span>
               </a>
             </nav>
           </div>
@@ -299,7 +297,44 @@
     </div>
   </div>
 
-  <!-- Модал: Политики -->
+  <!-- Command palette -->
+  <div id="paletteOverlay" class="fixed inset-0 bg-black/50 hidden z-[60]"></div>
+  <section id="palette" class="palette-enter hidden fixed inset-x-4 top-10 md:inset-x-auto md:right-6 md:left-auto max-w-2xl md:w-[640px] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 z-[61]">
+    <div class="border-b border-gray-200 px-4 py-3 flex items-center gap-2">
+      <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input id="paletteInput" class="w-full outline-none" placeholder="Търси: Карта, Чат, Добави, Правила…" />
+      <kbd class="hidden md:inline text-xs text-gray-500">Esc</kbd>
+    </div>
+    <ul id="paletteList" class="max-h-[60vh] overflow-y-auto p-2">
+      <li class="px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer" data-href="tmap.html">🔎 Отвори картата</li>
+      <li class="px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer" data-href="https://turizam123.github.io/uzunov/tmap_chat.html">💬 Общ чат</li>
+      <li class="px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer" data-href="https://turizam123.github.io/uzunov/dashboard.html">➕ Добави обект</li>
+      <li class="px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer" data-policy="chat_rules">📜 Правила на чата</li>
+    </ul>
+  </section>
+
+  <!-- Bottom-sheet Install -->
+  <div id="installSheet" class="hidden fixed inset-x-0 bottom-0 z-[55]">
+    <div class="mx-auto max-w-2xl px-4 pb-4">
+      <div class="glass bg-white/90 border border-black/5 shadow-2xl rounded-2xl p-4">
+        <div class="flex items-start gap-3">
+          <div class="h-10 w-10 rounded-xl bg-emerald-600/10 grid place-content-center">
+            <svg class="h-6 w-6 text-emerald-600" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4 4-4M4 21h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-semibold">Инсталирай T-MAP</h3>
+            <p class="text-sm text-gray-600">По-бърз достъп и офлайн кеш. Ще добавим и икона на началния екран.</p>
+            <div class="mt-3 flex gap-2">
+              <button id="installNow" class="btn-cta px-4 py-2 text-sm">Инсталирай</button>
+              <button id="installClose" class="btn-ghost px-4 py-2 text-sm">По-късно</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy modal -->
   <div id="policy-overlay" class="fixed inset-0 bg-black/50 hidden z-50"></div>
   <section id="policy-modal" class="fixed inset-x-4 top-10 md:inset-x-auto md:right-6 md:left-auto z-50 hidden max-w-2xl md:w-[640px] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden">
     <header class="flex items-center justify-between px-5 py-3 border-b border-gray-200">
@@ -314,28 +349,51 @@
     </footer>
   </section>
 
-  <!-- Supabase JS -->
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
+    // ---------- Helpers ----------
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => [...document.querySelectorAll(sel)];
+    $('#year').textContent = new Date().getFullYear();
+
+    // Greeting
+    (function greet(){
+      const h = new Date().getHours();
+      const t = h<11 ? 'Добро утро!' : h<18 ? 'Хей, приятно следобено приключение!' : 'Вечерна разходка?';
+      const el = document.getElementById('greet'); el.textContent = t;
+    })();
+
+    // Typewriter
+    (function typewriter(){
+      const messages = ['Открий България с', 'Планирай. Споделяй. Откривай с', 'Готов ли си за следващия връх с'];
+      let i=0, j=0, dir=1, hold=0;
+      const el = document.getElementById('typewriter');
+      function tick(){
+        const m = messages[i];
+        j += dir;
+        el.textContent = m.slice(0, j) + (j<m.length ? '|' : '');
+        if (j===m.length){ hold++; if(hold>10){ dir=-1; hold=0; } }
+        if (j===0 && dir===-1){ dir=1; i=(i+1)%messages.length; }
+        requestAnimationFrame(tick);
+      }
+      tick();
+    })();
+
+    // Reveal on view
+    const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('is-visible'); }),{threshold:.12});
+    $$('.reveal').forEach(el=>io.observe(el));
 
     // Drawer
-    const menuBtn = document.getElementById('menuBtn');
-    const overlay = document.getElementById('overlay');
-    const drawer = document.getElementById('mobileDrawer');
-    const closeDrawer = document.getElementById('closeDrawer');
+    const menuBtn = $('#menuBtn'), overlay = $('#overlay'), drawer = $('#mobileDrawer'), closeDrawer = $('#closeDrawer');
     function openDrawer(){ overlay.classList.remove('hidden'); requestAnimationFrame(()=>drawer.classList.remove('translate-x-full')); menuBtn.setAttribute('aria-expanded','true'); document.documentElement.classList.add('overflow-hidden'); document.body.classList.add('overflow-hidden'); }
     function hideDrawer(){ drawer.classList.add('translate-x-full'); overlay.classList.add('hidden'); menuBtn.setAttribute('aria-expanded','false'); document.documentElement.classList.remove('overflow-hidden'); document.body.classList.remove('overflow-hidden'); }
-    menuBtn?.addEventListener('click', openDrawer); overlay?.addEventListener('click', hideDrawer); closeDrawer?.addEventListener('click', hideDrawer); document.addEventListener('keydown', e=>{ if(e.key==='Escape') hideDrawer(); });
+    menuBtn.addEventListener('click', openDrawer); overlay.addEventListener('click', hideDrawer); closeDrawer.addEventListener('click', hideDrawer); document.addEventListener('keydown', e=>{ if(e.key==='Escape') hideDrawer(); });
 
-    // Reveal
-    const io = new IntersectionObserver((entries)=>entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('is-visible'); }), { threshold:.12 });
-    document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
-
-    // Политики
-    const policyOverlay=document.getElementById('policy-overlay'), policyModal=document.getElementById('policy-modal'), policyTitle=document.getElementById('policy-title'), policyContent=document.getElementById('policy-content');
-    const policyClose=document.getElementById('policy-close'), policyOk=document.getElementById('policy-ok');
+    // Policy modal content
+    const policyOverlay=$('#policy-overlay'), policyModal=$('#policy-modal'), policyTitle=$('#policy-title'), policyContent=$('#policy-content');
+    const policyClose=$('#policy-close'), policyOk=$('#policy-ok');
     const POLICY_TEXT={
       privacy:{title:'Политика за поверителност',html:`<p>Ние уважаваме личните данни на посетителите. Събираме минимална информация, необходима за работата на платформата T-MAP, като например технически логове (IP, user-agent) за сигурност и диагностика.</p>
           <p>Данни, които доброволно ни предоставяте (напр. заглавие/описание на обект, координати) се използват само за показване на картата и модериране. Не продаваме и не споделяме данни с трети страни извън необходимите доставчици (напр. хостинг/Supabase) съгласно техните политики.</p><p>Можете да поискате преглед/изтриване на свои данни чрез контакт на администраторa.</p>`},
@@ -381,16 +439,95 @@
     };
     function openPolicy(key){ const p=POLICY_TEXT[key]; if(!p) return; policyTitle.textContent=p.title; policyContent.innerHTML=p.html; policyOverlay.classList.remove('hidden'); policyModal.classList.remove('hidden'); }
     function closePolicy(){ policyOverlay.classList.add('hidden'); policyModal.classList.add('hidden'); }
-    document.querySelectorAll('[data-open-policy]').forEach(btn=>btn.addEventListener('click', ()=>{ try{ hideDrawer(); }catch(_){} openPolicy(btn.getAttribute('data-open-policy')); }));
+    $$('[data-open-policy]').forEach(btn=>btn.addEventListener('click', ()=>{ try{ hideDrawer(); }catch(_){} openPolicy(btn.getAttribute('data-open-policy')); }));
     policyOverlay.addEventListener('click', closePolicy); policyClose.addEventListener('click', closePolicy); policyOk.addEventListener('click', closePolicy);
 
-    // Слайдер (Supabase)
+    // Command palette
+    const palO = $('#paletteOverlay'), pal = $('#palette'), palInput = $('#paletteInput'), palList = $('#paletteList'), palBtn = $('#openPalette');
+    function openPal(){ palO.classList.remove('hidden'); pal.classList.remove('hidden'); requestAnimationFrame(()=>pal.classList.add('show')); palInput.focus(); }
+    function closePal(){ pal.classList.remove('show'); palO.classList.add('hidden'); pal.classList.add('hidden'); }
+    palBtn.addEventListener('click', openPal);
+    palO.addEventListener('click', closePal);
+    document.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openPal(); } if(e.key==='Escape'){ closePal(); } });
+    palInput.addEventListener('input', ()=>{ const q=palInput.value.toLowerCase(); $$('#paletteList li').forEach(li=>{ li.style.display = li.textContent.toLowerCase().includes(q)?'block':'none'; }); });
+    $$('#paletteList li').forEach(li=>li.addEventListener('click', ()=>{ if(li.dataset.href) location.href=li.dataset.href; if(li.dataset.policy) openPolicy(li.dataset.policy); closePal(); }));
+
+    // 3D tilt for cards & phone
+    function attachTilt(root){
+      const item=root.querySelector('.tilt-item'); if(!item) return;
+      function move(e){
+        const r=root.getBoundingClientRect();
+        const x=(e.clientX - r.left)/r.width, y=(e.clientY - r.top)/r.height;
+        const rx=(.5-y)*10, ry=(x-.5)*12;
+        item.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) translateZ(10px)`;
+      }
+      function leave(){ item.style.transform='rotateX(0) rotateY(0) translateZ(0)' }
+      root.addEventListener('pointermove', move); root.addEventListener('pointerleave', leave);
+    }
+    attachTilt(document.getElementById('phoneTilt'));
+    $$('.hover-tilt').forEach(attachTilt);
+
+    // Floating particles canvas (disabled if reduced motion)
+    (function particles(){
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const c = document.getElementById('bg-canvas'); const ctx = c.getContext('2d',{alpha:true});
+      let w= c.width = innerWidth, h = c.height = innerHeight;
+      const dots = Array.from({length: 70}, ()=>({x: Math.random()*w, y: Math.random()*h, r: Math.random()*2+0.4, vx:(Math.random()-.5)*.25, vy:(Math.random()-.5)*.25}));
+      function draw(){
+        ctx.clearRect(0,0,w,h);
+        for(const d of dots){
+          d.x+=d.vx; d.y+=d.vy;
+          if(d.x<0||d.x>w) d.vx*=-1; if(d.y<0||d.y>h) d.vy*=-1;
+          ctx.beginPath(); ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
+          ctx.fillStyle='rgba(16,185,129,.55)'; ctx.fill();
+        }
+        requestAnimationFrame(draw);
+      }
+      draw();
+      addEventListener('resize', ()=>{ w=c.width=innerWidth; h=c.height=innerHeight; });
+    })();
+
+    // PWA install prompt
+    let deferredPrompt=null;
+    const sheet = $('#installSheet'), installTop = $('#installBtnTop'), openInstall = $('#openInstall');
+    window.addEventListener('beforeinstallprompt', (e)=>{
+      e.preventDefault(); deferredPrompt = e;
+      sheet.classList.remove('hidden'); installTop.classList.remove('hidden');
+    });
+    $('#installNow').addEventListener('click', async ()=>{
+      if(!deferredPrompt){ sheet.classList.add('hidden'); return }
+      deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; sheet.classList.add('hidden');
+      if(outcome==='accepted'){ confetti() }
+      deferredPrompt=null;
+    });
+    $('#installClose').addEventListener('click', ()=>sheet.classList.add('hidden'));
+    openInstall.addEventListener('click', ()=> sheet.classList.remove('hidden'));
+
+    // Minimal confetti
+    function confetti(){
+      const el=document.createElement('div'); el.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:70';
+      document.body.appendChild(el);
+      const colors=['#10b981','#3b82f6','#22c55e','#06b6d4','#f59e0b'];
+      const N=120;
+      for(let i=0;i<N;i++){
+        const s=document.createElement('i');
+        const size=Math.random()*8+4;
+        s.style.cssText=`position:absolute;left:${Math.random()*100}%;top:-10px;width:${size}px;height:${size}px;background:${colors[i%colors.length]};transform:rotate(${Math.random()*360}deg);opacity:.9;border-radius:1px`;
+        el.appendChild(s);
+        const endY=innerHeight+40;
+        s.animate([{ transform:`translateY(0) rotate(0)` },{ transform:`translateY(${endY}px) rotate(${Math.random()*720}deg)` }], { duration: 1200+Math.random()*900, easing:'cubic-bezier(.2,.6,.2,1)', fill:'forwards' })
+          .onfinish = ()=> s.remove();
+      }
+      setTimeout(()=>el.remove(), 2500);
+    }
+
+    // Photo slider from Supabase
     (async function initPhotoSlider(){
       const client = supabase.createClient(
         'https://cmiylzpmpwqbacjoqtkx.supabase.co',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8'
       );
-      const track=document.getElementById('pv-track'), btnPrev=document.getElementById('pv-prev'), btnNext=document.getElementById('pv-next');
+      const track=$('#pv-track'), btnPrev=$('#pv-prev'), btnNext=$('#pv-next');
 
       let rows=[]; try{
         const { data, error } = await client
@@ -403,7 +540,7 @@
       }catch(e){ console.warn('slider fetch error:', e); rows=[]; }
 
       if(rows.length===0){
-        track.innerHTML=`<div class="shrink-0 w-full md:w-auto grow rounded-2xl border border-dashed border-emerald-400/60 bg-emerald-50 p-6 text-emerald-700">Няма налични снимки. <a href="https://turizam123.github.io/uzunov/dashboard.html" class="underline font-semibold" rel="noopener">Добави първия си обект</a>.</div>`;
+        track.innerHTML=`<div class="shrink-0 w-full md:w-auto grow rounded-2xl border border-dashed border-emerald-400/60 bg-emerald-50 p-6 text-emerald-700">Няма снимки. <a href="https://turizam123.github.io/uzunov/dashboard.html" class="underline font-semibold" rel="noopener">Добави първия си обект</a>.</div>`;
         return;
       }
 
@@ -412,9 +549,10 @@
         const created=new Date(r.created_at);
         const fresh=(Date.now()-created.getTime())/(1000*60*60*24)<=7;
         const title=(r.title||'Обект').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        return `<a href="${url}" class="group relative shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 snap-start">
-          <img src="${r.image_url}" alt="${title}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" loading="lazy" decoding="async"/>
-          <div class="absolute inset-0 card-overlay"></div>
+        return `<a href="${url}" class="group relative shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 snap-start hover-tilt">
+          <img src="${r.image_url}" alt="${title}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" loading="lazy" decoding="async"/>
+          <div class="absolute inset-0 tilt-item"></div>
+          <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.65) 100%)"></div>
           <div class="absolute bottom-0 left-0 right-0 p-4 text-white">
             <div class="flex items-center gap-2">
               <h3 class="line-clamp-1 font-semibold text-base">${title}</h3>
@@ -424,14 +562,15 @@
           </div>
         </a>`;
       }).join('');
+      $$('#pv-track .hover-tilt').forEach(attachTilt);
 
       const getStep=()=>{ const card=track.querySelector('a'); if(!card) return 320; const gap=parseInt(getComputedStyle(track).gap||'16',10); return card.getBoundingClientRect().width+gap; };
       btnPrev?.addEventListener('click',()=>track.scrollBy({left:-getStep(),behavior:'smooth'}));
       btnNext?.addEventListener('click',()=>track.scrollBy({left:getStep(),behavior:'smooth'}));
 
-      let autoplay=null;
-      function start(){ if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; stop(); autoplay=setInterval(()=>{ const max=track.scrollWidth-track.clientWidth-4; const step=getStep(); if(track.scrollLeft+step>=max){ track.scrollTo({left:0,behavior:'smooth'}); } else { track.scrollBy({left:step,behavior:'smooth'}); } }, 4000); }
-      function stop(){ if(autoplay){ clearInterval(autoplay); autoplay=null; } }
+      let auto=null;
+      function start(){ if(matchMedia('(prefers-reduced-motion: reduce)').matches) return; stop(); auto=setInterval(()=>{ const max=track.scrollWidth-track.clientWidth-4; const step=getStep(); if(track.scrollLeft+step>=max){ track.scrollTo({left:0,behavior:'smooth'}); } else { track.scrollBy({left:step,behavior:'smooth'}); } }, 4200); }
+      function stop(){ if(auto){ clearInterval(auto); auto=null; } }
       track.addEventListener('mouseenter', stop); track.addEventListener('mouseleave', start);
       track.addEventListener('touchstart', stop, {passive:true}); track.addEventListener('touchend', start, {passive:true}); start();
     })();
