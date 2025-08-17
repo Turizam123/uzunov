@@ -38,6 +38,13 @@
       "file": "sedemte-ezera-haramiyata.geojson",
       "color": "#f97316",
       "visible": true
+    },
+     {
+      "id": "musalenski-venets",
+      "name": "Мусаленски венец (вр. Мусала ↔ х. Ястребец)",
+      "file": "Musalenski-venets-1-1.geojson",
+      "color": "#4a90e2",
+      "visible": true
     }
   ]
 }
