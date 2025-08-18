@@ -53,6 +53,14 @@
       "color": "#2563eb",
       "km": 13.37,
       "visible": true
+    },
+    {
+      "id": "tmap_track_3",
+      "name": "Х.Тръщеник Белмекен Юндола",
+      "file": "tmap_track_3.geojson",
+      "color": "#2563eb",
+      "km": 49.764,
+      "visible": true
     }
   ]
 }
