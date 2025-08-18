@@ -47,20 +47,20 @@
       "visible": true
     },
      {
-      "id": "osogovo-traverse",
+      "id": "tmap_track_3",
+      "name": "х.Тръщеник - яз.Белмекен - с.Юндола (колело)",
+      "file": "tmap_track_3.geojson",
+      "color": "#2563eb",
+      "km": 50,
+      "visible": true
+    },
+    {
+     "id": "osogovo-traverse",
       "name": "х.Осогово – вр.Руен",
       "file": "route_osogovo_merged.geojson",
       "color": "#2563eb",
       "km": 13.37,
-      "visible": true
-    },
-    {
-      "id": "tmap_track_3",
-      "name": "х.Тръщеник - Белмекен - Юндола (колело)",
-      "file": "tmap_track_3.geojson",
-      "color": "#2563eb",
-      "km": 49.764,
-      "visible": true
+      "visible": true 
     }
   ]
 }
