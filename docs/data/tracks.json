@@ -61,6 +61,14 @@
       "color": "#2563eb",
       "km": 13.37,
       "visible": true 
-    }
-  ]
+    },
+    {
+    "id": "route_granchar_suha_vapa",
+    "name": "х.Грънчар - вр. Суа вапа",
+    "file": "tmap_track_vapa.geojson",
+    "color": "#2563eb",
+    "km": 9,
+    "visible": true
+   }
+ ]
 }
