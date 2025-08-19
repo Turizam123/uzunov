@@ -1,4 +1,4 @@
-<html <html lang="bg">
+<html lang="bg">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -91,6 +91,66 @@
       border:1px solid rgba(0,0,0,.15); box-shadow:0 2px 8px rgba(0,0,0,.25);
       user-select:none; pointer-events:none;
     }
+
+  
+    /* === Weather card (popup) === */
+    .wx-card { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; font-size: 14px; line-height: 1.35; background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 10px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); margin-top: 10px; }
+    .wx-header { font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .wx-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 2px 0; }
+    .wx-row span { opacity: .7; }
+    .wx-time { margin-top: 6px; font-size: 12px; opacity: .7; }
+    .wx-error { color: #b42318; font-weight: 600; }
+    .wx-loading { opacity: .7; }
+
+  
+    /* === Scrollable Leaflet popup === */
+    .leaflet-popup-content {
+      max-height: 55vh;         /* мобилни устройства */
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-right: 8px;       /* място за скролбара */
+      word-break: break-word;   /* дълги линкове/думи да не чупят layout-а */
+      scrollbar-gutter: stable;
+    }
+    @media (min-width: 768px) {
+      .leaflet-popup-content { max-height: 48vh; }
+    }
+    @media (min-width: 1024px) {
+      .leaflet-popup-content { max-height: 420px; }
+    }
+    /* по-деликатен скролбар (поддържан в WebKit) */
+    .leaflet-popup-content::-webkit-scrollbar { width: 8px; }
+    .leaflet-popup-content::-webkit-scrollbar-thumb { background: rgba(0,0,0,.28); border-radius: 8px; }
+    .leaflet-popup-content::-webkit-scrollbar-track { background: rgba(0,0,0,.06); }
+
+  
+    
+    /* === Marker visibility (outline + shadow) === */
+    .leaflet-marker-icon.tmap-pin--favicon {
+      filter: drop-shadow(0 0 2px #ffffff) drop-shadow(0 2px 6px rgba(0,0,0,.45));
+      -webkit-filter: drop-shadow(0 0 2px #ffffff) drop-shadow(0 2px 6px rgba(0,0,0,.45));
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+    @media (prefers-contrast: more) {
+      .leaflet-marker-icon.tmap-pin--favicon {
+        filter: drop-shadow(0 0 0 #ffffff) drop-shadow(0 0 4px rgba(0,0,0,.7));
+      }
+    }
+
+  
+    /* === Popup: scrollable content with invisible scrollbars === */
+    .leaflet-popup-content {
+      max-height: 55vh;           /* mobile */
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      -ms-overflow-style: none;   /* IE/Edge */
+      scrollbar-width: none;      /* Firefox */
+      padding-right: 0;           /* no extra space for scrollbar */
+    }
+    .leaflet-popup-content::-webkit-scrollbar { width: 0; height: 0; } /* WebKit */
+    @media (min-width: 768px) { .leaflet-popup-content { max-height: 48vh; } }
+    @media (min-width: 1024px) { .leaflet-popup-content { max-height: 420px; } }
 
   </style>
 </head>
@@ -299,10 +359,7 @@
       }
     }
 
-    const ICON_URL = 'logo01082025.svg';
-    const customIcon = L.icon({ iconUrl: ICON_URL, iconSize: [52, 52], iconAnchor: [26, 48], popupAnchor: [0, -40], className: 'tmap-pin' });
-
-    const markersById = new Map();
+    let ICON_URL = null;let customIcon = null;const markersById = new Map();
     const badgeRefs = new Map();
     const visitCountCache = new Map();
     const openCommentContainers = new Map(); // objectId -> wrapEl
@@ -422,6 +479,7 @@
       marker.on('popupopen', async () => {
         const container = document.getElementById('popup-' + obj.id);
         if (!container) return;
+                await attachWeatherUI(container, Number(obj.latitude), Number(obj.longitude), obj.title);
         await attachVisitUIToPopup(container, String(obj.id));
         await attachCommentsUI(container, String(obj.id));
       });
@@ -504,7 +562,147 @@
       }, { passive: true });
     }
 
+    
+    
+    // === Popup logo injection ===
+    // Задай собствено лого преди инициализацията: window.TMAP_LOGO_URL = "logo.png";
+    // === Weather-in-Popup (Open-Meteo) ===
+    const WX_TTL_MS = 5 * 60 * 1000; // 5 мин кеш
+    const wxCache = new Map(); // key -> { t, data }
+
+    function wxKey(lat, lon){ return `${lat.toFixed(3)},${lon.toFixed(3)}`; }
+    function wxFresh(e){ return e && (Date.now() - e.t) < WX_TTL_MS; }
+
+    function weatherCodeToDescEmojiBg(code) {
+      const map = {
+        0: ["Ясно", "☀️"],
+        1: ["Предимно ясно", "🌤️"],
+        2: ["Разкъсана облачност", "⛅"],
+        3: ["Облачно", "☁️"],
+        45: ["Мъгла", "🌫️"],
+        48: ["Скреж по мъгла", "🌫️"],
+        51: ["Лек ръмеж", "🌦️"],
+        53: ["Умерен ръмеж", "🌦️"],
+        55: ["Интензивен ръмеж", "🌧️"],
+        56: ["Леден ръмеж", "🌧️"],
+        57: ["Интензивен леден ръмеж", "🌧️"],
+        61: ["Лек дъжд", "🌦️"],
+        63: ["Умерен дъжд", "🌧️"],
+        65: ["Силен дъжд", "🌧️"],
+        66: ["Леден дъжд", "🌧️"],
+        67: ["Силен леден дъжд", "🌧️"],
+        71: ["Слаб сняг", "🌨️"],
+        73: ["Умерен сняг", "🌨️"],
+        75: ["Силен сняг", "❄️"],
+        77: ["Снежни зърна", "❄️"],
+        80: ["Краткотраен лек дъжд", "🌦️"],
+        81: ["Краткотраен дъжд", "🌦️"],
+        82: ["Интензивни краткотрайни валежи", "🌧️"],
+        85: ["Краткотраен слаб снеговалеж", "🌨️"],
+        86: ["Краткотраен силен снеговалеж", "❄️"],
+        95: ["Гръмотевична буря", "⛈️"],
+        96: ["Буря с градушка", "⛈️"],
+        99: ["Силна буря с градушка", "⛈️"],
+      };
+      return map[code] || ["Неизвестни условия", "❔"];
+    }
+
+    function formatLocal(timeISO, tz) {
+      try {
+        const d = new Date(timeISO);
+        return new Intl.DateTimeFormat("bg-BG", { timeZone: tz || undefined, dateStyle: "medium", timeStyle: "short" }).format(d);
+      } catch (_) { return timeISO; }
+    }
+    function safeNum(n, digits = 0) { return (typeof n === "number" && isFinite(n)) ? n.toFixed(digits) : "—"; }
+
+    async function fetchWeatherFull(lat, lon){
+      const k = wxKey(lat, lon);
+      const c = wxCache.get(k);
+      if (wxFresh(c)) return c.data;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=precipitation_probability,apparent_temperature&forecast_days=1&timezone=auto`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("WX HTTP " + r.status);
+      const data = await r.json();
+      wxCache.set(k, { t: Date.now(), data });
+      return data;
+    }
+
+    async function buildWeatherCardHTML(lat, lon){
+      const json = await fetchWeatherFull(lat, lon);
+      const cw = json.current_weather;
+      let feelsLike = null, pop = null;
+      try {
+        const idx = json.hourly.time.indexOf(cw.time);
+        if (idx >= 0) {
+          const f = json.hourly.apparent_temperature?.[idx];
+          const p = json.hourly.precipitation_probability?.[idx];
+          if (typeof f === "number") feelsLike = f;
+          if (typeof p === "number") pop = p;
+        }
+      } catch (_) {}
+      const [desc, emoji] = weatherCodeToDescEmojiBg(cw.weathercode);
+      const local = formatLocal(cw.time, json.timezone);
+      return (
+        '<div class="wx-card" role="group" aria-label="Текущо време">' +
+          '<div class="wx-header">' + emoji + ' ' + desc + '</div>' +
+          '<div class="wx-row"><span>Температура</span><b>' + safeNum(cw.temperature) + '°C</b></div>' +
+          (feelsLike !== null ? '<div class="wx-row"><span>Усеща се като</span><b>' + safeNum(feelsLike) + '°C</b></div>' : '') +
+          '<div class="wx-row"><span>Вятър</span><b>' + safeNum(cw.windspeed) + ' км/ч</b></div>' +
+          (pop !== null ? '<div class="wx-row"><span>Вер. валеж</span><b>' + safeNum(pop) + '%</b></div>' : '') +
+          '<div class="wx-time">Локално време: ' + local + '</div>' +
+        '</div>'
+      );
+    }
+
+    async function attachWeatherUI(containerEl, lat, lon, title){
+      // ако вече е вкаран блокът, не правим нищо
+      if (containerEl.querySelector('.wx-card, .wx-error, .wx-loading')) return;
+      const block = document.createElement('div');
+      block.className = 'wx-loading';
+      block.textContent = 'Зареждане на време…';
+
+      // Вкарваме блока след заглавие или след снимката, ако има
+      const img = containerEl.querySelector('.popup-img');
+      const titleEl = containerEl.querySelector('.popup-title');
+      if (img) img.insertAdjacentElement('afterend', block);
+      else if (titleEl) titleEl.insertAdjacentElement('afterend', block);
+      else containerEl.prepend(block);
+
+      try {
+        const html = await buildWeatherCardHTML(lat, lon);
+        block.outerHTML = html;
+      } catch (e) {
+        block.outerHTML = '<div class="wx-card wx-error">Грешка при зареждане на времето.</div>';
+      }
+    }
+
+    
+    // === Marker icon via favicon with robust fallback ===
+    const TMAP_ICON_FALLBACK_DATAURI = "data:image/png;base64,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"; // embedded fallback
+    function getFaviconHref() {
+      const link = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
+      return link ? link.href : null;
+    }
+    function testImage(url) {
+      return new Promise((resolve) => {
+        if (!url) return resolve(false);
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = url;
+      });
+    }
+    async function ensureIconReady() {
+      let candidate = getFaviconHref() || 'favicon.ico';
+      if (!(await testImage(candidate))) {
+        candidate = TMAP_ICON_FALLBACK_DATAURI || candidate;
+      }
+      ICON_URL = candidate;
+      customIcon = L.icon({ iconUrl: ICON_URL, iconSize: [42, 42], iconAnchor: [21, 38], popupAnchor: [0, -34], className: 'tmap-pin tmap-pin--favicon' });
+    }
+
     (async function init() {
+      await ensureIconReady();
       await refreshAuthUI();
       await loadObjects();
       subscribeRealtime();
