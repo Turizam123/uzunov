@@ -55,6 +55,14 @@
       "visible": true
     },
     {
+      "id": "tmap_track_2",
+      "name": "х.Конгуро - вр.Конгур - вр.Радомир",
+      "file": "tmap_track_2.geojson",
+      "color": "#2563eb",
+      "km": 11,
+      "visible": true
+    },
+    {
      "id": "osogovo-traverse",
       "name": "х.Осогово – вр.Руен",
       "file": "route_osogovo_merged.geojson",
