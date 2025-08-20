@@ -63,6 +63,14 @@
       "visible": true
     },
     {
+     "id": "route_gotsev_vruh",
+     "name": "route_gotsev_vruh",
+     "file": "tmap_track_Gocevpeak.geojson",
+    "color": "#2563eb",
+    "km": 11,
+    "visible": true
+    },
+    {
      "id": "osogovo-traverse",
       "name": "х.Осогово – вр.Руен",
       "file": "route_osogovo_merged.geojson",
