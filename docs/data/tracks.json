@@ -64,9 +64,9 @@
     },
     {
      "id": "route_gotsev_vruh",
-     "name": "route_gotsev_vruh",
+     "name": "х.Извора - Гоцев връх",
      "file": "tmap_track_Gocevpeak.geojson",
-    "color": "#2563eb",
+    "color": "#3ad37a",
     "km": 11,
     "visible": true
     },
