@@ -257,7 +257,7 @@ function renderList(){
     const btnCenter = document.createElement('button'); btnCenter.className='btn panel'; btnCenter.textContent='Центрирай';
     btnCenter.addEventListener('click', ()=>{ const e=state.layers.get(id); if(e) try{ map.fitBounds(e.group.getBounds(), {padding:[32,32]}); }catch(x){} });
 
-    const btnPeople = document.createElement('button'); btnPeople.className='btn panel'; btnPeople.textContent='👥 Участници';
+    const btnPeople = document.createElement('button'); btnPeople.className='btn panel'; btnPeople.textContent='👥';
     btnPeople.addEventListener('click', ()=> togglePeople(id, btnPeople));
 
     cb.addEventListener('change', ()=>{ if(!cb.checked){ removeTrack(t); } });
