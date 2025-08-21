@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>BGX · Мулти маршрути + Участници (LIVE)</title>
+
+<link rel="icon" href="./favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<meta name="theme-color" content="#0b1420">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Supabase UMD -->
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+
+<style>
+:root{
+  --bg:#0b1420; --text:#dbe7ff; --muted:#b8c6e6; --border:rgba(255,255,255,.14); --accent:#00c9ff; --header-h:56px;
+  --panelText:#102a43; --panelMuted:#506580; --panelBorder:rgba(255,255,255,.9);
+  --panelGrad1:rgba(255,255,255,.96); --panelGrad2:rgba(244,249,255,.95); --panelGrad3:rgba(234,246,255,.94);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:600 16px/1.3 system-ui,Segoe UI,Roboto}
+
+/* ===== Header ===== */
+header{
+  position:fixed; inset:0 0 auto 0; z-index:1000; display:flex; gap:.6rem; align-items:center; flex-wrap:wrap;
+  padding:.55rem .8rem; padding-top:calc(.55rem + env(safe-area-inset-top)); min-height:var(--header-h);
+  background:linear-gradient(180deg,rgba(0,0,0,.55),transparent);
+}
+.badge{padding:.45rem .7rem;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.06)}
+.btn{padding:.55rem .75rem;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.06);cursor:pointer;color:var(--text)}
+.btn.primary{outline:2px solid var(--accent)}
+.brand{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.06)}
+.brand img{height:26px;width:auto;display:block}
+
+/* КАРТА */
+#map{position:fixed; inset:0}
+.leaflet-top.leaflet-left{ top: calc(var(--header-h) + env(safe-area-inset-top) + 6px); }
+
+/* ===== Долен панел (LIGHT) ===== */
+#tray{ position:fixed; left:0; right:0; bottom:0; z-index:25; padding:10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+#tray.hidden{display:none}
+
+.sheet{
+  margin:0 auto; max-width:1100px; background:linear-gradient(135deg,var(--panelGrad1),var(--panelGrad2) 35%,var(--panelGrad3)); color:var(--panelText);
+  border:1px solid var(--panelBorder); border-radius:16px; padding:12px; box-shadow:0 12px 48px rgba(0,0,0,.35);
+  position:relative; padding-top:56px; transition: transform .25s ease, opacity .25s ease;
+}
+#tray.dragging .sheet{ transition:none; }
+#tray.dismiss-left  .sheet{ transform:translateX(-130%); opacity:0 }
+#tray.dismiss-right .sheet{ transform:translateX( 130%); opacity:0 }
+#tray.dismiss-down  .sheet{ transform:translateY( 130%); opacity:0 }
+
+.sheet h3{margin:0 0 10px 0;font-size:15px;color:var(--panelMuted);display:flex;gap:8px;align-items:center}
+.counter{margin-left:auto;color:var(--panelMuted)}
+
+.list{ --rowH: 78px; max-height: calc(var(--rowH) * 3 + 10px); overflow:auto; overscroll-behavior:contain; border:1px solid rgba(0,0,0,.08); border-radius:12px; background:rgba(255,255,255,.6); }
+.item{ display:grid; grid-template-columns:auto 1fr auto auto; gap:10px; align-items:center; padding:12px 14px; border-bottom:1px dashed rgba(0,0,0,.08); }
+.item:last-child{border-bottom:none}
+.item .meta{font:600 12px/1.2 system-ui;color:var(--panelMuted)}
+.item input[type=checkbox]{transform:scale(1.1);margin-right:8px}
+.color{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
+.btn.panel{border:1px solid rgba(0,0,0,.1);color:#0b3954;background:linear-gradient(180deg,#ffffff,#f1f7ff);}
+
+.logo-float{ position:absolute; left:50%; top:0; transform:translate(-50%,-70%); display:inline-flex; align-items:center; justify-content:center; z-index:5; pointer-events:auto; cursor:pointer; border:none; outline:none; background:transparent; padding:0; -webkit-appearance:none; appearance:none; -webkit-tap-highlight-color: transparent; box-shadow:none; }
+.logo-float:focus{outline:none; box-shadow:none}
+.logo-float::before{ content:""; position:absolute; inset:-6px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(255,255,255,.55) 55%, transparent 70%); filter:blur(2px); }
+.logo-float img{ height:64px; width:auto; display:block; border-radius:50%; background:transparent; filter:drop-shadow(0 10px 22px rgba(0,0,0,.35)); }
+.logo-float.following::before{ background: radial-gradient(circle, rgba(34,197,94,.95) 0%, rgba(34,197,94,.55) 55%, transparent 70%); }
+.logo-float.following img{ filter: drop-shadow(0 0 18px rgba(34,197,94,.45)); }
+
+.leaflet-overlay-pane svg path.route{stroke:#00b7ff;stroke-width:3.6;fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(0,183,255,.45))}
+
+.qs-wrap{ position:relative; min-width:260px; flex:1; }
+#qs{ width:100%; padding:.5rem .6rem; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,.07); color:var(--text); }
+.qs-drop{ position:absolute; left:0; right:0; top: calc(100% + 6px); background:rgba(10,20,36,.98); border:1px solid var(--border); border-radius:10px; max-height:46vh; overflow:auto; z-index:9999; box-shadow:0 12px 34px rgba(0,0,0,.45); }
+.qs-item{ padding:.5rem .6rem; cursor:pointer; border-bottom:1px dashed rgba(255,255,255,.08); outline:none }
+.qs-item:last-child{ border-bottom:none; }
+.qs-item:hover, .qs-item:focus{ background:rgba(255,255,255,.06); }
+.qs-name{ font-weight:700 }
+.qs-meta{ font-size:12px; color:#8fa7cf }
+mark{background:transparent;color:var(--accent)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:30;background:rgba(10,20,36,.95);border:1px solid var(--border);border-radius:12px;padding:.6rem .8rem;opacity:0;transition:.25s}
+.toast.show{opacity:1}
+
+/* Участници */
+.leaflet-pane.participants-pane{ z-index: 650; } /* малко над маршрута */
+.participant{ font-weight:700; color:#0b3954; display:flex; align-items:center; justify-content:center; }
+.participant .bubble{ width:26px; height:26px; border-radius:50%; background:#fff; border:2px solid rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,.25); }
+.participant .bubble .txt{ font-size:12px; }
+.participant .tail{ position:absolute; bottom:-6px; width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:8px solid rgba(0,0,0,.25); }
+
+@media (min-width: 1200px){ .sheet{max-width:1250px} .brand img{height:30px} }
+@media (max-width: 640px){ :root{ --header-h:52px; } header{ gap:.45rem; padding:.45rem .55rem; padding-top:calc(.45rem + env(safe-area-inset-top)); } header .badge{ display:none; } .btn{ padding:.5rem .55rem; border-radius:9px; } .brand{ width:38px;height:38px } .brand img{height:24px} .qs-wrap{ min-width:0; flex:1; } #qs{ padding:.45rem .55rem; font-size:15px; } .sheet{ padding-top:48px; } .logo-float img{ height:54px; } .logo-float{ transform:translate(-50%,-74%); } }
+</style>
+</head>
+<body>
+<header>
+  <div class="badge"><strong>BGX</strong> · Мулти маршрути</div>
+  <div class="badge">Заредени: <span id="loaded">0</span> / <span id="total">0</span></div>
+  <div class="badge" id="liveBadge">LIVE: <span id="liveState">неактивно</span></div>
+
+  <button class="btn" id="btnToggleTray" title="Покажи/скрий панела">Маршрути</button>
+  <button class="btn" id="btnFollow" title="Следвай ме (F)">Следвай</button>
+
+  <a class="brand" href="https://turizam123.github.io/uzunov/tmap_home.html" title="Начало (T-MAP)">
+    <img src="./logo-header-40.png" alt="T-MAP — начало">
+  </a>
+
+  <div class="qs-wrap">
+    <input id="qs" type="search" placeholder="Търси… (Боровец, Шипка) – Enter = зареди" />
+    <div id="qsDrop" class="qs-drop" hidden></div>
+  </div>
+</header>
+
+<div id="map"></div>
+
+<!-- Долен панел (светъл) -->
+<div id="tray">
+  <div class="sheet">
+    <button id="logoFollowBtn" class="logo-float" type="button" title="Следвай (вкл/изкл)">
+      <img src="./logo-header-40.png" alt="Следвай позицията">
+    </button>
+
+    <h3>
+      <span>Заредени маршрути</span>
+      <span class="counter"><span id="loaded2">0</span> / <span id="total2">0</span></span>
+    </h3>
+
+    <div class="list" id="list"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ===== Конфигурация ===== */
+const DATA_PREFIX = './data/';
+const DEFAULT_BASE = 'routes/';
+const COLOR_DEFAULT = '#00b7ff';
+const AUTO_LOAD_VISIBLE = true;
+
+/* Supabase (използваш същия проект) */
+const SUPABASE_URL = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
+let supabaseClient = null;
+try{ supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON); setLiveState(true); }catch(e){ setLiveState(false); }
+
+/* ===== UI помощник ===== */
+const toast = (m,ms=2200)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);};
+function setLiveState(on){ const el=document.getElementById('liveState'); if(!el) return; el.textContent = on? 'активно' : 'неактивно'; }
+
+/* ===== КАРТА ===== */
+const map = L.map('map',{zoomControl:true});
+map.setView([42.75,25.35],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom:19, attribution:'© OpenStreetMap contributors' }).addTo(map);
+
+/* Отделен pane за участниците – да са над линиите */
+map.createPane('participants-pane');
+map.getPane('participants-pane').classList.add('participants-pane');
+
+/* Група за всички routes */
+const routesRootGroup = L.layerGroup().addTo(map);
+
+/* ===== Състояние ===== */
+const state = {
+  manifest: { base: DEFAULT_BASE, tracks: [] },
+  base: DEFAULT_BASE,
+  items: [],
+  layers: new Map(), // id -> { group, routeLayer, peopleLayer, people: { markers, channel }, routeLatLngs, cum }
+};
+
+/* ===== Контроли ===== */
+const tray  = document.getElementById('tray');
+const sheet = tray.querySelector('.sheet');
+document.getElementById('btnToggleTray').addEventListener('click', ()=>{
+  tray.classList.remove('dismiss-left','dismiss-right','dismiss-down');
+  tray.classList.toggle('hidden');
+});
+
+/* Инициализация */
+init().catch(e=>{ console.error(e); toast('Грешка при инициализация'); });
+
+async function init(){
+  await ensureToGeoJSON();
+
+  const m = await fetchJson(DATA_PREFIX+'tracks.json').catch(()=>null);
+  if(m && Array.isArray(m.tracks)){ state.manifest = m; }
+  state.base = (state.manifest.base || DEFAULT_BASE).replace(/^\.?\/*/,'');
+  if(!state.base.endsWith('/')) state.base += '/';
+
+  document.getElementById('total').textContent  = String(state.manifest.tracks.length);
+  document.getElementById('total2').textContent = String(state.manifest.tracks.length);
+
+  if (AUTO_LOAD_VISIBLE) {
+    for (const t of state.manifest.tracks) {
+      if (t.visible) await addAndShow(t);
+    }
+  }
+  renderList();
+  updateCounters();
+
+  // Търсене
+  const box = document.getElementById('qsDrop');
+  const qs  = document.getElementById('qs');
+  qs.addEventListener('keydown', async (e)=>{
+    if(e.key==='Enter'){
+      const q=e.target.value.trim().toLowerCase(); if(!q) return;
+      const best = state.manifest.tracks.find(t =>
+        (t.name||'').toLowerCase().includes(q) ||
+        (t.id||'').toLowerCase().includes(q) ||
+        (t.file||'').toLowerCase().includes(q)
+      );
+      if(best){ await addAndShow(best); tray.classList.add('hidden'); e.target.blur(); }
+      else toast('Няма съвпадение.');
+    }
+  });
+  qs.addEventListener('input', ()=>{
+    const q = qs.value.trim().toLowerCase();
+    if(!q){ box.hidden=true; box.innerHTML=''; return; }
+    const list = state.manifest.tracks.filter(t =>
+      (t.name||'').toLowerCase().includes(q) ||
+      (t.id||'').toLowerCase().includes(q) ||
+      (t.file||'').toLowerCase().includes(q)
+    ).slice(0,8);
+    box.innerHTML = list.map(t => `<div class="qs-item" tabindex="0"><div class="qs-name">${(t.name||t.id||t.file).replace(new RegExp(q,'i'),m=>'<mark>'+m+'</mark>')}</div><div class="qs-meta">${t.km?`${t.km} км`:''}</div></div>`).join('');
+    [...box.children].forEach((el,i)=>{ el.onclick = async ()=>{ await addAndShow(list[i]); box.hidden=true; tray.classList.add('hidden'); }; el.onkeydown = (ev)=>{ if(ev.key==='Enter') el.click(); }; });
+    box.hidden=false;
+  });
+
+  enableSwipeDismiss();
+}
+
+/* ===== Рендер на списъка ===== */
+function renderList(){
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  if(!state.items.length){ list.innerHTML = '<div class="item"><em>Няма заредени маршрути</em></div>'; return; }
+  for(const t of state.items){
+    const id = t.id || t.file;
+    const row = document.createElement('div'); row.className='item'; row.dataset.id=id;
+
+    const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center';
+    const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=true;
+    const color = document.createElement('div'); color.className='color'; color.style.background=t.color||COLOR_DEFAULT; color.style.marginLeft='8px';
+    left.appendChild(cb); left.appendChild(color);
+
+    const main = document.createElement('div');
+    const name = document.createElement('div'); name.textContent = t.name || t.id || t.file; main.appendChild(name);
+    const meta = document.createElement('div'); meta.className='meta'; meta.textContent = `${t.km?`${t.km} км`:'Маршрут'} · ID: ${id}`; main.appendChild(meta);
+
+    const btnCenter = document.createElement('button'); btnCenter.className='btn panel'; btnCenter.textContent='Центрирай';
+    btnCenter.addEventListener('click', ()=>{ const e=state.layers.get(id); if(e) try{ map.fitBounds(e.group.getBounds(), {padding:[32,32]}); }catch(x){} });
+
+    const btnPeople = document.createElement('button'); btnPeople.className='btn panel'; btnPeople.textContent='👥 Участници';
+    btnPeople.addEventListener('click', ()=> togglePeople(id, btnPeople));
+
+    cb.addEventListener('change', ()=>{ if(!cb.checked){ removeTrack(t); } });
+
+    row.appendChild(left); row.appendChild(main); row.appendChild(btnCenter); row.appendChild(btnPeople);
+    list.appendChild(row);
+  }
+  updateCounters();
+}
+
+function updateCounters(){
+  const loaded = state.items.length;
+  document.getElementById('loaded').textContent  = String(loaded);
+  document.getElementById('loaded2').textContent = String(loaded);
+}
+
+/* ===== Зареждане/премахване на маршрут (група: линия + участници) ===== */
+async function addAndShow(t){
+  const id  = t.id || t.file;
+  if (state.items.find(x => (x.id||x.file) === id)) return; // вече е зареден
+
+  const url = DATA_PREFIX + state.base + t.file;
+  let gj = null;
+  if(/\.(geo)?json$/i.test(t.file)){
+    gj = await fetchJson(url).catch(()=>null);
+  } else if(/\.(gpx|kml)$/i.test(t.file)){
+    if(typeof window.toGeoJSON === 'undefined'){ toast('GPX/KML изисква vendor/togeojson.min.js'); return; }
+    const txt = await fetchText(url).catch(()=>'<>'); if(!txt) return; const xml = new DOMParser().parseFromString(txt,'text/xml');
+    try{ gj = /\.gpx$/i.test(t.file) ? window.toGeoJSON.gpx(xml) : window.toGeoJSON.kml(xml); }catch(e){}
+  }
+  if(!gj || !gj.features || !gj.features.length) return;
+
+  const color = t.color || COLOR_DEFAULT;
+  const routeLayer = L.geoJSON(gj, {
+    style: f => f.geometry && f.geometry.type && f.geometry.type.includes('Line') ? {color, weight:3.6, opacity:1, className:'route'} : undefined,
+    pointToLayer: (f,latlng) => L.circleMarker(latlng, {radius:4, color})
+  });
+
+  const peopleLayer = L.layerGroup([], { pane:'participants-pane' });
+  const group = L.layerGroup([routeLayer, peopleLayer]).addTo(routesRootGroup);
+
+  // изчисляваме опростен масив от latlng за маршрута + кумулативни разстояния
+  const routeLatLngs = extractRouteLatLngs(routeLayer);
+  const cum = computeCumulative(routeLatLngs);
+
+  state.layers.set(id, { group, routeLayer, peopleLayer, people:{ markers:new Map(), channel:null }, meta:t, routeLatLngs, cum, peopleOn:false });
+  state.items.push({...t});
+
+  try{ map.fitBounds(group.getBounds(), {padding:[32,32]}); }catch(e){}
+  renderList();
+}
+
+function removeTrack(t){
+  const id = t.id || t.file;
+  const idx = state.items.findIndex(x => (x.id||x.file) === id);
+  if (idx >= 0) state.items.splice(idx,1);
+  const entry = state.layers.get(id);
+  if (entry){
+    // откачаме realtime
+    try{ if(entry.people.channel){ entry.people.channel.unsubscribe(); entry.people.channel=null; } }catch(_){ }
+    routesRootGroup.removeLayer(entry.group);
+    state.layers.delete(id);
+  }
+  renderList();
+}
+
+/* ===== Участници (LIVE) ===== */
+function togglePeople(id, btn){
+  const entry = state.layers.get(id); if(!entry) return;
+  entry.peopleOn = !entry.peopleOn;
+  btn.classList.toggle('primary', entry.peopleOn);
+
+  if(entry.peopleOn){
+    // показваме слоя и включваме realtime
+    entry.group.addLayer(entry.peopleLayer);
+    attachRealtime(id, entry);
+    toast('Участници: ВКЛ');
+  } else {
+    // скриваме слоя и спираме realtime
+    try{ if(entry.people.channel){ entry.people.channel.unsubscribe(); entry.people.channel=null; } }catch(_){ }
+    entry.peopleLayer.clearLayers(); entry.people.markers.clear();
+    toast('Участници: ИЗКЛ');
+  }
+}
+
+function attachRealtime(hikeId, entry){
+  if(!supabaseClient){ setLiveState(false); return; }
+  // 初воначално зареждане на последни позиции
+  loadPeopleSnapshot(hikeId, entry).catch(()=>{});
+
+  // realtime канал по даден hike_id
+  try{
+    const ch = supabaseClient.channel('live:'+hikeId);
+    ch.on('postgres_changes', { event:'*', schema:'public', table:'hike_live_positions', filter:`hike_id=eq.${hikeId}` }, (payload)=>{
+      const rec = payload.new || payload.record || payload.old; // new/updated/deleted
+      if(!rec) return;
+      upsertParticipant(entry, rec);
+    });
+    ch.subscribe((status)=>{ setLiveState(status==='SUBSCRIBED'); });
+    entry.people.channel = ch;
+  }catch(e){ setLiveState(false); }
+}
+
+async function loadPeopleSnapshot(hikeId, entry){
+  const { data, error } = await supabaseClient
+    .from('hike_live_positions')
+    .select('user_id,name,lat,lng,seen_at')
+    .eq('hike_id', hikeId)
+    .gte('seen_at', new Date(Date.now()-1000*60*120).toISOString()) // последни 120 мин
+    .order('seen_at', { ascending:false });
+  if(error){ console.warn(error); return; }
+  if(!data) return;
+  // последна позиция на потребител
+  const latestByUser = new Map();
+  for(const r of data){ if(!latestByUser.has(r.user_id)) latestByUser.set(r.user_id,r); }
+  for(const r of latestByUser.values()){ upsertParticipant(entry, r); }
+}
+
+function upsertParticipant(entry, rec){
+  const { user_id, name, lat, lng, seen_at } = rec;
+  if(!Number.isFinite(+lat) || !Number.isFinite(+lng)) return;
+
+  const uid = String(user_id||'u?');
+  const initials = (name||'U').trim().split(/\s+/).map(s=>s[0]).slice(0,2).join('').toUpperCase();
+  const ll = [ +lat, +lng ];
+
+  // Snap до маршрута + прогрес
+  const snapped = snapToRoute(ll, entry.routeLatLngs);
+  const progressPct = (snapped.ratio*100).toFixed(0);
+
+  let m = entry.people.markers.get(uid);
+  if(!m){
+    const icon = participantIcon(initials);
+    m = L.marker(snapped.point, { icon, pane:'participants-pane' }).addTo(entry.peopleLayer);
+    m.bindTooltip(`${name||'Участник'} · ${progressPct}%`, { permanent:false, direction:'top' });
+    entry.people.markers.set(uid, m);
+  } else {
+    m.setLatLng(snapped.point);
+    m.setTooltipContent(`${name||'Участник'} · ${progressPct}%`);
+  }
+}
+
+function participantIcon(txt){
+  const html = `<div class="participant"><div class="bubble"><span class="txt">${txt}</span></div><div class="tail"></div></div>`;
+  return L.divIcon({ html, className:'', iconSize:[28,34], iconAnchor:[14,30], tooltipAnchor:[0,-16] });
+}
+
+/* ===== Геометрия: извличане и snap-to-route ===== */
+function extractRouteLatLngs(routeLayer){
+  const out = [];
+  routeLayer.eachLayer(l=>{
+    if(typeof l.getLatLngs === 'function'){
+      let arr = l.getLatLngs();
+      // може да е MultiLineString -> масиви от масиви
+      const flat = Array.isArray(arr[0]) ? arr.flat(Infinity) : arr;
+      for(const p of flat){ if(p && 'lat' in p && 'lng' in p) out.push([p.lat, p.lng]); }
+    }
+  });
+  return out;
+}
+
+function computeCumulative(latlngs){
+  const dists=[0]; let total=0; for(let i=1;i<latlngs.length;i++){ total += distKm(latlngs[i-1], latlngs[i]); dists.push(total); }
+  return { dists, total };
+}
+
+function distKm(a,b){
+  const R=6371; const toRad=x=>x*Math.PI/180; const dLat=toRad(b[0]-a[0]); const dLon=toRad(b[1]-a[1]);
+  const la1=toRad(a[0]), la2=toRad(b[0]); const x=Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2; return 2*R*Math.asin(Math.sqrt(x));
+}
+
+function snapToRoute(p, latlngs){
+  if(!latlngs || latlngs.length<2) return { point:p, ratio:0 };
+  // екорекционна проекция за локална евклидова геометрия
+  const toXY = (lat,lng)=>{ const x = lng*Math.cos(lat*Math.PI/180); const y = lat; return [x,y]; };
+  const P = toXY(p[0],p[1]);
+  let best = { idx:0, t:0, dist:Infinity, proj:[latlngs[0][0],latlngs[0][1]] };
+  for(let i=1;i<latlngs.length;i++){
+    const A=latlngs[i-1], B=latlngs[i];
+    const Axy=toXY(A[0],A[1]), Bxy=toXY(B[0],B[1]);
+    const AB=[Bxy[0]-Axy[0], Bxy[1]-Axy[1]]; const AP=[P[0]-Axy[0], P[1]-Axy[1]];
+    const ab2 = AB[0]*AB[0]+AB[1]*AB[1]; if(ab2===0) continue;
+    let t = (AP[0]*AB[0]+AP[1]*AB[1]) / ab2; t = Math.max(0, Math.min(1,t));
+    const proj=[ A[0] + (B[0]-A[0])*t, A[1] + (B[1]-A[1])*t ];
+    // приблизително разстояние в km
+    const d = distKm([P[1],P[0]], [proj[0],proj[1]]); // P е в xy, затова малко хак за метрика
+    if(d < best.dist){ best = { idx:i-1, t, dist:d, proj } }
+  }
+  // прогрес по дължина
+  const before = state.layers; // не ползваме тук – ще сметнем по сегмента
+  return { point: best.proj, ratio: segmentProgressRatio(latlngs, best.idx, best.t) };
+}
+
+function segmentProgressRatio(latlngs, idx, t){
+  // процент от цялата полилиния до точката в сегмента idx + t
+  let done=0; for(let i=1;i<=idx;i++){ done += distKm(latlngs[i-1], latlngs[i]); }
+  const seg = distKm(latlngs[idx], latlngs[idx+1]||latlngs[idx]);
+  const total = (function(){ let s=0; for(let i=1;i<latlngs.length;i++) s+=distKm(latlngs[i-1],latlngs[i]); return s; })();
+  const cur = done + seg*t; return total>0 ? cur/total : 0;
+}
+
+/* ===== Следване (геолокация + посока) – от оригинала ===== */
+const btnFollow = document.getElementById('btnFollow');
+let followActive = false; let watchId = null; let meMarker = null; let prevPos = null; let lastBearing = 0;
+btnFollow.addEventListener('click', ()=> followActive ? stopFollow() : startFollow());
+window.addEventListener('keydown', (e)=>{ if(e.key==='f' || e.key==='F') btnFollow.click(); });
+
+function createHeadingIcon(angle){
+  const html = `<div class="heading" style="transform:rotate(${angle||0}deg)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2 L21 22 L12 17 L3 22 Z" fill="${COLOR_DEFAULT}" stroke="white" stroke-width="1"/></svg></div>`;
+  return L.divIcon({ html, className:'', iconSize:[30,30], iconAnchor:[15,15] });
+}
+function rotateIcon(marker, angle){ const el = marker?.getElement(); if(!el) return; const n = el.querySelector('.heading'); if(n) n.style.transform = `rotate(${angle||0}deg)`; }
+function computeBearing(a,b){ const toRad = x=>x*Math.PI/180; const dLon = toRad(b[1]-a[1]); const y = Math.sin(dLon)*Math.cos(toRad(b[0])); const x = Math.cos(toRad(a[0]))*Math.sin(toRad(b[0])) - Math.sin(toRad(a[0]))*Math.cos(toRad(b[0]))*Math.cos(dLon); let br = Math.atan2(y,x); br = (br*180/Math.PI+360)%360; return br; }
+function startFollow(){ if(watchId) return; followActive = true; btnFollow.classList.add('primary'); btnFollow.textContent='Следвам…'; document.dispatchEvent(new CustomEvent('follow:state', { detail:{ on:true } })); if(!meMarker) meMarker = L.marker(map.getCenter(), { icon:createHeadingIcon(0), zIndexOffset:1000 }).addTo(map); try{ watchId = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy:true, maximumAge:2000, timeout:15000 }); }catch(e){ toast('Геолокацията не е достъпна.'); stopFollow(); } }
+function stopFollow(){ followActive = false; btnFollow.classList.remove('primary'); btnFollow.textContent='Следвай'; document.dispatchEvent(new CustomEvent('follow:state', { detail:{ on:false } })); if(watchId){ navigator.geolocation.clearWatch(watchId); watchId=null; } }
+function onPos(p){ const { latitude:lat, longitude:lng, heading } = p.coords; const ll = [lat,lng]; if(!meMarker) meMarker = L.marker(ll, { icon:createHeadingIcon(0), zIndexOffset:1000 }).addTo(map); meMarker.setLatLng(ll); let br = (heading!=null && !isNaN(heading)) ? heading : (prevPos ? computeBearing(prevPos,ll) : lastBearing); lastBearing = br||0; rotateIcon(meMarker, lastBearing); if(followActive){ map.panTo(ll, {animate:true}); } prevPos = ll; }
+function onPosErr(e){ toast('Геолокация: '+e.message); stopFollow(); }
+
+/* ===== Жестове – скриване на панела ===== */
+function enableSwipeDismiss(){
+  const GRAB_HEIGHT = 58, SWIPE = 90, EDGE_LIMIT = 14; let sx=0, sy=0, dx=0, dy=0, dragging=false;
+  const start = (x,y)=>{ const r = sheet.getBoundingClientRect(); if (y < r.top || y > r.top+GRAB_HEIGHT) return; dragging = true; sx=x; sy=y; tray.classList.add('dragging'); };
+  const move  = (x,y)=>{ if(!dragging) return; dx = x - sx; dy = y - sy; const ty = Math.max(0, dy); sheet.style.transform = `translate(${dx}px,${ty}px)`; };
+  const end   = ()=>{ if(!dragging){ return; } dragging=false; tray.classList.remove('dragging'); const adx = Math.abs(dx), ady = Math.abs(dy); const horizontal = adx > ady && adx > SWIPE; const down = dy  > SWIPE && ady >= adx - EDGE_LIMIT; if (horizontal){ const dir = dx > 0 ? 'dismiss-right' : 'dismiss-left'; tray.classList.add(dir); sheet.addEventListener('transitionend', onHide, {once:true}); } else if (down){ tray.classList.add('dismiss-down'); sheet.addEventListener('transitionend', onHide, {once:true}); } else { sheet.style.transform = ''; } dx=dy=0; };
+  const onHide = ()=>{ tray.classList.add('hidden'); tray.classList.remove('dismiss-left','dismiss-right','dismiss-down'); sheet.style.transform=''; };
+  sheet.addEventListener('touchstart', e=>{ const t=e.touches[0]; start(t.clientX,t.clientY); }, {passive:true});
+  sheet.addEventListener('touchmove',  e=>{ const t=e.touches[0]; move(t.clientX,t.clientY); },  {passive:true});
+  sheet.addEventListener('touchend',   end, {passive:true});
+  let mouseDown=false; sheet.addEventListener('mousedown', e=>{ mouseDown=true; start(e.clientX,e.clientY); });
+  window.addEventListener('mousemove', e=>{ if(mouseDown) move(e.clientX,e.clientY); });
+  window.addEventListener('mouseup',   ()=>{ if(mouseDown){ mouseDown=false; end(); } });
+}
+
+/* Vendor loader (GPX/KML) */
+async function ensureToGeoJSON(){
+  try{
+    const resp = await fetch('./data/vendor/togeojson.min.js', {cache:'no-store'});
+    if(!resp.ok) return; const js = await resp.text(); const s  = document.createElement('script'); s.textContent = js; document.head.appendChild(s);
+  }catch(e){}
+}
+
+/* Fetch helpers */
+const fetchJson = (u)=> fetch(u, {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
+const fetchText = (u)=> fetch(u, {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); });
+</script>
+
+<!--
+DB очаквания (Supabase):
+Table public.hike_live_positions:
+  id uuid default gen_random_uuid() primary key
+  hike_id text not null       -- използваме track.id (или file) като идентификатор
+  user_id text not null
+  name text
+  lat double precision not null
+  lng double precision not null
+  seen_at timestamptz default now()
+Индекс: (hike_id, user_id, seen_at desc)
+-->
+
+</body>
+</html>
