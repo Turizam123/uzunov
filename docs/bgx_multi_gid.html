@@ -107,7 +107,8 @@ mark{background:transparent;color:var(--accent)}
   <div class="badge" id="liveBadge">LIVE: <span id="liveState">неактивно</span></div>
 
   <button class="btn" id="btnToggleTray" title="Покажи/скрий панела">Маршрути</button>
-  
+  <button class="btn" id="btnFollow" title="Следвай ме (F)">Следвай</button>
+
   <a class="brand" href="https://turizam123.github.io/uzunov/tmap_home.html" title="Начало (T-MAP)">
     <img src="./logo-header-40.png" alt="T-MAP — начало">
   </a>
@@ -318,13 +319,15 @@ function renderList(){
     const name = document.createElement('div'); name.textContent = t.name || t.id || t.file; main.appendChild(name);
     const meta = document.createElement('div'); meta.className='meta'; meta.textContent = `${t.km?`${t.km} км`:'Маршрут'} · ID: ${id}`; main.appendChild(meta);
 
-    
+    const btnCenter = document.createElement('button'); btnCenter.className='btn panel'; btnCenter.textContent='Центрирай';
+    btnCenter.addEventListener('click', ()=>{ const e=state.layers.get(id); if(e) try{ map.fitBounds(e.group.getBounds(), {padding:[32,32]}); }catch(x){} });
+
     const btnPeople = document.createElement('button'); btnPeople.className='btn panel'; btnPeople.textContent='👥 Участници';
     btnPeople.addEventListener('click', ()=> togglePeople(id, btnPeople));
 
     cb.addEventListener('change', ()=>{ if(!cb.checked){ removeTrack(t); } });
 
-    row.appendChild(left); row.appendChild(main); row.appendChild(btnPeople);
+    row.appendChild(left); row.appendChild(main); row.appendChild(btnCenter); row.appendChild(btnPeople);
     list.appendChild(row);
   }
   updateCounters();
