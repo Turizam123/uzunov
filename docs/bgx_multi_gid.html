@@ -449,15 +449,16 @@ function upsertParticipant(entry, rec){
 
   const snapped = snapToRoute(ll, entry.routeLatLngs);
   const progressPct = (snapped.ratio*100).toFixed(0);
+  const jLL = jitterPoint(snapped.point, uid);
 
   let m = entry.people.markers.get(uid);
   if(!m){
     const icon = participantIcon(initials);
-    m = L.marker(snapped.point, { icon, pane:'participants-pane' }).addTo(entry.peopleLayer);
+    m = L.marker(jLL, { icon, pane:'participants-pane' }).addTo(entry.peopleLayer);
     m.bindTooltip(`${name||'Участник'} · ${progressPct}%`, { direction:'top' });
     entry.people.markers.set(uid, m);
   } else {
-    m.setLatLng(snapped.point);
+    m.setLatLng(jLL);
     m.setTooltipContent(`${name||'Участник'} · ${progressPct}%`);
   }
 }
@@ -506,6 +507,21 @@ function snapToRoute(p, latlngs){
   const seg=distKm(latlngs[best.idx], latlngs[best.idx+1]||latlngs[best.idx]);
   const ratio = total>0 ? (sum + seg*best.t)/total : 0;
   return { point: best.proj, ratio };
+}
+
+
+function jitterPoint(baseLL, uid){
+  // Deterministic small offset (meters) per user to avoid marker overlap.
+  // Base idea: hash(uid) -> angle+radius; convert meters to degrees.
+  const lat = baseLL[0], lng = baseLL[1];
+  const id = String(uid||'u?');
+  let h = 0;
+  for(let i=0;i<id.length;i++) h = (h*31 + id.charCodeAt(i))|0;
+  const angle = ((h % 360) * Math.PI) / 180;
+  const radius = 8 + (Math.abs(h) % 7); // 8..14 meters
+  const dLat = (radius * Math.sin(angle)) / 110540; // meters -> deg lat
+  const dLng = (radius * Math.cos(angle)) / (111320 * Math.cos((lat*Math.PI)/180)); // meters -> deg lon
+  return [ lat + dLat, lng + dLng ];
 }
 
 /* Следване */
