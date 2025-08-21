@@ -286,7 +286,7 @@ async function resolveActiveHikeId(){
     const { data } = await supabaseClient
       .from('hike_live_positions')
       .select('hike_id, seen_at')
-      .gte('seen_at', new Date(Date.now()-1000*60*120).toISOString())
+      .gte('seen_at', new Date(Date.now()-1000*60*60*24).toISOString())
       .order('seen_at', { ascending:false })
       .limit(1);
     return data && data[0] ? data[0].hike_id : null;
@@ -430,20 +430,20 @@ async function loadPeopleSnapshot(hikeId, entry){
     .from('hike_live_positions')
     .select('user_id,name,lat,lng,seen_at')
     .eq('hike_id', hikeId)
-    .gte('seen_at', new Date(Date.now()-1000*60*120).toISOString())
+    .gte('seen_at', new Date(Date.now()-1000*60*60*24).toISOString())
     .order('seen_at', { ascending:false });
   if(error){ console.warn(error); return; }
   if(!data) return;
   const latestByUser = new Map();
   for(const r of data){ if(!latestByUser.has(r.user_id)) latestByUser.set(r.user_id,r); }
-  for(const r of latestByUser.values()){ upsertParticipant(entry, r); }
+  const cnt = latestByUser.size; toast('Участници: '+cnt); for(const r of latestByUser.values()){ upsertParticipant(entry, r); }
 }
 
 function upsertParticipant(entry, rec){
   const { user_id, name, lat, lng } = rec;
   if(!Number.isFinite(+lat) || !Number.isFinite(+lng)) return;
 
-  const uid = String(user_id||'u?');
+  const uid = String(user_id || name || 'u?');
   const initials = (name||'U').trim().split(/\s+/).map(s=>s[0]).slice(0,2).join('').toUpperCase();
   const ll = [ +lat, +lng ];
 
