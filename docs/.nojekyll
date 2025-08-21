@@ -1,0 +1,2 @@
+cd path\to\repo\docs
+ni .nojekyll -ItemType File
