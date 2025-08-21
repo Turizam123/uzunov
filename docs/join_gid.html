@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>BGX · Включи се в прехода</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0b1420" />
+  <link rel="icon" href="./favicon.ico" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <style>
+    :root{
+      --bg:#0b1420; --bg2:#0d1b2e; --text:#eaf2ff; --muted:#9eb3d1; --accent:#00c9ff; --ok:#22c55e; --warn:#f59e0b; --err:#ef4444;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font:600 16px/1.45 system-ui, Segoe UI, Roboto;background:radial-gradient(1200px 700px at 50% -10%,rgba(0,201,255,.20),transparent),linear-gradient(180deg,#091220 0%, #0b1420 30%, #0d1b2e 100%);color:var(--text)}
+    .safe{padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom)}
+    .wrap{min-height:100%;display:grid;place-items:center;padding:20px}
+
+    /* Card */
+    .card{width:min(880px,100%);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:18px 18px 16px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+
+    /* Header */
+    .hero{display:flex;gap:14px;align-items:center;margin:2px 0 12px}
+    .logo{position:relative;flex:0 0 64px;height:64px;border-radius:20px;display:grid;place-items:center;background:radial-gradient(circle at 50% 45%, rgba(255,255,255,.95), rgba(255,255,255,.7));box-shadow:0 14px 34px rgba(0,0,0,.35)}
+    .logo img{width:46px;height:46px;display:block;filter:drop-shadow(0 6px 18px rgba(0,0,0,.25))}
+    .title{font-size:22px;letter-spacing:.2px}
+    .subtitle{color:var(--muted);font-weight:700;margin-top:2px}
+
+    /* Content */
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 10px}
+    .badge{display:inline-flex;gap:8px;align-items:center;padding:.4rem .65rem;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);font-size:13px}
+    .chip{padding:.35rem .6rem;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:rgba(255,255,255,.06)}
+
+    label{display:block;margin:.4rem 0 .35rem;color:var(--muted)}
+    input[type=text]{width:100%;padding:.8rem .9rem;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:var(--text)}
+    input[type=text]::placeholder{color:#aac0e0}
+
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:.7rem 0 2px}
+    .btn{padding:.85rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.10);color:var(--text);cursor:pointer;font-weight:800}
+    .btn.primary{outline:2px solid var(--accent)}
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .small{font-size:13px}
+    .foot{margin-top:12px;color:#8fb0d4;font-size:12px}
+
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
+
+    /* Mobile-first tweaks */
+    @media (max-width:640px){
+      .logo{flex-basis:56px;height:56px;border-radius:16px}
+      .logo img{width:40px;height:40px}
+      .title{font-size:20px}
+      .grid{grid-template-columns:1fr}
+      .card{padding:16px}
+    }
+  </style>
+  <style>
+    /* —— Forest Light тема (по-светла, приветлива) —— */
+    body.theme-forest{ background:linear-gradient(180deg,#f5fbf7 0%, #eef7ff 42%, #f7fbff 100%); color:#0f2a1f }
+    body.theme-forest .card{ background:linear-gradient(180deg,#ffffff,#f7fcff); border:1px solid rgba(16,42,31,.12); box-shadow:0 18px 48px rgba(16,42,31,.12) }
+    body.theme-forest .logo{ background:radial-gradient(circle at 50% 45%, rgba(255,255,255,.98), rgba(255,255,255,.85)); box-shadow:0 14px 28px rgba(16,42,31,.12) }
+    body.theme-forest .title{ color:#0f2a1f }
+    body.theme-forest .subtitle{ color:#4c6b5d }
+    body.theme-forest .badge, body.theme-forest .chip{ background:rgba(22,163,74,.06); border-color:rgba(16,42,31,.12); color:#16432c }
+    body.theme-forest input[type=text]{ background:#fff; border:1px solid rgba(16,42,31,.18); color:#0f2a1f }
+    body.theme-forest .btn{ background:linear-gradient(180deg, rgba(22,163,74,.12), rgba(22,163,74,.06)); border:1px solid rgba(22,163,74,.35); color:#0f2a1f }
+    body.theme-forest .btn.primary{ outline:2px solid #16a34a }
+  </style>
+</head>
+<body class="safe theme-forest">
+  <div class="wrap">
+    <main class="card" role="main">
+      <header class="hero" aria-label="Приветствие">
+        <div class="logo" aria-hidden="true"><img src="./apple-touch-icon.png" alt="BGX"></div>
+        <div>
+          <div class="title">Здрасти! Добре дошъл в прехода 👋</div>
+          <div class="subtitle" id="hello">След секунди ще помогнеш на водача да вижда къде си (само по време на прехода).</div>
+        </div>
+      </header>
+
+      <section class="badges" aria-label="Информация за сесията">
+        <span class="badge">Маршрут: <strong id="hikeId">—</strong></span>
+        <span class="badge">Състояние: <strong id="liveState">изчаква…</strong></span>
+      </section>
+
+      <label for="name">Име или ник (видимо за водача)</label>
+      <input id="name" type="text" autocomplete="name" placeholder="напр. Иван" />
+
+      <div class="grid">
+        <button id="start" class="btn primary">Старт споделяне</button>
+        <button id="stop" class="btn" disabled>Стоп</button>
+      </div>
+
+      <div class="row small" style="margin-top:8px">
+        <span class="chip">Последно изпратено: <span id="last">—</span></span>
+        <span class="chip">Опашка: <span id="qsize">0</span></span>
+        <span class="chip" title="Ниска консумация: изпраща през ~30 сек или при движение">Режим: балансиран</span>
+      </div>
+
+      <p id="msg" class="foot">Съвет: остави страницата <em>отворена на преден план</em> за най-надеждно обновяване. Без обхват? Точките се пазят локално и се изпращат при връзка.</p>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script>
+    // ===== Конфигурация =====
+    const SUPABASE_URL  = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    const WINDOW_MINUTES = 120; // колко назад се счита „активен“ преходът
+    const SEND_INTERVAL_MS = 30_000; // минимален интервал между изпращанията
+    const MIN_MOVE_METERS  = 25;     // минимално движение за изпращане
+
+    // ===== Елементи =====
+    const $ = (id)=>document.getElementById(id);
+    const nameEl = $('name');
+    const startBtn = $('start');
+    const stopBtn  = $('stop');
+    const hikeEl   = $('hikeId');
+    const liveEl   = $('liveState');
+    const lastEl   = $('last');
+    const qEl      = $('qsize');
+
+    // ===== Състояние =====
+    let hikeId = null;
+    let userId = localStorage.getItem('gid_uid') || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+    localStorage.setItem('gid_uid', userId);
+    let watchId = null, lastSent = 0, lastLatLng = null;
+    let outbox = JSON.parse(localStorage.getItem('gid_outbox')||'[]');
+
+    // ===== Помощни =====
+    const distM = (a,b)=>{ const R=6371000, toRad=d=>d*Math.PI/180; const dLat=toRad(b.lat-a.lat), dLon=toRad(b.lng-a.lng); const la1=toRad(a.lat), la2=toRad(b.lat); const x=Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2; return 2*R*Math.asin(Math.sqrt(x)); };
+    const fmtTime = d=> new Date(d).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    const setQ = ()=>{ qEl.textContent = String(outbox.length); localStorage.setItem('gid_outbox', JSON.stringify(outbox)); };
+
+    // ===== Откриване на активен hike_id =====
+    init();
+    async function init(){
+      hikeId = getHikeFromURL() || await getHikeFromDB();
+      if(!hikeId){ liveEl.textContent = 'неактивен'; hikeEl.textContent = '—'; startBtn.disabled = true; $('msg').textContent = 'В момента няма активен преход. Опитай по-късно или поискай нов QR от водача.'; return; }
+      hikeEl.textContent = hikeId; liveEl.textContent = 'готов';
+    }
+    function getHikeFromURL(){ const s=new URLSearchParams(location.search); return s.get('hike_id'); }
+    async function getHikeFromDB(){ try{ const { data } = await sb.from('hike_live_positions').select('hike_id, seen_at').gte('seen_at', new Date(Date.now()-WINDOW_MINUTES*60000).toISOString()).order('seen_at',{ascending:false}).limit(1); return data && data[0] ? data[0].hike_id : null; }catch(e){ return null; } }
+
+    // ===== Изпращане =====
+    startBtn.onclick = async ()=>{\n      if(!hikeId) return;\n      const name = (nameEl.value||'').trim(); if(!name){ nameEl.focus(); nameEl.placeholder='Въведи име'; return; }\n      startBtn.disabled = true; stopBtn.disabled = false; liveEl.textContent = 'споделя…';\n      const helloEl = document.getElementById('hello'); if(helloEl){ helloEl.textContent = `Добре дошъл, ${name}! Споделянето е активно.`; }\n      try{\n        watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:false, maximumAge:10_000, timeout:20_000 });onPos, onErr, { enableHighAccuracy:false, maximumAge:10_000, timeout:20_000 });
+      }catch(e){ liveEl.textContent = 'грешка с геолокация'; startBtn.disabled=false; stopBtn.disabled=true; }
+      flushLoop();
+    };
+    stopBtn.onclick = ()=>{ if(watchId){ navigator.geolocation.clearWatch(watchId); watchId=null; } liveEl.textContent = 'спряно'; stopBtn.disabled = true; startBtn.disabled=false; const helloEl=document.getElementById('hello'); if(helloEl){ helloEl.textContent='Споделянето е спряно.'; } } liveEl.textContent = 'спряно'; stopBtn.disabled = true; startBtn.disabled=false; };
+
+    async function onPos(p){
+      const name = (nameEl.value||'').trim();
+      const pos = { lat:p.coords.latitude, lng:p.coords.longitude };
+      const now = Date.now();
+      const moved = lastLatLng ? distM(lastLatLng, pos) : Infinity;
+      const timeOk = (now - lastSent) >= SEND_INTERVAL_MS;
+      if (moved >= MIN_MOVE_METERS || timeOk){
+        const rec = { hike_id:hikeId, user_id:userId, name, lat:pos.lat, lng:pos.lng };
+        outbox.push(rec); setQ();
+        lastLatLng = pos; lastSent = now; lastEl.textContent = fmtTime(now);
+        await tryFlushOnce();
+      }
+    }
+    function onErr(e){ liveEl.textContent = 'геолокация: '+ e.message; }
+
+    async function tryFlushOnce(){
+      if(!outbox.length) return;
+      const rec = outbox[0];
+      const { error } = await sb.from('hike_live_positions').insert(rec);
+      if(!error){ outbox.shift(); setQ(); }
+    }
+    async function flushLoop(){
+      const tick = async ()=>{ if(outbox.length){ await tryFlushOnce(); } requestAnimationFrame(()=>setTimeout(tick, 3000)); };
+      tick();
+    }
+  </script>
+</body>
+</html>
