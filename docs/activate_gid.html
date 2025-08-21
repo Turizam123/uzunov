@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>BGX · Активирай преход</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0b1420" />
+  <link rel="icon" href="./favicon.ico" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <style>
+    :root{ --text:#0f2a1f; --muted:#4c6b5d; --accent:#16a34a; }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font:600 16px/1.45 system-ui, Segoe UI, Roboto;background:linear-gradient(180deg,#f5fbf7 0%, #eef7ff 42%, #f7fbff 100%);color:var(--text)}
+    .wrap{min-height:100%;display:grid;place-items:center;padding:20px}
+    .card{width:min(720px,100%);background:linear-gradient(180deg,#ffffff,#f7fcff);border:1px solid rgba(16,42,31,.12);border-radius:20px;padding:16px;box-shadow:0 18px 48px rgba(16,42,31,.12)}
+    .hero{display:flex;gap:14px;align-items:center;margin:2px 0 12px}
+    .logo{flex:0 0 56px;height:56px;border-radius:16px;display:grid;place-items:center;background:#fff;box-shadow:0 14px 28px rgba(16,42,31,.12)}
+    .logo img{width:40px;height:40px;display:block}
+    .title{font-size:22px}
+    .subtitle{color:var(--muted);font-weight:700;margin-top:2px}
+    label{display:block;margin:.6rem 0 .3rem;color:var(--muted)}
+    input[type=text]{width:100%;padding:.8rem .9rem;border-radius:12px;border:1px solid rgba(16,42,31,.18);background:#fff;color:var(--text)}
+    .btn{padding:.85rem 1rem;border-radius:12px;border:1px solid rgba(22,163,74,.35);background:linear-gradient(180deg, rgba(22,163,74,.12), rgba(22,163,74,.06));color:var(--text);cursor:pointer;font-weight:800}
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .chip{padding:.35rem .6rem;border:1px solid rgba(16,42,31,.14);border-radius:10px;background:rgba(22,163,74,.06)}
+    .small{font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <main class="card" role="main">
+      <header class="hero">
+        <div class="logo"><img src="./apple-touch-icon.png" alt="BGX"></div>
+        <div>
+          <div class="title">Активирай преход</div>
+          <div class="subtitle">Създай ред в <code>hike_live_positions</code> за да стане преходът активен.</div>
+        </div>
+      </header>
+
+      <div class="row" style="margin-bottom:6px">
+        <span class="chip">Състояние: <strong id="state">очаква…</strong></span>
+      </div>
+
+      <label for="hike">hike_id</label>
+      <input id="hike" type="text" placeholder="напр. routes/borovets-belchin.gpx или ID от tracks.json" />
+
+      <label for="name">Име/ник</label>
+      <input id="name" type="text" placeholder="напр. Водач" />
+
+      <div class="row" style="margin-top:10px">
+        <button id="go" class="btn">Активирай</button>
+      </div>
+
+      <p class="small" style="color:#4c6b5d;margin-top:10px">Ще се използва текущата позиция на устройството.</p>
+
+      <hr style="margin:14px 0;border:0;border-top:1px solid rgba(16,42,31,.12)">
+
+      <div class="row small">
+        <a id="openJoin" class="btn" href="#" target="_blank" rel="noopener">Към страницата за участници</a>
+        <a id="openMap" class="btn" href="#" target="_blank" rel="noopener">Към картата</a>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script>
+    const SUPABASE_URL  = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    const JOIN_URL = 'https://turizam123.github.io/uzunov/docs/join_gid.html';
+    const MAP_URL  = 'https://turizam123.github.io/uzunov/docs/bgx_multi_gid.html';
+
+    const $ = (id)=>document.getElementById(id);
+    const stateEl = $('state');
+    const hikeEl  = $('hike');
+    const nameEl  = $('name');
+    const goBtn   = $('go');
+    const joinA   = $('openJoin');
+    const mapA    = $('openMap');
+
+    // Пре-попълни от URL ако има ?hike_id=...
+    const usp = new URLSearchParams(location.search);
+    const hidFromUrl = usp.get('hike_id');
+    if(hidFromUrl){ hikeEl.value = hidFromUrl; linkOut(hidFromUrl); }
+
+    function linkOut(hid){
+      joinA.href = JOIN_URL + '?hike_id=' + encodeURIComponent(hid);
+      mapA.href  = MAP_URL  + '?hike_id=' + encodeURIComponent(hid);
+    }
+
+    goBtn.onclick = ()=>{
+      const hike_id = (hikeEl.value||'').trim();
+      const name = (nameEl.value||'Водач').trim();
+      if(!hike_id){ hikeEl.focus(); return; }
+      stateEl.textContent = 'активира…';
+      try{
+        navigator.geolocation.getCurrentPosition(async (p)=>{
+          const rec = { hike_id, user_id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())), name, lat: p.coords.latitude, lng: p.coords.longitude };
+          const { error } = await sb.from('hike_live_positions').insert(rec);
+          if(!error){ stateEl.textContent = 'готово'; linkOut(hike_id); }
+          else{ stateEl.textContent = 'грешка'; }
+        }, (err)=>{ stateEl.textContent = 'геолокация: '+ err.message; });
+      }catch(e){ stateEl.textContent = 'грешка'; }
+    }
+  </script>
+</body>
+</html>
