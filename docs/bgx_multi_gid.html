@@ -66,6 +66,7 @@ header{
 .color{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.15)}
 .btn.panel{border:1px solid rgba(0,0,0,.1);color:#0b3954;background:linear-gradient(180deg,#ffffff,#f1f7ff);}
 
+/* floating logo */
 .logo-float{ position:absolute; left:50%; top:0; transform:translate(-50%,-70%); display:inline-flex; align-items:center; justify-content:center; z-index:5; pointer-events:auto; cursor:pointer; border:none; outline:none; background:transparent; padding:0; -webkit-appearance:none; appearance:none; -webkit-tap-highlight-color: transparent; box-shadow:none; }
 .logo-float:focus{outline:none; box-shadow:none}
 .logo-float::before{ content:""; position:absolute; inset:-6px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(255,255,255,.55) 55%, transparent 70%); filter:blur(2px); }
@@ -89,7 +90,7 @@ mark{background:transparent;color:var(--accent)}
 .toast.show{opacity:1}
 
 /* Участници */
-.leaflet-pane.participants-pane{ z-index: 650; } /* малко над маршрута */
+.leaflet-pane.participants-pane{ z-index: 650; }
 .participant{ font-weight:700; color:#0b3954; display:flex; align-items:center; justify-content:center; }
 .participant .bubble{ width:26px; height:26px; border-radius:50%; background:#fff; border:2px solid rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,.25); }
 .participant .bubble .txt{ font-size:12px; }
@@ -145,37 +146,34 @@ const DEFAULT_BASE = 'routes/';
 const COLOR_DEFAULT = '#00b7ff';
 const AUTO_LOAD_VISIBLE = false;
 
-/* Supabase (използваш същия проект) */
+/* Supabase */
 const SUPABASE_URL = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
 let supabaseClient = null;
 try{ supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON); setLiveState(true); }catch(e){ setLiveState(false); }
 
-/* ===== UI помощник ===== */
 const toast = (m,ms=2200)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);};
 function setLiveState(on){ const el=document.getElementById('liveState'); if(!el) return; el.textContent = on? 'активно' : 'неактивно'; }
 
-/* ===== КАРТА ===== */
+/* КАРТА */
 const map = L.map('map',{zoomControl:true});
 map.setView([42.75,25.35],7);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom:19, attribution:'© OpenStreetMap contributors' }).addTo(map);
 
-/* Отделен pane за участниците – да са над линиите */
 map.createPane('participants-pane');
 map.getPane('participants-pane').classList.add('participants-pane');
 
-/* Група за всички routes */
 const routesRootGroup = L.layerGroup().addTo(map);
 
-/* ===== Състояние ===== */
+/* Състояние */
 const state = {
   manifest: { base: DEFAULT_BASE, tracks: [] },
   base: DEFAULT_BASE,
   items: [],
-  layers: new Map(), // id -> { group, routeLayer, peopleLayer, people: { markers, channel }, routeLatLngs, cum }
+  layers: new Map(),
 };
 
-/* ===== Контроли ===== */
+/* Контроли */
 const tray  = document.getElementById('tray');
 const sheet = tray.querySelector('.sheet');
 document.getElementById('btnToggleTray').addEventListener('click', ()=>{
@@ -191,7 +189,7 @@ async function init(){
 
   const m = await fetchJson(DATA_PREFIX+'tracks.json').catch(()=>null);
   if(m && Array.isArray(m.tracks)){ state.manifest = m; }
-  state.base = (state.manifest.base || DEFAULT_BASE).replace(/^\.?\/*/,'');
+  state.base = (state.manifest.base || DEFAULT_BASE).replace(/^\.\?*\/*/,'').replace(/^\.\/*/,'');
   if(!state.base.endsWith('/')) state.base += '/';
 
   document.getElementById('total').textContent  = String(state.manifest.tracks.length);
@@ -235,9 +233,38 @@ async function init(){
 
   enableSwipeDismiss();
   await autoActivateTrack();
+
+  /* === ДОБАВЕНО: плаващо лого = „Старт“ === */
+  const logo = document.getElementById('logoFollowBtn');
+  logo.addEventListener('click', async ()=>{
+    // ако не е зареден маршрут – активирай текущия
+    if(state.items.length === 0){
+      await autoActivateTrack();
+    }
+    // центрирай и включи участници за първия зареден
+    if(state.items.length){
+      const id = state.items[0].id || state.items[0].file;
+      const entry = state.layers.get(id);
+      if(entry){
+        if(!entry.peopleOn){
+          entry.peopleOn = true;
+          entry.group.addLayer(entry.peopleLayer);
+          attachRealtime(id, entry);
+        }
+        try{ map.fitBounds(entry.group.getBounds(), {padding:[28,28]}); }catch(_){}
+      }
+      // по желание — стартирай Следвай, ако е изключен
+      if(!followActive) startFollow();
+    }
+  });
+  // синхронизирай зелената „аура“ със състоянието на следване
+  document.addEventListener('follow:state', (e)=>{
+    const on = !!(e.detail && e.detail.on);
+    document.getElementById('logoFollowBtn').classList.toggle('following', on);
+  });
 }
 
-/* ===== Авто-активиране по hike_id (от URL или от таблицата) ===== */
+/* ===== Авто-активиране по hike_id ===== */
 async function autoActivateTrack(){
   const hikeId = await resolveActiveHikeId();
   if(!hikeId){ toast('Няма активен преход (липсва hike_id).'); return; }
@@ -267,7 +294,7 @@ async function resolveActiveHikeId(){
 }
 
 function findTrackByHikeId(hikeId){
-  const clean = s => (s||'').replace(/^\.?\/+/, '');
+  const clean = s => (s||'').replace(/^\.\?\/+/, '').replace(/^\.\/+/, '');
   for(const t of state.manifest.tracks){
     const id = t.id || '';
     const file = t.file || '';
@@ -317,10 +344,10 @@ function updateCounters(){
   document.getElementById('loaded2').textContent = String(loaded);
 }
 
-/* ===== Зареждане/премахване на маршрут (група: линия + участници) ===== */
+/* ===== Зареждане/премахване на маршрут ===== */
 async function addAndShow(t){
   const id  = t.id || t.file;
-  if (state.items.find(x => (x.id||x.file) === id)) return; // вече е зареден
+  if (state.items.find(x => (x.id||x.file) === id)) return;
 
   const url = DATA_PREFIX + state.base + t.file;
   let gj = null;
@@ -342,11 +369,9 @@ async function addAndShow(t){
   const peopleLayer = L.layerGroup([], { pane:'participants-pane' });
   const group = L.layerGroup([routeLayer, peopleLayer]).addTo(routesRootGroup);
 
-  // изчисляваме опростен масив от latlng за маршрута + кумулативни разстояния
   const routeLatLngs = extractRouteLatLngs(routeLayer);
-  const cum = computeCumulative(routeLatLngs);
 
-  state.layers.set(id, { group, routeLayer, peopleLayer, people:{ markers:new Map(), channel:null }, meta:t, routeLatLngs, cum, peopleOn:false });
+  state.layers.set(id, { group, routeLayer, peopleLayer, people:{ markers:new Map(), channel:null }, meta:t, routeLatLngs, peopleOn:false });
   state.items.push({...t});
 
   try{ map.fitBounds(group.getBounds(), {padding:[32,32]}); }catch(e){}
@@ -359,7 +384,6 @@ function removeTrack(t){
   if (idx >= 0) state.items.splice(idx,1);
   const entry = state.layers.get(id);
   if (entry){
-    // откачаме realtime
     try{ if(entry.people.channel){ entry.people.channel.unsubscribe(); entry.people.channel=null; } }catch(_){ }
     routesRootGroup.removeLayer(entry.group);
     state.layers.delete(id);
@@ -374,12 +398,10 @@ function togglePeople(id, btn){
   btn.classList.toggle('primary', entry.peopleOn);
 
   if(entry.peopleOn){
-    // показваме слоя и включваме realtime
     entry.group.addLayer(entry.peopleLayer);
     attachRealtime(id, entry);
     toast('Участници: ВКЛ');
   } else {
-    // скриваме слоя и спираме realtime
     try{ if(entry.people.channel){ entry.people.channel.unsubscribe(); entry.people.channel=null; } }catch(_){ }
     entry.peopleLayer.clearLayers(); entry.people.markers.clear();
     toast('Участници: ИЗКЛ');
@@ -388,14 +410,12 @@ function togglePeople(id, btn){
 
 function attachRealtime(hikeId, entry){
   if(!supabaseClient){ setLiveState(false); return; }
-  // 初воначално зареждане на последни позиции
   loadPeopleSnapshot(hikeId, entry).catch(()=>{});
 
-  // realtime канал по даден hike_id
   try{
     const ch = supabaseClient.channel('live:'+hikeId);
     ch.on('postgres_changes', { event:'*', schema:'public', table:'hike_live_positions', filter:`hike_id=eq.${hikeId}` }, (payload)=>{
-      const rec = payload.new || payload.record || payload.old; // new/updated/deleted
+      const rec = payload.new || payload.record || payload.old;
       if(!rec) return;
       upsertParticipant(entry, rec);
     });
@@ -409,25 +429,23 @@ async function loadPeopleSnapshot(hikeId, entry){
     .from('hike_live_positions')
     .select('user_id,name,lat,lng,seen_at')
     .eq('hike_id', hikeId)
-    .gte('seen_at', new Date(Date.now()-1000*60*120).toISOString()) // последни 120 мин
+    .gte('seen_at', new Date(Date.now()-1000*60*120).toISOString())
     .order('seen_at', { ascending:false });
   if(error){ console.warn(error); return; }
   if(!data) return;
-  // последна позиция на потребител
   const latestByUser = new Map();
   for(const r of data){ if(!latestByUser.has(r.user_id)) latestByUser.set(r.user_id,r); }
   for(const r of latestByUser.values()){ upsertParticipant(entry, r); }
 }
 
 function upsertParticipant(entry, rec){
-  const { user_id, name, lat, lng, seen_at } = rec;
+  const { user_id, name, lat, lng } = rec;
   if(!Number.isFinite(+lat) || !Number.isFinite(+lng)) return;
 
   const uid = String(user_id||'u?');
   const initials = (name||'U').trim().split(/\s+/).map(s=>s[0]).slice(0,2).join('').toUpperCase();
   const ll = [ +lat, +lng ];
 
-  // Snap до маршрута + прогрес
   const snapped = snapToRoute(ll, entry.routeLatLngs);
   const progressPct = (snapped.ratio*100).toFixed(0);
 
@@ -435,7 +453,7 @@ function upsertParticipant(entry, rec){
   if(!m){
     const icon = participantIcon(initials);
     m = L.marker(snapped.point, { icon, pane:'participants-pane' }).addTo(entry.peopleLayer);
-    m.bindTooltip(`${name||'Участник'} · ${progressPct}%`, { permanent:false, direction:'top' });
+    m.bindTooltip(`${name||'Участник'} · ${progressPct}%`, { direction:'top' });
     entry.people.markers.set(uid, m);
   } else {
     m.setLatLng(snapped.point);
@@ -448,23 +466,17 @@ function participantIcon(txt){
   return L.divIcon({ html, className:'', iconSize:[28,34], iconAnchor:[14,30], tooltipAnchor:[0,-16] });
 }
 
-/* ===== Геометрия: извличане и snap-to-route ===== */
+/* ===== Геометрия ===== */
 function extractRouteLatLngs(routeLayer){
   const out = [];
   routeLayer.eachLayer(l=>{
     if(typeof l.getLatLngs === 'function'){
       let arr = l.getLatLngs();
-      // може да е MultiLineString -> масиви от масиви
       const flat = Array.isArray(arr[0]) ? arr.flat(Infinity) : arr;
       for(const p of flat){ if(p && 'lat' in p && 'lng' in p) out.push([p.lat, p.lng]); }
     }
   });
   return out;
-}
-
-function computeCumulative(latlngs){
-  const dists=[0]; let total=0; for(let i=1;i<latlngs.length;i++){ total += distKm(latlngs[i-1], latlngs[i]); dists.push(total); }
-  return { dists, total };
 }
 
 function distKm(a,b){
@@ -474,10 +486,11 @@ function distKm(a,b){
 
 function snapToRoute(p, latlngs){
   if(!latlngs || latlngs.length<2) return { point:p, ratio:0 };
-  // екорекционна проекция за локална евклидова геометрия
   const toXY = (lat,lng)=>{ const x = lng*Math.cos(lat*Math.PI/180); const y = lat; return [x,y]; };
   const P = toXY(p[0],p[1]);
   let best = { idx:0, t:0, dist:Infinity, proj:[latlngs[0][0],latlngs[0][1]] };
+  let total=0; for(let i=1;i<latlngs.length;i++) total += distKm(latlngs[i-1], latlngs[i]);
+  let done=0;
   for(let i=1;i<latlngs.length;i++){
     const A=latlngs[i-1], B=latlngs[i];
     const Axy=toXY(A[0],A[1]), Bxy=toXY(B[0],B[1]);
@@ -485,24 +498,16 @@ function snapToRoute(p, latlngs){
     const ab2 = AB[0]*AB[0]+AB[1]*AB[1]; if(ab2===0) continue;
     let t = (AP[0]*AB[0]+AP[1]*AB[1]) / ab2; t = Math.max(0, Math.min(1,t));
     const proj=[ A[0] + (B[0]-A[0])*t, A[1] + (B[1]-A[1])*t ];
-    // приблизително разстояние в km
-    const d = distKm([P[1],P[0]], [proj[0],proj[1]]); // P е в xy, затова малко хак за метрика
+    const d = distKm([P[1],P[0]], [proj[0],proj[1]]);
     if(d < best.dist){ best = { idx:i-1, t, dist:d, proj } }
   }
-  // прогрес по дължина
-  const before = state.layers; // не ползваме тук – ще сметнем по сегмента
-  return { point: best.proj, ratio: segmentProgressRatio(latlngs, best.idx, best.t) };
+  let sum=0; for(let i=1;i<=best.idx;i++) sum+=distKm(latlngs[i-1],latlngs[i]);
+  const seg=distKm(latlngs[best.idx], latlngs[best.idx+1]||latlngs[best.idx]);
+  const ratio = total>0 ? (sum + seg*best.t)/total : 0;
+  return { point: best.proj, ratio };
 }
 
-function segmentProgressRatio(latlngs, idx, t){
-  // процент от цялата полилиния до точката в сегмента idx + t
-  let done=0; for(let i=1;i<=idx;i++){ done += distKm(latlngs[i-1], latlngs[i]); }
-  const seg = distKm(latlngs[idx], latlngs[idx+1]||latlngs[idx]);
-  const total = (function(){ let s=0; for(let i=1;i<latlngs.length;i++) s+=distKm(latlngs[i-1],latlngs[i]); return s; })();
-  const cur = done + seg*t; return total>0 ? cur/total : 0;
-}
-
-/* ===== Следване (геолокация + посока) – от оригинала ===== */
+/* Следване */
 const btnFollow = document.getElementById('btnFollow');
 let followActive = false; let watchId = null; let meMarker = null; let prevPos = null; let lastBearing = 0;
 btnFollow.addEventListener('click', ()=> followActive ? stopFollow() : startFollow());
@@ -519,7 +524,7 @@ function stopFollow(){ followActive = false; btnFollow.classList.remove('primary
 function onPos(p){ const { latitude:lat, longitude:lng, heading } = p.coords; const ll = [lat,lng]; if(!meMarker) meMarker = L.marker(ll, { icon:createHeadingIcon(0), zIndexOffset:1000 }).addTo(map); meMarker.setLatLng(ll); let br = (heading!=null && !isNaN(heading)) ? heading : (prevPos ? computeBearing(prevPos,ll) : lastBearing); lastBearing = br||0; rotateIcon(meMarker, lastBearing); if(followActive){ map.panTo(ll, {animate:true}); } prevPos = ll; }
 function onPosErr(e){ toast('Геолокация: '+e.message); stopFollow(); }
 
-/* ===== Жестове – скриване на панела ===== */
+/* Панел жестове */
 function enableSwipeDismiss(){
   const GRAB_HEIGHT = 58, SWIPE = 90, EDGE_LIMIT = 14; let sx=0, sy=0, dx=0, dy=0, dragging=false;
   const start = (x,y)=>{ const r = sheet.getBoundingClientRect(); if (y < r.top || y > r.top+GRAB_HEIGHT) return; dragging = true; sx=x; sy=y; tray.classList.add('dragging'); };
@@ -546,19 +551,6 @@ async function ensureToGeoJSON(){
 const fetchJson = (u)=> fetch(u, {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
 const fetchText = (u)=> fetch(u, {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); });
 </script>
-
-<!--
-DB очаквания (Supabase):
-Table public.hike_live_positions:
-  id uuid default gen_random_uuid() primary key
-  hike_id text not null       -- използваме track.id (или file) като идентификатор
-  user_id text not null
-  name text
-  lat double precision not null
-  lng double precision not null
-  seen_at timestamptz default now()
-Индекс: (hike_id, user_id, seen_at desc)
--->
 
 </body>
 </html>
