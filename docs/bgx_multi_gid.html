@@ -234,14 +234,12 @@ async function init(){
   enableSwipeDismiss();
   await autoActivateTrack();
 
-  /* === ДОБАВЕНО: плаващо лого = „Старт“ === */
+  /* === Плаващо лого = „Старт“ === */
   const logo = document.getElementById('logoFollowBtn');
   logo.addEventListener('click', async ()=>{
-    // ако не е зареден маршрут – активирай текущия
     if(state.items.length === 0){
       await autoActivateTrack();
     }
-    // центрирай и включи участници за първия зареден
     if(state.items.length){
       const id = state.items[0].id || state.items[0].file;
       const entry = state.layers.get(id);
@@ -253,11 +251,9 @@ async function init(){
         }
         try{ map.fitBounds(entry.group.getBounds(), {padding:[28,28]}); }catch(_){}
       }
-      // по желание — стартирай Следвай, ако е изключен
       if(!followActive) startFollow();
     }
   });
-  // синхронизирай зелената „аура“ със състоянието на следване
   document.addEventListener('follow:state', (e)=>{
     const on = !!(e.detail && e.detail.on);
     document.getElementById('logoFollowBtn').classList.toggle('following', on);
@@ -273,7 +269,11 @@ async function autoActivateTrack(){
   await addAndShow(t);
   const id = t.id || t.file;
   const entry = state.layers.get(id);
-  if(entry){ entry.peopleOn = true; attachRealtime(id, entry); }
+  if(entry){
+    entry.peopleOn = true;
+    entry.group.addLayer(entry.peopleLayer);       // <-- добавено
+    attachRealtime(id, entry);
+  }
   tray.classList.add('hidden');
 }
 
@@ -410,6 +410,7 @@ function togglePeople(id, btn){
 
 function attachRealtime(hikeId, entry){
   if(!supabaseClient){ setLiveState(false); return; }
+  entry.group.addLayer(entry.peopleLayer);        // <-- добавено
   loadPeopleSnapshot(hikeId, entry).catch(()=>{});
 
   try{
