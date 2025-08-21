@@ -39,7 +39,7 @@
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:.7rem 0 2px}
     .btn{padding:.85rem 1rem;border-radius:12px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.10);color:var(--text);cursor:pointer;font-weight:800}
     .btn.primary{outline:2px solid var(--accent)}
-    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .btn[disabled], .btn[aria-disabled="true"]{opacity:.6;cursor:not-allowed;pointer-events:none}
 
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .small{font-size:13px}
@@ -92,8 +92,7 @@
         <button id="start" class="btn primary">Старт споделяне</button>
         <button id="stop" class="btn" disabled>Стоп</button>
       </div>
-
-      <div class="row small" style="margin-top:8px">
+<div class="row small" style="margin-top:8px">
         <span class="chip">Последно изпратено: <span id="last">—</span></span>
         <span class="chip">Опашка: <span id="qsize">0</span></span>
         <span class="chip" title="Ниска консумация: изпраща през ~30 сек или при движение">Режим: балансиран</span>
@@ -141,13 +140,19 @@
     async function init(){
       hikeId = getHikeFromURL() || await getHikeFromDB();
       if(!hikeId){ liveEl.textContent = 'неактивен'; hikeEl.textContent = '—'; startBtn.disabled = true; $('msg').textContent = 'В момента няма активен преход. Опитай по-късно или поискай нов QR от водача.'; return; }
-      hikeEl.textContent = hikeId; liveEl.textContent = 'готов';
+      hikeEl.textContent = hikeId; liveEl.textContent = 'готов'; openMapEl.removeAttribute('aria-disabled');
     }
     function getHikeFromURL(){ const s=new URLSearchParams(location.search); return s.get('hike_id'); }
     async function getHikeFromDB(){ try{ const { data } = await sb.from('hike_live_positions').select('hike_id, seen_at').gte('seen_at', new Date(Date.now()-WINDOW_MINUTES*60000).toISOString()).order('seen_at',{ascending:false}).limit(1); return data && data[0] ? data[0].hike_id : null; }catch(e){ return null; } }
 
     // ===== Изпращане =====
-    startBtn.onclick = async ()=>{\n      if(!hikeId) return;\n      const name = (nameEl.value||'').trim(); if(!name){ nameEl.focus(); nameEl.placeholder='Въведи име'; return; }\n      startBtn.disabled = true; stopBtn.disabled = false; liveEl.textContent = 'споделя…';\n      const helloEl = document.getElementById('hello'); if(helloEl){ helloEl.textContent = `Добре дошъл, ${name}! Споделянето е активно.`; }\n      try{\n        watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:false, maximumAge:10_000, timeout:20_000 });onPos, onErr, { enableHighAccuracy:false, maximumAge:10_000, timeout:20_000 });
+    startBtn.onclick = async ()=>{
+      if(!hikeId) return;
+      const name = (nameEl.value||'').trim(); if(!name){ nameEl.focus(); nameEl.placeholder='Въведи име'; return; }
+      startBtn.disabled = true; stopBtn.disabled = false; liveEl.textContent = 'споделя…';
+      const helloEl = document.getElementById('hello'); if(helloEl){ helloEl.textContent = `Добре дошъл, ${name}! Споделянето е активно.`; }
+      try{
+        watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:false, maximumAge:10_000, timeout:20_000 });onPos, onErr, { enableHighAccuracy:false, maximumAge:10_000, timeout:20_000 });
       }catch(e){ liveEl.textContent = 'грешка с геолокация'; startBtn.disabled=false; stopBtn.disabled=true; }
       flushLoop();
     };
