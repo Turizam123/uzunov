@@ -141,7 +141,7 @@
     async function init(){
       hikeId = getHikeFromURL() || await getHikeFromDB();
       if(!hikeId){ liveEl.textContent = 'неактивен'; hikeEl.textContent = '—'; startBtn.disabled = true; $('msg').textContent = 'В момента няма активен преход. Опитай по-късно или поискай нов QR от водача.'; return; }
-      hikeEl.textContent = hikeId; liveEl.textContent = 'готов'; openMapEl.removeAttribute('aria-disabled');
+      hikeEl.textContent = hikeId; liveEl.textContent = 'готов';
     }
     function getHikeFromURL(){ const s=new URLSearchParams(location.search); return s.get('hike_id'); }
     async function getHikeFromDB(){ try{ const { data } = await sb.from('hike_live_positions').select('hike_id, seen_at').gte('seen_at', new Date(Date.now()-WINDOW_MINUTES*60000).toISOString()).order('seen_at',{ascending:false}).limit(1); return data && data[0] ? data[0].hike_id : null; }catch(e){ return null; } }
@@ -153,12 +153,12 @@
       startBtn.disabled = true; stopBtn.disabled = false; liveEl.textContent = 'споделя…';
       const helloEl = document.getElementById('hello'); if(helloEl){ helloEl.textContent = `Добре дошъл, ${name}! Споделянето е активно.`; }
       try{
-        watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:false, maximumAge:10_000, timeout:20_000 });onPos, onErr, { enableHighAccuracy:false, maximumAge:10_000, timeout:20_000 });
+        watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:false, maximumAge:10_000, timeout:20_000 });
       }catch(e){ liveEl.textContent = 'грешка с геолокация'; startBtn.disabled=false; stopBtn.disabled=true; }
       flushLoop();
       try{ window.open(MAP_URL + '?hike_id=' + encodeURIComponent(hikeId), '_blank'); }catch(e){}
     };
-    stopBtn.onclick = ()=>{ if(watchId){ navigator.geolocation.clearWatch(watchId); watchId=null; } liveEl.textContent = 'спряно'; stopBtn.disabled = true; startBtn.disabled=false; const helloEl=document.getElementById('hello'); if(helloEl){ helloEl.textContent='Споделянето е спряно.'; } } liveEl.textContent = 'спряно'; stopBtn.disabled = true; startBtn.disabled=false; };
+    stopBtn.onclick = ()=>{ if(watchId){ navigator.geolocation.clearWatch(watchId); watchId=null; } liveEl.textContent = 'спряно'; stopBtn.disabled = true; startBtn.disabled=false; const helloEl=document.getElementById('hello'); if(helloEl){ helloEl.textContent='Споделянето е спряно.'; } }; 
 
     async function onPos(p){
       const name = (nameEl.value||'').trim();
