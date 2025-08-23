@@ -153,15 +153,6 @@
 
     let MUTED = localStorage.getItem('tmap_chat_muted') === '1';
     const OUTBOX_KEY = 'tmap_chat_outbox_v1';
-    // --- Slugify with Cyrillic transliteration + fallback
-    function slugify(str){
-      const map = {"А":"A","Б":"B","В":"V","Г":"G","Д":"D","Е":"E","Ж":"Zh","З":"Z","И":"I","Й":"Y","К":"K","Л":"L","М":"M","Н":"N","О":"O","П":"P","Р":"R","С":"S","Т":"T","У":"U","Ф":"F","Х":"H","Ц":"Ts","Ч":"Ch","Ш":"Sh","Щ":"Sht","Ъ":"A","ь":"","Ю":"Yu","Я":"Ya","а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ж":"zh","з":"z","и":"i","й":"y","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"h","ц":"ts","ч":"ch","ш":"sh","щ":"sht","ъ":"a","ю":"yu","я":"ya"};
-      const translit = (str||'').split('').map(ch=>map[ch]||ch).join('');
-      let slug = translit.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-      if (!slug) slug = 'room-' + Math.random().toString(36).slice(2,6);
-      return slug;
-    }
-
 
     // DOM
     const $auth = document.getElementById('auth');
@@ -305,15 +296,18 @@
 
     async function ensureDefaultRoom(){
       try{
-        let res = await sb.from('rooms')
-          .insert({ slug: DEFAULT_ROOM_SLUG, name:'Обща стая', type:'public', created_by: S.user.id }, { onConflict:'slug', ignoreDuplicates:true })
-          .select('*').maybeSingle();
-        if (!res.data){
-          res = await sb.from('rooms').select('*').eq('slug', DEFAULT_ROOM_SLUG).maybeSingle();
+        // INSERT ... ON CONFLICT DO NOTHING (избягваме UPDATE под RLS)
+        let { data, error } = await sb.from('rooms')
+          .upsert({ slug: DEFAULT_ROOM_SLUG, name:'Обща стая', type:'public', created_by: S.user.id }, { onConflict: 'slug', ignoreDuplicates: true })
+          .select('*')
+          .maybeSingle();
+        if (!data){ // вече съществува
+          const q = await sb.from('rooms').select('*').eq('slug', DEFAULT_ROOM_SLUG).single();
+          data = q.data; error = q.error;
         }
-        if (res.error) console.warn('ensureDefaultRoom error:', res.error);
-        return res.data || null;
-      }catch(e){ console.warn('ensureDefaultRoom exception', e); return null; }
+        if (error) console.warn('ensureDefaultRoom', error);
+        return data;
+      }catch(e){ console.warn('ensureDefaultRoom', e); }
     }
 
     async function refreshRooms(){
@@ -368,11 +362,10 @@
     async function ensureMembership(roomId){
       try{
         // INSERT ... ON CONFLICT DO NOTHING (никакъв UPDATE не е нужен)
-        const ins = await sb.from('room_members')
-          .insert({ room_id: roomId, user_id: S.user.id, role:'member' }, { onConflict:'room_id,user_id', ignoreDuplicates: true });
-        if (ins.error) { console.warn('ensureMembership error:', ins.error); showToast('Грешка в членство: '+(ins.error.message||JSON.stringify(ins.error))); }
+        await sb.from('room_members')
+          .upsert({ room_id: roomId, user_id: S.user.id, role:'member' }, { onConflict:'room_id,user_id', ignoreDuplicates: true });
         S.myRoomIds.add(roomId); renderRooms();
-      }catch(e){ console.warn('ensureMembership', e); showToast('Грешка в членство (exception): '+(e?.message||e)); }
+      }catch(e){ console.warn('ensureMembership', e); }
     }
 
     async function leaveRoom(roomId){
@@ -399,7 +392,7 @@
       try{
         // Опит за създаване, без UPDATE при конфликт
         let { data, error } = await sb.from('rooms')
-          .insert({ name, slug, type: type||'public', created_by: S.user.id }, { onConflict: 'slug', ignoreDuplicates: true })
+          .upsert({ name, slug, type: type||'public', created_by: S.user.id }, { onConflict: 'slug', ignoreDuplicates: true })
           .select('*').maybeSingle();
         if (!data){ // slug вече съществува — вземаме реда
           const q = await sb.from('rooms').select('*').eq('slug', slug).single();
@@ -409,7 +402,7 @@
         S.rooms.set(data.id, data);
         await ensureMembership(data.id);
         return data;
-      }catch(e){ console.warn('createRoom', e); showToast('Грешка при създаване на канал: '+(e?.message||e)); return null; }
+      }catch(e){ console.warn('createRoom', e); showToast('Грешка при създаване на канал'); return null; }
     }
 
     function slugify(str){
