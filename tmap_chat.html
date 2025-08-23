@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>T-MAP Chat — V7 Rooms</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js" crossorigin="anonymous"></script>
+
+  <style>
+    html,body{height:100%}
+    html{scroll-behavior:smooth}
+    :root{--emoji-stack:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla","Segoe UI Symbol"}
+    body,textarea,button{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,var(--emoji-stack)}
+
+    .scroll::-webkit-scrollbar{width:8px;height:8px}
+    .scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px}
+
+    .emoji-panel{position:absolute;bottom:72px;left:12px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 30px rgba(2,6,23,.08);padding:10px;width:min(90vw,360px);max-height:260px;overflow:auto;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+    .emoji-btn{font-size:22px;line-height:1;padding:8px;border-radius:12px;display:grid;place-items:center}
+    .emoji-btn:hover{background:#f1f5f9}
+    img.twemoji{height:1.25em;width:1.25em;vertical-align:-.2em}
+
+    .auth-card{position:relative;overflow:hidden}
+    .auth-logo-wrap{position:relative;display:grid;place-items:center;margin-bottom:.5rem}
+    .auth-logo{height:82px;width:auto;filter:drop-shadow(0 4px 14px rgba(2,6,23,.15))}
+    .auth-logo-glow{position:absolute;inset:-60px;border-radius:9999px;z-index:0;background:conic-gradient(from 180deg at 50% 50%,#0ea5e9,#22d3ee,#34d399,#a78bfa,#0ea5e9);filter:blur(80px);opacity:.35;animation:auroraSpin 16s linear infinite}
+    @keyframes auroraSpin{to{transform:rotate(360deg)}}
+
+    .hl{box-shadow:0 0 0 3px rgba(250,204,21,.5) inset}
+  </style>
+  <script src="favicon-injector.js"></script>
+</head>
+
+<body class="h-screen overflow-hidden bg-slate-50 text-slate-800">
+  <!-- AUTH -->
+  <section id="auth" class="min-h-screen grid place-items-center p-6 hidden">
+    <div class="w-full max-w-sm bg-white/95 backdrop-blur border rounded-2xl shadow-sm p-6 space-y-4 auth-card">
+      <div class="auth-logo-wrap">
+        <div class="auth-logo-glow"></div>
+        <img id="authLogo" src="logo01082025.svg" alt="T-MAP" class="auth-logo relative z-10" onerror="this.src='favicon.svg'">
+      </div>
+      <h1 class="text-xl font-semibold relative z-10">Вход в чата</h1>
+      <p class="text-sm text-slate-500 relative z-10">Влезте с Google (Gmail), за да пишете в стаите.</p>
+      <button id="btnGoogle" class="relative z-10 w-full px-4 py-3 rounded-xl bg-slate-900 text-white hover:bg-slate-700">Вход с Google</button>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <div id="app" class="h-screen grid md:grid-cols-[300px,1fr] hidden">
+    <aside class="border-r bg-white hidden md:flex md:flex-col">
+      <div class="p-4 border-b flex items-center gap-3">
+        <img id="meAvatar" class="w-10 h-10 rounded-full ring-2 ring-slate-200" alt="">
+        <div class="min-w-0">
+          <div id="meName" class="font-semibold truncate">—</div>
+          <div class="text-xs text-slate-500">UID <span id="meId">—</span></div>
+        </div>
+        <button id="btnSignOut" class="ml-auto px-3 py-1.5 rounded-xl border text-sm">Изход</button>
+      </div>
+
+      <div class="p-4 border-b">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Канали</div>
+          <button id="btnNewRoom" class="text-xs px-2 py-1 rounded-xl border hover:bg-slate-50">+ Нов</button>
+        </div>
+        <div id="rooms" class="scroll max-h-60 overflow-y-auto space-y-1 pr-1"></div>
+      </div>
+
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Активни потребители</div>
+          <span id="activeCount" class="text-xs text-slate-400">0</span>
+        </div>
+        <div id="users" class="scroll max-h-[calc(100vh-360px)] overflow-y-auto space-y-1 pr-1"></div>
+      </div>
+    </aside>
+
+    <main class="grid grid-rows-[auto,auto,1fr,auto] h-screen">
+      <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b px-4 py-3 flex items-center gap-2">
+        <button id="menu" class="md:hidden px-3 py-2 rounded-xl border">☰</button>
+        <div class="font-semibold flex items-center gap-2">
+          <span id="roomName">—</span>
+          <span id="unread" class="hidden text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">нови</span>
+        </div>
+        <div id="typing" class="mx-3 text-xs text-slate-500 hidden">Пише…</div>
+        <button id="btnMute" class="ml-auto px-3 py-2 rounded-xl border" title="Звук">🔔</button>
+        <button id="btnLeave" class="px-3 py-2 rounded-xl border hidden" title="Излез от канал">⎋ Излез</button>
+        <div id="conn" class="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Онлайн</div>
+      </header>
+
+      <div id="pinbar" class="px-4 py-2 text-xs bg-amber-50 border-b border-amber-200 hidden"></div>
+
+      <section id="messages" class="scroll overflow-y-auto px-2 sm:px-4 py-4 space-y-3"></section>
+
+      <form id="composer" class="sticky bottom-0 z-10 border-t bg-white px-2 sm:px-3 py-3 flex gap-2 items-end">
+        <button id="btnEmoji" type="button" title="Емотикони" class="px-3 py-2 rounded-xl border">🙂</button>
+        <button id="btnAttach" type="button" title="Прикачи изображение" class="px-3 py-2 rounded-xl border">📎</button>
+        <input id="file" type="file" accept="image/*" class="hidden" />
+        <textarea id="input" rows="1" placeholder="Напишете съобщение… (Shift+Enter за нов ред)" class="flex-1 resize-none rounded-2xl border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-300"></textarea>
+        <button class="px-4 py-3 rounded-2xl bg-slate-900 text-white">Изпрати</button>
+        <div id="emojiPanel" class="emoji-panel hidden"></div>
+      </form>
+
+      <button id="toBottom" class="hidden fixed bottom-24 right-4 z-40 px-3 py-2 rounded-xl bg-slate-900 text-white shadow-lg">↓ Нови</button>
+
+      <div id="toast" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-lg text-sm"></div>
+    </main>
+  </div>
+
+  <audio id="ding" preload="auto">
+    <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAAAACAAACcQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" type="audio/mp3">
+  </audio>
+
+  <script>
+    // ===== CONFIG =====
+    const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
+
+    const HEARTBEAT_SEC = 20;
+    const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+    const TWE_BASE = 'emoji/';
+    const BRAND_LOGO = 'tmap_avatar_128.png';
+    const USE_TWEMOJI = true;
+    const STORAGE_BUCKET = 'chat';
+
+    const HOME_URL = 'https://turizam123.github.io/uzunov/tmap_home.html';
+
+    const DEFAULT_ROOM_SLUG = 'general';
+
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true } });
+
+    const S = {
+      user:null,
+      me:{name:"", avatar:""},
+      messages:new Map(),
+      rooms:new Map(), // id -> room
+      myRoomIds:new Set(),
+      currentRoom:null,
+      msgChannel:null,
+      typingCh:null
+    };
+
+    const EMOJIS = ["😀","😂","😊","😉","😍","😎","😭","😡","👍","🙏","👏","🔥","✨","🎉","❤️","💙","💚","💛","😅","🤔"];
+    let lastMsgAt = 0;
+
+    const sendTimes = [];
+
+    const typingUsers = new Map();
+    let typingDebounce = null;
+
+    let MUTED = localStorage.getItem('tmap_chat_muted') === '1';
+    const OUTBOX_KEY = 'tmap_chat_outbox_v1';
+
+    // DOM
+    const $auth = document.getElementById('auth');
+    const $btnGoogle = document.getElementById('btnGoogle');
+    const $app = document.getElementById('app');
+    const $meAvatar = document.getElementById('meAvatar');
+    const $meName = document.getElementById('meName');
+    const $meId = document.getElementById('meId');
+    const $users = document.getElementById('users');
+    const $activeCount = document.getElementById('activeCount');
+    const $rooms = document.getElementById('rooms');
+    const $roomName = document.getElementById('roomName');
+    const $btnNewRoom = document.getElementById('btnNewRoom');
+    const $btnLeave = document.getElementById('btnLeave');
+
+    const $messages = document.getElementById('messages');
+    const $composer = document.getElementById('composer');
+    const $input = document.getElementById('input');
+    const $conn = document.getElementById('conn');
+    const $btnSignOut = document.getElementById('btnSignOut');
+    const $btnEmoji = document.getElementById('btnEmoji');
+    const $emojiPanel = document.getElementById('emojiPanel');
+    const $menu = document.getElementById('menu');
+    const $toast = document.getElementById('toast');
+    const $ding = document.getElementById('ding');
+    const $file = document.getElementById('file');
+    const $btnAttach = document.getElementById('btnAttach');
+    const $btnMute = document.getElementById('btnMute');
+    const $toBottom = document.getElementById('toBottom');
+    const $typing = document.getElementById('typing');
+
+    $menu?.addEventListener('click', ()=>{ document.querySelector('aside').classList.toggle('hidden'); });
+
+    // Boot
+    boot();
+    async function boot(){
+      const { data } = await sb.auth.getUser();
+      if (data?.user) onLoggedIn(data.user); else showAuth(true);
+    }
+    sb.auth.onAuthStateChange((event, session) => {
+      if (session?.user) onLoggedIn(session.user);
+      else if (event === 'SIGNED_OUT') window.location.replace(HOME_URL);
+      else showAuth(true);
+    });
+
+    function showAuth(show){ $auth.classList.toggle('hidden', !show); $app.classList.toggle('hidden', show); }
+
+    $btnGoogle.addEventListener('click', async ()=>{
+      await sb.auth.signInWithOAuth({ provider:'google', options:{ scopes:'openid email profile', redirectTo: `${location.origin}${location.pathname}` } });
+    });
+
+    $btnSignOut.addEventListener('click', async ()=>{
+      try{
+        if (S.user){ await sb.from('online_users').update({ last_seen_at: new Date(Date.now()-10*60*1000).toISOString() }).eq('id', S.user.id); }
+        await sb.auth.signOut();
+      } finally {
+        window.location.replace(HOME_URL);
+      }
+    });
+
+    async function onLoggedIn(user){
+      S.user = user;
+      const m = user.user_metadata||{};
+      S.me = { name: m.full_name || m.name || (user.email||'').split('@')[0] || 'Потребител', avatar: m.avatar_url || m.picture || '' };
+      document.title = 'T-MAP Chat';
+      $meAvatar.src = avatarUrl(S.me.name, S.me.avatar);
+      $meName.textContent = S.me.name; $meId.textContent = (user.id||'').slice(0,8);
+      showAuth(false);
+
+      setMuteIcon();
+
+      await upsertPresence();
+      heartbeat();
+      await refreshUsers();
+      subscribePresence();
+
+      await ensureDefaultRoom();
+      await refreshRooms();
+      const remembered = localStorage.getItem('tmap_last_room');
+      let targetRoom = S.rooms.get(remembered) || findRoomBySlug(DEFAULT_ROOM_SLUG) || Array.from(S.rooms.values())[0];
+      if (!targetRoom) { // ако няма стаи изобщо
+        targetRoom = await createRoomPromptless('Обща стая', DEFAULT_ROOM_SLUG, 'public');
+      }
+      await setCurrentRoom(targetRoom.id);
+
+      initEmoji();
+      enableNotifications();
+      loadOutbox();
+
+      $input.addEventListener('input', ()=>{ autoResize($input); sendTyping(); });
+      $input.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); $composer.requestSubmit(); }});
+      autoResize($input);
+
+      $messages.addEventListener('scroll', checkScrollBottom);
+      $toBottom.addEventListener('click', ()=>{ scrollToBottom(); clearUnread(); });
+
+      $btnAttach.addEventListener('click', ()=> $file.click());
+      $file.addEventListener('change', handleFiles);
+      $input.addEventListener('paste', async (ev)=>{
+        const items = ev.clipboardData?.items || [];
+        for (const it of items){ if (it.type && it.type.startsWith('image/')){ const file = it.getAsFile(); if (file) await uploadAndSendImage(file); } }
+      });
+
+      $btnMute.addEventListener('click', ()=>{ MUTED = !MUTED; localStorage.setItem('tmap_chat_muted', MUTED?'1':'0'); setMuteIcon(); showToast(MUTED? 'Звукът е заглушен' : 'Звукът е включен'); });
+
+      window.addEventListener('hashchange', highlightFromHash);
+
+      $btnNewRoom.addEventListener('click', createRoomFlow);
+      $btnLeave.addEventListener('click', ()=>{ if(!S.currentRoom) return; if (S.currentRoom.slug===DEFAULT_ROOM_SLUG){ return showToast('Не може да напуснете общата стая'); } leaveRoom(S.currentRoom.id); });
+    }
+
+    function setMuteIcon(){ $btnMute.textContent = MUTED ? '🔕' : '🔔'; }
+
+    // Presence
+    async function upsertPresence(){
+      const { error } = await sb.from('online_users').upsert(
+        { id:S.user.id, username:S.me.name, avatar:S.me.avatar, last_seen_at:new Date().toISOString() },
+        { onConflict:'id' }
+      );
+      if (error) console.warn('presence upsert', error);
+    }
+    function heartbeat(){ upsertPresence(); setTimeout(heartbeat, HEARTBEAT_SEC*1000); }
+    function isOnline(iso){ return new Date(iso).getTime() > Date.now() - ONLINE_WINDOW_MS; }
+
+    async function refreshUsers(){
+      const { data, error } = await sb.from('online_users').select('*').order('last_seen_at',{ascending:false}).limit(200);
+      if (error) return console.warn(error);
+      $users.innerHTML=''; let count=0;
+      (data||[]).forEach(u=>{
+        const online=isOnline(u.last_seen_at); if(online) count++;
+        const el=document.createElement('div'); el.className='flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50';
+        el.innerHTML=`<img src="${avatarUrl(u.username,u.avatar)}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/><div class='min-w-0'><div class='font-medium truncate'>${esc(u.username||'Потребител')}</div><div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div></div>${u.id===S.user.id?'<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>':''}`;
+        $users.appendChild(el);
+      });
+      $activeCount.textContent = count;
+    }
+    function subscribePresence(){ sb.channel('online_users_changes').on('postgres_changes',{event:'*',schema:'public',table:'online_users'},refreshUsers).subscribe(); }
+
+    // ==== ROOMS ====
+    function findRoomBySlug(slug){ for(const r of S.rooms.values()){ if(r.slug===slug) return r; } return null; }
+
+    async function ensureDefaultRoom(){
+      try{
+        const { data, error } = await sb.from('rooms').upsert({ slug: DEFAULT_ROOM_SLUG, name:'Обща стая', type:'public', created_by: S.user.id }, { onConflict:'slug' }).select('*').single();
+        if (error) console.warn('ensureDefaultRoom', error);
+        return data;
+      }catch(e){ console.warn('ensureDefaultRoom', e); }
+    }
+
+    async function refreshRooms(){
+      try{
+        const uid = S.user.id;
+        const { data:pub, error:e1 } = await sb.from('rooms').select('*').eq('type','public').order('name');
+        if (e1) throw e1;
+        const { data:memIds, error:e2 } = await sb.from('room_members').select('room_id').eq('user_id', uid).limit(1000);
+        if (e2) throw e2;
+        const ids = (memIds||[]).map(r=>r.room_id);
+        const { data:mine, error:e3 } = ids.length? await sb.from('rooms').select('*').in('id', ids) : { data:[], error:null };
+        if (e3) throw e3;
+        const map = new Map();
+        (pub||[]).forEach(r=>map.set(r.id,r));
+        (mine||[]).forEach(r=>map.set(r.id,r));
+        S.rooms = map;
+        S.myRoomIds = new Set(ids);
+        renderRooms();
+      }catch(e){ console.warn('refreshRooms', e); }
+    }
+
+    function renderRooms(){
+      $rooms.innerHTML = '';
+      const items = Array.from(S.rooms.values()).sort((a,b)=>a.name.localeCompare(b.name,'bg'));
+      items.forEach(r=>{
+        const selected = S.currentRoom && S.currentRoom.id===r.id;
+        const el = document.createElement('button');
+        el.className = 'w-full flex items-center justify-between px-3 py-2 rounded-xl '+(selected? 'bg-slate-900 text-white' : 'hover:bg-slate-50');
+        el.innerHTML = `<div class='flex items-center gap-2'><span>#</span><span class='truncate max-w-[180px] text-left'>${esc(r.name)}</span></div>`+
+          (selected && r.slug!==DEFAULT_ROOM_SLUG? `<span class='text-xs opacity-80' title='Излез' onclick="event.stopPropagation(); leaveRoom('${r.id}')">⎋</span>` : '') ;
+        el.addEventListener('click', ()=> setCurrentRoom(r.id));
+        $rooms.appendChild(el);
+      });
+    }
+
+    async function setCurrentRoom(roomId){
+      const room = S.rooms.get(roomId); if(!room) return;
+      S.currentRoom = room;
+      localStorage.setItem('tmap_last_room', room.id);
+      $roomName.textContent = room.name || '—';
+      $btnLeave.classList.toggle('hidden', room.slug===DEFAULT_ROOM_SLUG);
+
+      // ensure membership (auto-join)
+      await ensureMembership(room.id);
+
+      // typing channel per room
+      setupTypingChannel(room.id);
+
+      // subscribe & load messages
+      subscribeMessages(room.id);
+      await loadMessages(room.id);
+      highlightFromHash();
+      scrollToBottom(true);
+      renderRooms();
+    }
+
+    async function ensureMembership(roomId){
+      try{
+        const { error } = await sb.from('room_members').upsert({ room_id: roomId, user_id: S.user.id, role:'member' }, { onConflict:'room_id,user_id' });
+        if (!error) { S.myRoomIds.add(roomId); renderRooms(); }
+      }catch(e){ console.warn('ensureMembership', e); }
+    }
+
+    async function leaveRoom(roomId){
+      if (S.currentRoom && S.currentRoom.id===roomId && S.currentRoom.slug===DEFAULT_ROOM_SLUG) return;
+      try{
+        await sb.from('room_members').delete().eq('room_id', roomId).eq('user_id', S.user.id);
+      }catch(e){ console.warn('leaveRoom', e); }
+      S.myRoomIds.delete(roomId);
+      if (S.currentRoom && S.currentRoom.id===roomId){
+        const fallback = findRoomBySlug(DEFAULT_ROOM_SLUG) || Array.from(S.rooms.values())[0];
+        await setCurrentRoom(fallback.id);
+      }
+      await refreshRooms();
+    }
+
+    async function createRoomFlow(){
+      const name = prompt('Име на канала (напр. Планина Рила):'); if(!name) return;
+      const slug = slugify(name);
+      const room = await createRoomPromptless(name, slug, 'public');
+      if (room){ await setCurrentRoom(room.id); await refreshRooms(); }
+    }
+
+    async function createRoomPromptless(name, slug, type){
+      try{
+        const { data, error } = await sb.from('rooms').upsert({ name, slug, type: type||'public', created_by: S.user.id }, { onConflict:'slug' }).select('*').single();
+        if (error) throw error;
+        S.rooms.set(data.id, data);
+        await ensureMembership(data.id);
+        return data;
+      }catch(e){ console.warn('createRoom', e); showToast('Грешка при създаване на канал'); return null; }
+    }
+
+    function slugify(str){
+      const map = {"А":"A","Б":"B","В":"V","Г":"G","Д":"D","Е":"E","Ж":"Zh","З":"Z","И":"I","Й":"Y","К":"K","Л":"L","М":"M","Н":"N","О":"O","П":"P","Р":"R","С":"S","Т":"T","У":"U","Ф":"F","Х":"H","Ц":"Ts","Ч":"Ch","Ш":"Sh","Щ":"Sht","Ъ":"A","ь":"","Ю":"Yu","Я":"Ya","а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ж":"zh","з":"z","и":"i","й":"y","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"h","ц":"ts","ч":"ch","ш":"sh","щ":"sht","ъ":"a","ю":"yu","я":"ya"};
+      return (str||'')
+        .split('')
+        .map(ch=>map[ch]||ch)
+        .join('')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/[^a-zA-Z0-9]+/g,'-')
+        .replace(/(^-|-$)/g,'')
+        .toLowerCase();
+    }
+
+    // Typing per room
+    function setupTypingChannel(roomId){
+      if (S.typingCh) { try{ sb.removeChannel(S.typingCh); }catch(_){ } S.typingCh=null; }
+      typingUsers.clear(); renderTyping();
+      S.typingCh = sb.channel(`typing:${roomId}`, { config: { broadcast: { self: false } } });
+      S.typingCh.on('broadcast', { event:'typing' }, ({ payload })=>{
+        if(!payload || payload.uid===S.user?.id) return;
+        typingUsers.set(payload.uid, { name: payload.name||'потребител', t: Date.now() });
+        renderTyping();
+        setTimeout(()=>{ typingUsers.delete(payload.uid); renderTyping(); }, 1600);
+      }).subscribe();
+    }
+    function sendTyping(){
+      if(!S.typingCh) return;
+      if (typingDebounce) clearTimeout(typingDebounce);
+      S.typingCh.send({ type:'broadcast', event:'typing', payload:{ uid:S.user.id, name:S.me.name }});
+      typingDebounce = setTimeout(()=>{}, 1100);
+    }
+    function renderTyping(){
+      const names = Array.from(typingUsers.values()).map(x=>x.name).slice(0,3);
+      if (names.length){ $typing.textContent = names.length===1 ? `${names[0]} пише…` : `${names.join(', ')} пишат…`; $typing.classList.remove('hidden'); }
+      else{ $typing.classList.add('hidden'); }
+    }
+
+    // ==== MESSAGES (per room) ====
+    async function loadMessages(roomId){
+      try{
+        let { data, error } = await sb.from('messages').select('*').eq('room_id', roomId).order('created_at',{ascending:true}).limit(300);
+        if (error){ ({ data, error } = await sb.from('messages').select('*').eq('room_id', roomId).limit(300)); }
+        if (error){ console.warn('loadMessages', error); return; }
+        $messages.innerHTML=''; S.messages.clear();
+        (data||[]).forEach(m=>{ S.messages.set(m.id,m); renderMessage(m); });
+        renderTwemoji($messages);
+        if (data && data.length){ lastMsgAt = Date.parse(data[data.length-1].created_at||new Date()); }
+        scrollToBottom(true);
+      }catch(e){ console.warn('loadMessages', e); }
+    }
+
+    function subscribeMessages(roomId){
+      if (S.msgChannel) { try{ sb.removeChannel(S.msgChannel); }catch(_){ } S.msgChannel=null; }
+      const ch = sb.channel(`realtime:messages:${roomId}`);
+      ch
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages', filter:`room_id=eq.${roomId}`},({new:row})=>{
+          S.messages.set(row.id,row);
+          renderMessage(row);
+          renderTwemoji(document.getElementById('msg-'+row.id));
+          lastMsgAt = Math.max(lastMsgAt, Date.parse(row.created_at||new Date()));
+          if (isAtBottom()) { scrollToBottom(); } else { markUnread(); $toBottom.classList.remove('hidden'); }
+          notifyIfNeeded(row);
+        })
+        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages', filter:`room_id=eq.${roomId}`},({new:row})=>{
+          S.messages.set(row.id,row);
+          const el=document.getElementById('msg-'+row.id);
+          if(el){ el.outerHTML = messageHtml(row); renderTwemoji(document.getElementById('msg-'+row.id)); }
+        })
+        .subscribe();
+      S.msgChannel = ch;
+    }
+
+    function messageHtml(m){
+      const name = esc(m.sender_name || m.username || '');
+      const avatar = avatarUrl(name, m.sender_avatar || m.avatar);
+      const mine = m.sender_id ? (m.sender_id===S.user.id) : (name===S.me.name);
+      const liked_by = Array.isArray(m.liked_by) ? m.liked_by : [];
+      const liked = liked_by.includes?.(S.user?.id);
+      const likeBtn = `<button class=\"inline-flex items-center gap-1 text-xs ${liked?'font-semibold':''}\" onclick=\"toggleLike('${m.id}')\">❤ <span>${liked_by.length||0}</span></button>`;
+      const time = m.created_at ? `<span class='text-[11px] opacity-70'>${formatTime(m.created_at)}</span>` : '';
+      const bodyHtml = renderBody(m.content||'');
+      const actions = [
+        `<button class='text-xs underline' onclick=\"replyMsg('${m.id}')\" title='Отговор'>↩︎</button>`,
+        `<button class='text-xs underline' onclick=\"copyLink('${m.id}')\" title='Копирай линк'>🔗</button>`
+      ];
+      if (mine){
+        actions.push(`<button class='text-xs underline' onclick=\"editMsg('${m.id}')\" title='Редактирай'>✏️</button>`);
+        actions.push(`<button class='text-xs underline' onclick=\"delMsg('${m.id}')\" title='Изтрий'>🗑️</button>`);
+      }
+
+      return `
+        <div id="msg-${m.id}" class="flex items-start gap-3 ${mine?'justify-end':''}">
+          ${mine?'':`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`}
+          <div class="max-w-[90%] sm:max-w-[80%] ${mine?'bg-gradient-to-br from-slate-900 to-slate-800 text-white':'bg-white'} rounded-2xl px-4 py-3 shadow-sm border ${mine?'border-slate-900':'border-slate-200'}">
+            ${mine?'':`<div class='text-xs font-medium mb-1 text-slate-500'>${name}</div>`}
+            <div class="whitespace-pre-wrap leading-relaxed">${bodyHtml}</div>
+            <div class="mt-2 flex items-center gap-3 ${mine?'text-slate-200':'text-slate-500'}">${likeBtn} ${time} <span class="opacity-60">•</span> ${actions.join(' ')}</div>
+          </div>
+          ${mine?`<img src='${esc(avatar)}' class='w-8 h-8 rounded-full ring-2 ring-slate-200'/>`:''}
+        </div>`;
+    }
+    function renderMessage(m){ $messages.insertAdjacentHTML('beforeend', messageHtml(m)); }
+
+    function renderBody(text){
+      const t = text.trim();
+      if (isImageUrl(t)){
+        const safe = esc(t);
+        return `<a href='${safe}' target='_blank' rel='noopener'><img src='${safe}' alt='image' loading='lazy' class='mt-1 rounded-lg border max-h-80'></a>`;
+      }
+      const yt = extractYouTubeId(t);
+      if (yt){
+        return `<div style=\"aspect-ratio:16/9\" class=\"mt-1\"><iframe src=\"https://www.youtube.com/embed/${yt}\" title=\"YouTube video\" loading=\"lazy\" allowfullscreen class=\"w-full h-full rounded-lg border\"></iframe></div>`;
+      }
+      return linkify(esc(t));
+    }
+
+    // Send
+    $composer.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const txt=$input.value.trim();
+      if(!txt || !S.currentRoom) return;
+      const now=Date.now();
+      while (sendTimes.length && now - sendTimes[0] > 10000) sendTimes.shift();
+      if (sendTimes.length >= 5){ showToast('Моля, забавете темпото (анти-спам)'); return; }
+      sendTimes.push(now);
+
+      const row={ username:S.me.name, avatar:S.me.avatar, content:txt, sender_id:S.user.id, sender_name:S.me.name, sender_avatar:S.me.avatar, room_id:S.currentRoom.id };
+      $input.value=''; autoResize($input);
+      try{
+        const { error } = await sb.from('messages').insert(row);
+        if (error) throw error;
+      }catch(err){ queueOutbox(row); showToast('Няма връзка. Съобщението е в опашка.'); }
+    });
+
+    // Reply/Copy/Edit/Delete
+    window.replyMsg = function(id){ const m=S.messages.get(id); if(!m) return; const quote = (m.content||'').replace(/\n/g,'\n> '); $input.value = `> ${quote}\n`; $input.focus(); autoResize($input); }
+    window.copyLink = async function(id){ const url = `${location.origin}${location.pathname}#m-${id}`; try{ await navigator.clipboard.writeText(url); showToast('Линкът е копиран'); }catch(_){ prompt('Копирайте линка:', url); } }
+    window.editMsg = async function(id){ const m=S.messages.get(id); if(!m) return; const mine = m.sender_id===S.user.id; if(!mine){ return showToast('Може да редактирате само свои съобщения'); }
+      const txt = prompt('Редактирайте съобщението:', m.content||''); if(txt==null) return; const newText = txt.trim(); if(!newText) return; const { error } = await sb.from('messages').update({ content:newText + ' (редактирано)' }).eq('id', id); if(error) alert('Грешка при редакция: '+error.message); }
+    window.delMsg = async function(id){ const m=S.messages.get(id); if(!m) return; const mine = m.sender_id===S.user.id; if(!mine){ return showToast('Може да изтривате само свои съобщения'); }
+      if(!confirm('Да изтрием ли съобщението?')) return; const { error } = await sb.from('messages').update({ content:'⟪ Съобщението е изтрито от автора ⟫' }).eq('id', id); if(error) alert('Грешка при изтриване: '+error.message); }
+
+    // Likes
+    window.toggleLike = async function(id){
+      const msg = S.messages.get(id); if(!msg) return;
+      const uid = S.user.id;
+      const prev = Array.isArray(msg.liked_by) ? msg.liked_by.slice() : [];
+      const had = prev.includes(uid);
+      msg.liked_by = had ? prev.filter(x=>x!==uid) : prev.concat(uid);
+      S.messages.set(id, msg);
+      const mnt = document.getElementById('msg-'+id); if(mnt) mnt.outerHTML = messageHtml(msg);
+      const { error } = await sb.rpc('toggle_like', { p_msg_id:id });
+      if (error){ msg.liked_by = prev; S.messages.set(id,msg); if(mnt) mnt.outerHTML = messageHtml(msg); alert('Грешка при харесване: '+error.message); }
+    }
+
+    // Emoji
+    function initEmoji(){
+      const base = TWE_BASE.endsWith('/') ? TWE_BASE : TWE_BASE + '/';
+      const grid = EMOJIS.map(e=>{
+        const cp = Array.from(e).map(s=>s.codePointAt(0).toString(16)).join('-');
+        const safe = e.replace(/\"/g,'&quot;');
+        return `<button type=\"button\" class=\"emoji-btn\" data-e=\"${safe}\"><img class=\"twemoji\" src=\"${base}${cp}.svg\" alt=\"${safe}\" onerror=\"this.parentElement.textContent='${safe}'\"/></button>`;
+      }).join('');
+      $emojiPanel.innerHTML = grid;
+      $btnEmoji.addEventListener('click', ()=>{ $emojiPanel.classList.toggle('hidden'); });
+      $emojiPanel.addEventListener('click', (ev)=>{ const btn=ev.target.closest('.emoji-btn'); if(btn){ $input.value += btn.dataset.e; $input.focus(); autoResize($input); }});
+      document.addEventListener('click', (ev)=>{ if(!ev.composedPath().includes($emojiPanel) && !ev.composedPath().includes($btnEmoji)) $emojiPanel.classList.add('hidden'); });
+    }
+
+    // Notifications / sound
+    function enableNotifications(){
+      if ('Notification' in window && Notification.permission==='default'){
+        try{ Notification.requestPermission(); }catch(e){}
+      }
+      const unlock = ()=>{ try{ $ding.play().then(()=>{ $ding.pause(); $ding.currentTime=0; }).catch(()=>{}); }catch(_){ }
+        document.removeEventListener('pointerdown',unlock); };
+      document.addEventListener('pointerdown', unlock, {passive:true});
+      document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) clearUnread(); });
+    }
+
+    let audioCtx; let soundEnabled=false;
+    function unlockAudio(){
+      try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); audioCtx.resume && audioCtx.resume(); soundEnabled = true; }catch(_){ }
+    }
+    document.addEventListener('pointerdown', unlockAudio, {passive:true});
+    $composer?.addEventListener('submit', unlockAudio);
+    $btnEmoji?.addEventListener('click', unlockAudio);
+
+    function playDing(){ if (MUTED) return; try{ $ding.volume=0.7; $ding.currentTime=0; $ding.play().catch(()=>{}); }catch(_){ } if(!soundEnabled) return; try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.08; o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.12); }catch(_){ } }
+    function vibrate(){ if (MUTED) return; try{ navigator.vibrate && navigator.vibrate([25,30,25]); }catch(_){ } }
+
+    function showToast(t){ if(!$toast) return; $toast.textContent=t; $toast.classList.remove('hidden'); setTimeout(()=>{$toast.classList.add('hidden')},2500); }
+    function markUnread(){ const b=document.getElementById('unread'); b&&b.classList.remove('hidden'); document.title='• Нови - T-MAP Chat'; }
+    function clearUnread(){ const b=document.getElementById('unread'); b&&b.classList.add('hidden'); document.title='T-MAP Chat'; }
+
+    function notifyIfNeeded(m){
+      if(!S.user) return;
+      const name = m.sender_name || m.username || 'Новo съобщение';
+      const mine = m.sender_id ? (m.sender_id===S.user.id) : (name===S.me.name);
+      if (mine) return;
+      playDing(); vibrate();
+      if (document.hidden){
+        markUnread();
+        if ('Notification' in window && Notification.permission==='granted'){
+          try{ const n=new Notification('T-MAP чат',{ body:`${name}: ${(m.content||'').slice(0,100)}`, icon:m.sender_avatar || m.avatar || undefined }); setTimeout(()=>n.close(),5000); }catch(_){ }
+        }
+      } else {
+        showToast(`${name}: ${(m.content||'').slice(0,80)}`);
+      }
+    }
+
+    // Poll latest timestamp (fallback)
+    setInterval(async()=>{ try{ if(!S.currentRoom) return; const { data, error } = await sb.from('messages').select('created_at').eq('room_id', S.currentRoom.id).order('created_at',{ascending:false}).limit(1); if(!error && data && data[0]){ const ts=Date.parse(data[0].created_at); if(ts>lastMsgAt){ await loadMessages(S.currentRoom.id); } } }catch(_){ } },7000);
+
+    // Connection ping + outbox
+    setInterval(async()=>{ const { error } = await sb.from('online_users').select('count').limit(1);
+      $conn.textContent = error? 'Офлайн':'Онлайн';
+      $conn.className = 'text-xs px-2 py-1 rounded-full '+(error?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'); if(!error) flushOutbox(); },5000);
+
+    // Scroll handling
+    function isAtBottom(){ return ($messages.scrollHeight - $messages.scrollTop - $messages.clientHeight) < 40; }
+    function scrollToBottom(force){ if (force || isAtBottom()){ $messages.scrollTop = $messages.scrollHeight; $toBottom.classList.add('hidden'); } }
+    function checkScrollBottom(){ if (isAtBottom()) { $toBottom.classList.add('hidden'); clearUnread(); } else { $toBottom.classList.remove('hidden'); } }
+
+    function highlightFromHash(){ const id = location.hash.replace('#m-',''); if(!id) return; const el = document.getElementById('msg-'+id); if(!el) return; el.classList.add('hl'); el.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(()=>el.classList.remove('hl'), 2200); }
+
+    // Helpers
+    function avatarUrl(name,url){ return (url&&url.trim())?url:BRAND_LOGO; }
+    function renderTwemoji(el){ try{ if(USE_TWEMOJI&&window.twemoji){ twemoji.parse(el||document.body,{ base:TWE_BASE, folder:'', ext:'.svg' }); } }catch(_){ } }
+    function esc(s){return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#39;");}
+    function linkify(t){return t.replace(/https?:\/\/[^\s]+/g,u=>`<a class='underline' target='_blank' rel='noopener' href='${u}'>${u}</a>`);}    
+    function formatTime(iso){ try{ const d=new Date(iso); return d.toLocaleTimeString('bg-BG',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return ''; } }
+    function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(140,el.scrollHeight)+'px'; }
+
+    function isImageUrl(u){ return /^https?:\/\/.+\.(png|jpg|jpeg|gif|webp|avif|svg)(\?.*)?$/i.test(u) || u.startsWith(`https://`); }
+    function extractYouTubeId(url){ const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/); if (m) return m[1]; const p = new URLSearchParams((url.split('?')[1]||'')); return p.get('v'); }
+
+    // Upload & attach image
+    async function handleFiles(){ const files = Array.from($file.files||[]); for (const f of files){ await uploadAndSendImage(f); } $file.value=''; }
+    async function uploadAndSendImage(file){
+      try{
+        if(!S.currentRoom) return;
+        const maxBytes = 4 * 1024 * 1024; // 4MB
+        let blob = file;
+        if (file.size > maxBytes) blob = await downscaleImage(file, 1600);
+        const path = `${S.user.id}/${Date.now()}-${(file.name||'img').replace(/[^\w.\-]/g,'_')}`;
+        const up = await sb.storage.from(STORAGE_BUCKET).upload(path, blob, { upsert:false, contentType: file.type||'image/jpeg' });
+        if (up.error) throw up.error;
+        const { data:{ publicUrl } } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        const row={ username:S.me.name, avatar:S.me.avatar, content: publicUrl, sender_id:S.user.id, sender_name:S.me.name, sender_avatar:S.me.avatar, room_id:S.currentRoom.id };
+        const { error } = await sb.from('messages').insert(row);
+        if (error) throw error;
+      }catch(err){ console.warn('upload', err); showToast('Грешка при качване/изпращане'); }
+    }
+
+    async function downscaleImage(file, maxW){ const bmp = await createImageBitmap(file); const ratio = Math.min(1, maxW / bmp.width); const w = Math.round(bmp.width * ratio); const h = Math.round(bmp.height * ratio); const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(bmp, 0, 0, w, h); const blob = await new Promise(res=>canvas.toBlob(res, 'image/jpeg', 0.82)); return blob || file; }
+
+    // Outbox queue
+    function loadOutbox(){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); if(Array.isArray(arr) && arr.length){ showToast(`Изпращане на ${arr.length} съобщ.`); } }catch(_){ } }
+    function queueOutbox(row){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); arr.push(row); localStorage.setItem(OUTBOX_KEY, JSON.stringify(arr)); }catch(_){ } }
+    async function flushOutbox(){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); if(!Array.isArray(arr) || !arr.length) return; const toSend = arr.slice(0,5); const { error } = await sb.from('messages').insert(toSend); if(!error){ const rest = arr.slice(toSend.length); localStorage.setItem(OUTBOX_KEY, JSON.stringify(rest)); if(rest.length) setTimeout(flushOutbox, 800); else showToast('Опашката е изпратена'); } }catch(_){ } }
+  </script>
+</body>
+</html>
