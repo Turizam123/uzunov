@@ -147,48 +147,6 @@
     let lastMsgAt = 0;
 
     const sendTimes = [];
-    // Unread per room (local, no DB)
-    const UNREAD_KEY = 'tmap_unread_counts_v1';
-    function getUnread(){ try{return JSON.parse(localStorage.getItem(UNREAD_KEY)||'{}')}catch(_){return {}} }
-    function setUnread(o){ try{ localStorage.setItem(UNREAD_KEY, JSON.stringify(o)); }catch(_){ } }
-    function incUnread(roomId){ const o=getUnread(); o[roomId]=(o[roomId]||0)+1; setUnread(o); renderRooms(); }
-    function clearUnreadRoom(roomId){ const o=getUnread(); if(o[roomId]){ delete o[roomId]; setUnread(o); renderRooms(); } }
-
-    // Local pins per room (no DB)
-    const PINS_KEY = 'tmap_room_pins_v1';
-    function readPins(){ try{return JSON.parse(localStorage.getItem(PINS_KEY)||'{}')}catch(_){return {}} }
-    function writePins(o){ try{ localStorage.setItem(PINS_KEY, JSON.stringify(o)); }catch(_){ } }
-    function pinsFor(roomId){ const o=readPins(); return Array.isArray(o[roomId]) ? o[roomId] : []; }
-    function isPinned(roomId, id){ const arr=pinsFor(roomId); return arr.includes(id); }
-    function togglePin(id){
-      if(!S.currentRoom) return;
-      const roomId=S.currentRoom.id;
-      const o=readPins(); const arr = Array.isArray(o[roomId]) ? o[roomId] : [];
-      const i = arr.indexOf(id);
-      if (i>=0) arr.splice(i,1); else arr.push(id);
-      o[roomId]=arr; writePins(o);
-      updatePinBar();
-      // Rerender the message actions to reflect new state
-      const m=S.messages.get(id); if(m){ const el=document.getElementById('msg-'+id); if(el){ el.outerHTML = messageHtml(m); } }
-    }
-    function clearAllPins(){
-      if(!S.currentRoom) return;
-      const roomId=S.currentRoom.id; const o=readPins(); delete o[roomId]; writePins(o); updatePinBar();
-    }
-    function updatePinBar(){
-      const bar = document.getElementById('pinbar'); if(!bar || !S.currentRoom) return;
-      const ids = pinsFor(S.currentRoom.id);
-      if(!ids.length){ bar.classList.add('hidden'); bar.innerHTML=''; return; }
-      const items = ids.map(id=>{
-        const m=S.messages.get(id);
-        const txt = m && m.content ? (m.content.length>60 ? m.content.slice(0,60)+'…' : m.content) : ('#'+id.slice(0,6));
-        return `<a href="#m-${id}" class="px-2 py-1 rounded-lg border bg-white hover:bg-slate-50">${esc(txt)}</a>`;
-      }).join(' ');
-      bar.innerHTML = `📌 Фиксирани: <span class="font-medium">${ids.length}</span> ${items}
-        <button onclick="clearAllPins()" class="ml-2 text-xs px-2 py-0.5 rounded-lg border">Изчисти</button>`;
-      bar.classList.remove('hidden');
-    }
-
 
     const typingUsers = new Map();
     let typingDebounce = null;
@@ -285,7 +243,7 @@
       loadOutbox();
 
       $input.addEventListener('input', ()=>{ autoResize($input); sendTyping(); });
-      $input.addEventListener('keydown', (e)=>{ if((e.key==='Enter' && !e.shiftKey) || (e.key==='Enter' && (e.ctrlKey||e.metaKey))){ e.preventDefault(); $composer.requestSubmit(); }});
+      $input.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); $composer.requestSubmit(); }});
       autoResize($input);
 
       $messages.addEventListener('scroll', checkScrollBottom);
@@ -338,18 +296,16 @@
 
     async function ensureDefaultRoom(){
       try{
-        // INSERT ... ON CONFLICT DO NOTHING (избягваме UPDATE под RLS)
         let { data, error } = await sb.from('rooms')
           .insert({ slug: DEFAULT_ROOM_SLUG, name:'Обща стая', type:'public', created_by: S.user.id }, { onConflict: 'slug', ignoreDuplicates: true })
-          .select('*')
-          .maybeSingle();
-        if (!data){ // вече съществува
-          const q = await sb.from('rooms').select('*').eq('slug', DEFAULT_ROOM_SLUG).single();
+          .select('*').maybeSingle();
+        if (!data){
+          const q = await sb.from('rooms').select('*').eq('slug', DEFAULT_ROOM_SLUG).maybeSingle();
           data = q.data; error = q.error;
         }
-        if (error) console.warn('ensureDefaultRoom', error);
+        if (error) console.warn('ensureDefaultRoom error:', error);
         return data;
-      }catch(e){ console.warn('ensureDefaultRoom', e); }
+      }catch(e){ console.warn('ensureDefaultRoom exception', e); }
     }
 
     async function refreshRooms(){
@@ -378,7 +334,7 @@
         const selected = S.currentRoom && S.currentRoom.id===r.id;
         const el = document.createElement('button');
         el.className = 'w-full flex items-center justify-between px-3 py-2 rounded-xl '+(selected? 'bg-slate-900 text-white' : 'hover:bg-slate-50');
-        el.innerHTML = `<div class='flex items-center gap-2'><span>#</span><span class='truncate max-w-[180px] text-left'>${esc(r.name)}</span>${badge}</div>`+
+        el.innerHTML = `<div class='flex items-center gap-2'><span>#</span><span class='truncate max-w-[180px] text-left'>${esc(r.name)}</span></div>`+
           (selected && r.slug!==DEFAULT_ROOM_SLUG? `<span class='text-xs opacity-80' title='Излез' onclick="event.stopPropagation(); leaveRoom('${r.id}')">⎋</span>` : '') ;
         el.addEventListener('click', ()=> setCurrentRoom(r.id));
         $rooms.appendChild(el);
@@ -396,11 +352,8 @@
       setupTypingChannel(room.id);
       subscribeMessages(room.id);
       await loadMessages(room.id);
-      clearUnreadRoom(room.id);
-      updatePinBar();
       highlightFromHash();
       scrollToBottom(true);
-        updatePinBar();
       renderRooms();
     }
 
@@ -497,7 +450,6 @@
         renderTwemoji($messages);
         if (data && data.length){ lastMsgAt = Date.parse(data[data.length-1].created_at||new Date()); }
         scrollToBottom(true);
-        updatePinBar();
       }catch(e){ console.warn('loadMessages', e); }
     }
 
@@ -532,8 +484,6 @@
       const time = m.created_at ? `<span class='text-[11px] opacity-70'>${formatTime(m.created_at)}</span>` : '';
       const bodyHtml = renderBody(m.content||'');
       const actions = [
-        `<button class='text-xs underline' onclick="togglePin('${m.id}')" title='Фиксирай/откачи'>${isPinned(S.currentRoom?.id||m.room_id, m.id)?'📌 Свал':'📌 Пин'}</button>`,
-
         `<button class='text-xs underline' onclick=\"replyMsg('${m.id}')\" title='Отговор'>↩︎</button>`,
         `<button class='text-xs underline' onclick=\"copyLink('${m.id}')\" title='Копирай линк'>🔗</button>`
       ];
