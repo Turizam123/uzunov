@@ -30,14 +30,7 @@
     @keyframes auroraSpin{to{transform:rotate(360deg)}}
 
     .hl{box-shadow:0 0 0 3px rgba(250,204,21,.5) inset}
-  :root{--ios-safe:env(safe-area-inset-bottom)}
-.callbar{background:#0b1220;color:#fff}
-.video-grid{display:grid;gap:.5rem}
-@media(min-width:768px){.video-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:767px){.video-grid{grid-template-columns:1fr}}
-.video-el{width:100%;aspect-ratio:16/9;background:#000;border-radius:12px}
-.call-ctrl{background:rgba(255,255,255,.08);border-radius:10px;padding:.35rem .6rem}
-        </style>
+  </style>
   <script src="favicon-injector.js"></script>
 </head>
 
@@ -91,10 +84,6 @@
           <span id="roomName">—</span>
           <span id="unread" class="hidden text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">нови</span>
         </div>
-        <div class="hidden md:flex items-center gap-2 ml-auto">
-          <button id="btnGoLive" class="px-3 py-2 rounded-xl border" title="Предаване на живо">🔴 LIVE</button>
-          <button id="btnCallInvite" class="px-3 py-2 rounded-xl border" title="Видео разговор (покана)">📹 Покани</button>
-        </div>
         <div id="typing" class="mx-3 text-xs text-slate-500 hidden">Пише…</div>
         <button id="btnMute" class="ml-auto px-3 py-2 rounded-xl border" title="Звук">🔔</button>
         <button id="btnLeave" class="px-3 py-2 rounded-xl border hidden" title="Излез от канал">⎋ Излез</button>
@@ -103,25 +92,9 @@
 
       <div id="pinbar" class="px-4 py-2 text-xs bg-amber-50 border-b border-amber-200 hidden"></div>
 
-      <section id="callBar" class="hidden callbar border-b">
-  <div class="px-3 py-2 flex items-center gap-2">
-    <div class="text-sm font-medium">Разговор</div>
-    <div id="callState" class="text-xs opacity-80">—</div>
-    <div class="ml-auto flex items-center gap-2">
-      <button id="btnMic" class="call-ctrl">🎙️</button>
-      <button id="btnCam" class="call-ctrl">📷</button>
-      <button id="btnShare" class="call-ctrl">🖥️</button>
-      <button id="btnHang" class="px-3 py-1.5 rounded-lg bg-rose-500">Затвори</button>
-    </div>
-  </div>
-  <div class="px-2 pb-2 video-grid">
-    <video id="remoteVideo" class="video-el" autoplay playsinline></video>
-    <video id="localVideo" class="video-el" autoplay playsinline muted></video>
-  </div>
-</section>
-<section id="messages" class="scroll overflow-y-auto px-2 sm:px-4 py-4 space-y-3"></section>
+      <section id="messages" class="scroll overflow-y-auto px-2 sm:px-4 py-4 space-y-3"></section>
 
-      <form id="composer" class="sticky bottom-0 z-10 border-t bg-white px-2 sm:px-3 py-3 flex gap-2 items-end" style="padding-bottom:calc(.5rem + var(--ios-safe))">
+      <form id="composer" class="sticky bottom-0 z-10 border-t bg-white px-2 sm:px-3 py-3 flex gap-2 items-end">
         <button id="btnEmoji" type="button" title="Емотикони" class="px-3 py-2 rounded-xl border">🙂</button>
         <button id="btnAttach" type="button" title="Прикачи изображение" class="px-3 py-2 rounded-xl border">📎</button>
         <input id="file" type="file" accept="image/*" class="hidden" />
@@ -512,7 +485,7 @@
       const likeBtn = `<button class=\"inline-flex items-center gap-1 text-xs ${liked?'font-semibold':''}\" onclick=\"toggleLike('${m.id}')\">❤ <span>${liked_by.length||0}</span></button>`;
       const time = m.created_at ? `<span class='text-[11px] opacity-70'>${formatTime(m.created_at)}</span>` : '';
       const bodyHtml = renderBody(m.content||'');
-      const actions = [ (navigator.share? `<button class='text-xs underline' onclick=\"shareMsg('${m.id}')\">Сподели</button>` : '') ,
+      const actions = [
         `<button class='text-xs underline' onclick=\"replyMsg('${m.id}')\" title='Отговор'>↩︎</button>`,
         `<button class='text-xs underline' onclick=\"copyLink('${m.id}')\" title='Копирай линк'>🔗</button>`
       ];
@@ -692,220 +665,6 @@
     function loadOutbox(){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); if(Array.isArray(arr) && arr.length){ showToast(`Изпращане на ${arr.length} съобщ.`); } }catch(_){ } }
     function queueOutbox(row){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); arr.push(row); localStorage.setItem(OUTBOX_KEY, JSON.stringify(arr)); }catch(_){ } }
     async function flushOutbox(){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); if(!Array.isArray(arr) || !arr.length) return; const toSend = arr.slice(0,5); const { error } = await sb.from('messages').insert(toSend); if(!error){ const rest = arr.slice(toSend.length); localStorage.setItem(OUTBOX_KEY, JSON.stringify(rest)); if(rest.length) setTimeout(flushOutbox, 800); else showToast('Опашката е изпратена'); } }catch(_){ } }
-// ====== RTC state & helpers ======
-const RTC_CFG = { iceServers: [{ urls:'stun:stun.l.google.com:19302' }] };
-S.call = null; // {mode:'dm'|'live-host'|'live-watch', ch, pc, pcs:Map, stream, peerId}
-const $callBar = document.getElementById('callBar');
-const $callState = document.getElementById('callState');
-const $localVideo = document.getElementById('localVideo');
-const $remoteVideo = document.getElementById('remoteVideo');
-const $btnMic = document.getElementById('btnMic');
-const $btnCam = document.getElementById('btnCam');
-const $btnShare = document.getElementById('btnShare');
-const $btnHang = document.getElementById('btnHang');
-const $btnCallInvite = document.getElementById('btnCallInvite');
-const $btnGoLive = document.getElementById('btnGoLive');
-
-function updateCallUI(on, text){ $callBar.classList.toggle('hidden', !on); $callState.textContent = text||'…'; }
-
-function userPairKey(a,b){ return [a,b].sort().join(':'); }
-
-async function getCamMic(){ return await navigator.mediaDevices.getUserMedia({ video:true, audio:true }); }
-
-// ====== DM CALL (1:1) ======
-window.inviteToCall = async function(toId, toName){
-  if (!S.user) return;
-  if (S.call){ showToast('Вече има активен разговор'); return; }
-  const key = userPairKey(S.user.id, toId);
-  const ch = sb.channel('rtc:dm:'+key, { config:{ broadcast:{ self:true }, presence:{ key:S.user.id } } });
-  S.call = { mode:'dm', ch, pc:null, stream:null, peerId: toId, role:'caller' };
-  ch.on('broadcast', {event:'rtc'}, onDmSignal);
-  await ch.subscribe((status)=>{ if(status==='SUBSCRIBED'){ ch.track({ uid:S.user.id, name:S.me.name }); ch.send({type:'broadcast', event:'rtc', payload:{ t:'invite', from:S.user.id, to:toId, name:S.me.name }}); updateCallUI(true, 'Каните: '+(toName||'потребител')); }});
-};
-
-async function onDmSignal(ev){
-  const p = ev.payload||{}; if(!S.user) return;
-  if (p.t==='invite' && p.to===S.user.id){
-    if (S.call){ // busy
-      const key = userPairKey(S.user.id, p.from);
-      const ch = sb.channel('rtc:dm:'+key); ch.send({ type:'broadcast', event:'rtc', payload:{ t:'busy', to:p.from } }); return;
-    }
-    const ok = confirm(`${p.name||'Потребител'} ви кани на разговор. Приемате ли?`);
-    const key = userPairKey(S.user.id, p.from);
-    const ch = sb.channel('rtc:dm:'+key, { config:{ broadcast:{ self:true }, presence:{ key:S.user.id } } });
-    S.call = { mode:'dm', ch, pc:null, stream:null, peerId: p.from, role: ok?'callee':'rejected' };
-    ch.on('broadcast', {event:'rtc'}, onDmSignal);
-    await ch.subscribe((status)=>{
-      if(status==='SUBSCRIBED'){ ch.track({ uid:S.user.id, name:S.me.name });
-        if(ok){ ch.send({ type:'broadcast', event:'rtc', payload:{ t:'accept', to:p.from } }); startDm(false); }
-        else { ch.send({ type:'broadcast', event:'rtc', payload:{ t:'reject', to:p.from } }); endCall(); }
-      }
-    });
-    return;
-  }
-  if (!S.call || S.call.mode!=='dm') return;
-  if (p.t==='busy' && p.to===S.user.id){ showToast('Потребителят е зает'); endCall(); }
-  if (p.t==='reject' && p.to===S.user.id){ showToast('Поканата е отказана'); endCall(); }
-  if (p.t==='accept' && p.to===S.user.id){ startDm(true); }
-  if (p.t==='sdp' && p.to===S.user.id){
-    await S.call.pc.setRemoteDescription(new RTCSessionDescription(p.sdp));
-    if (p.sdp.type==='offer'){ const ans = await S.call.pc.createAnswer(); await S.call.pc.setLocalDescription(ans); S.call.ch.send({type:'broadcast', event:'rtc', payload:{ t:'sdp', to:S.call.peerId, from:S.user.id, sdp:ans }}); }
-  }
-  if (p.t==='ice' && p.to===S.user.id && p.candidate){ try{ await S.call.pc.addIceCandidate(new RTCIceCandidate(p.candidate)); }catch(_){ } }
-  if (p.t==='hang' && (p.to===S.user.id || p.from===S.user.id)){ showToast('Разговорът приключи'); endCall(); }
-}
-
-async function startDm(iAmCaller){
-  updateCallUI(true, 'Свързване…');
-  const stream = await getCamMic();
-  $localVideo.srcObject = stream;
-  const pc = new RTCPeerConnection(RTC_CFG);
-  stream.getTracks().forEach(t=>pc.addTrack(t, stream));
-  pc.ontrack = (e)=>{ $remoteVideo.srcObject = e.streams[0]; };
-  pc.onicecandidate = (e)=>{ if(e.candidate){ S.call.ch.send({ type:'broadcast', event:'rtc', payload:{ t:'ice', to:S.call.peerId, from:S.user.id, candidate:e.candidate } }); } };
-  S.call.stream = stream; S.call.pc = pc;
-  $btnMic.onclick = ()=> stream.getAudioTracks().forEach(t=>t.enabled=!t.enabled);
-  $btnCam.onclick = ()=> stream.getVideoTracks().forEach(t=>t.enabled=!t.enabled);
-  $btnShare.onclick = shareScreenDm;
-  $btnHang.onclick = ()=>{ try{ S.call.ch.send({ type:'broadcast', event:'rtc', payload:{ t:'hang', to:S.call.peerId, from:S.user.id } }); }catch(_){ } endCall(); };
-  if (iAmCaller){
-    const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-    S.call.ch.send({ type:'broadcast', event:'rtc', payload:{ t:'sdp', to:S.call.peerId, from:S.user.id, sdp: offer } });
-    updateCallUI(true, 'Звъните…');
-  } else {
-    updateCallUI(true, 'Свързване…');
-  }
-}
-
-async function shareScreenDm(){
-  try{
-    const scr = await navigator.mediaDevices.getDisplayMedia({ video:true, audio:false });
-    const track = scr.getVideoTracks()[0];
-    const sender = S.call.pc.getSenders().find(s=>s.track && s.track.kind==='video');
-    if (sender) sender.replaceTrack(track);
-    const s = $localVideo.srcObject; const cur = s.getVideoTracks()[0]; if(cur) s.removeTrack(cur); s.addTrack(track);
-    track.onended = ()=>{
-      navigator.mediaDevices.getUserMedia({video:true}).then(cam=>{
-        const camTrack = cam.getVideoTracks()[0];
-        const s2 = $localVideo.srcObject; const cur2 = s2.getVideoTracks()[0]; if(cur2) s2.removeTrack(cur2); s2.addTrack(camTrack);
-        const sender2 = S.call.pc.getSenders().find(s=>s.track && s.track.kind==='video'); if(sender2) sender2.replaceTrack(camTrack);
-      }).catch(()=>{});
-    };
-  }catch(e){ showToast('Екранът не е споделен'); }
-}
-
-function endCall(){
-  try{
-    if(S.call?.pc){ try{ S.call.pc.getSenders().forEach(s=>s.track&&s.track.stop()); }catch(_){ } try{ S.call.pc.close(); }catch(_){ } }
-    if($localVideo.srcObject){ $localVideo.srcObject.getTracks().forEach(t=>t.stop()); $localVideo.srcObject=null; }
-    if($remoteVideo.srcObject){ $remoteVideo.srcObject.getTracks().forEach(t=>t.stop()); $remoteVideo.srcObject=null; }
-    if(S.call?.ch){ try{ sb.removeChannel(S.call.ch); }catch(_){ } }
-  }catch(_){}
-  S.call=null; updateCallUI(false);
-}
-
-$btnCallInvite?.addEventListener('click', ()=>{
-  const uid = prompt('Въведете UID на потребителя (вижда се в списъка):'); if(!uid) return;
-  inviteToCall(uid.trim(), 'потребител');
-});
-
-// ====== LIVE (room broadcast) ======
-let LIVE = null; // { ch, mode:'host'|'watch', stream, pcs:Map }
-$btnGoLive?.addEventListener('click', ()=>{ if(LIVE) stopLive(); else startLiveHost(); });
-
-async function startLiveHost(){
-  if(!S.currentRoom) return showToast('Няма избран канал');
-  try{
-    const stream = await getCamMic();
-    $localVideo.srcObject = stream; $remoteVideo.srcObject=null;
-    const ch = sb.channel('rtc:live:'+S.currentRoom.id, { config:{ broadcast:{ self:true }, presence:{ key:S.user.id } } });
-    LIVE = { ch, mode:'host', stream, pcs:new Map() };
-    ch.on('broadcast', {event:'live'}, onLiveSignal);
-    await ch.subscribe((st)=>{ if(st==='SUBSCRIBED'){ ch.track({ uid:S.user.id, role:'host', name:S.me.name }); updateCallUI(true,'LIVE — излъчвате'); }});
-    $btnMic.onclick = ()=> stream.getAudioTracks().forEach(t=>t.enabled=!t.enabled);
-    $btnCam.onclick = ()=> stream.getVideoTracks().forEach(t=>t.enabled=!t.enabled);
-    $btnShare.onclick = ()=> shareScreenLive(stream);
-    $btnHang.onclick = stopLive;
-  }catch(e){ showToast('Неуспешно стартиране на LIVE'); }
-}
-async function stopLive(){
-  try{
-    if(LIVE?.pcs){ LIVE.pcs.forEach(pc=>{ try{ pc.close(); }catch(_){ } }); LIVE.pcs.clear(); }
-    if(LIVE?.ch){ try{ sb.removeChannel(LIVE.ch); }catch(_){ } }
-    if($localVideo.srcObject){ $localVideo.srcObject.getTracks().forEach(t=>t.stop()); $localVideo.srcObject=null; }
-  }finally{ LIVE=null; updateCallUI(false); }
-}
-async function onLiveSignal(ev){
-  const p = ev.payload||{}; if(!LIVE) return;
-  if (LIVE.mode==='host'){
-    if (p.t==='watch' && p.to===S.user.id){
-      const pc = new RTCPeerConnection(RTC_CFG);
-      LIVE.stream.getTracks().forEach(t=>pc.addTrack(t, LIVE.stream));
-      pc.onicecandidate = (e)=>{ if(e.candidate){ LIVE.ch.send({ type:'broadcast', event:'live', payload:{ t:'ice', to:p.from, from:S.user.id, candidate:e.candidate } }); } };
-      LIVE.pcs.set(p.from, pc);
-      const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-      LIVE.ch.send({ type:'broadcast', event:'live', payload:{ t:'sdp', to:p.from, from:S.user.id, sdp: offer } });
-    }
-    if (p.t==='sdp' && p.to===S.user.id && p.sdp?.type==='answer'){
-      const pc = LIVE.pcs.get(p.from); if(pc) await pc.setRemoteDescription(new RTCSessionDescription(p.sdp));
-    }
-    if (p.t==='ice' && p.to===S.user.id && p.candidate){
-      const pc = LIVE.pcs.get(p.from); if(pc){ try{ await pc.addIceCandidate(new RTCIceCandidate(p.candidate)); }catch(_){ } }
-    }
-  }
-}
-async function watchLive(){
-  if(!S.currentRoom) return;
-  const ch = sb.channel('rtc:live:'+S.currentRoom.id, { config:{ broadcast:{ self:true }, presence:{ key:S.user.id } } });
-  const pc = new RTCPeerConnection(RTC_CFG);
-  pc.addTransceiver('video', { direction:'recvonly' });
-  pc.addTransceiver('audio', { direction:'recvonly' });
-  pc.ontrack = (e)=>{ $remoteVideo.srcObject = e.streams[0]; };
-  pc.onicecandidate = (e)=>{ if(e.candidate){ ch.send({ type:'broadcast', event:'live', payload:{ t:'ice', to: findHostId(), from:S.user.id, candidate:e.candidate } }); } };
-  ch.on('broadcast', {event:'live'}, async (ev)=>{
-    const p=ev.payload||{};
-    if(p.t==='sdp' && p.to===S.user.id && p.sdp?.type==='offer'){ await pc.setRemoteDescription(new RTCSessionDescription(p.sdp)); const ans=await pc.createAnswer(); await pc.setLocalDescription(ans); ch.send({type:'broadcast',event:'live',payload:{ t:'sdp', to: findHostId(), from:S.user.id, sdp: ans }}); updateCallUI(true,'Гледате на живо'); }
-    if(p.t==='ice' && p.to===S.user.id && p.candidate){ try{ await pc.addIceCandidate(new RTCIceCandidate(p.candidate)); }catch(_){ } }
-  });
-  await ch.subscribe((st)=>{ if(st==='SUBSCRIBED'){ ch.track({ uid:S.user.id, role:'watch' }); ch.send({ type:'broadcast', event:'live', payload:{ t:'watch', to: findHostId(), from:S.user.id } }); }});
-  S.call = { mode:'live-watch', ch, pc };
-  $btnHang.onclick = ()=>{ try{ sb.removeChannel(ch); }catch(_){ } endCall(); };
-}
-function findHostId(){
-  const ch = S.call?.ch || LIVE?.ch; if(!ch) return null;
-  try{ const st = ch.presenceState(); const ids = Object.keys(st||{}); for(const id of ids){ const arr=st[id]; if(arr && arr[0]?.role==='host') return id; } }catch(_){ }
-  return null;
-}
-async function shareScreenLive(stream){
-  try{
-    const scr = await navigator.mediaDevices.getDisplayMedia({ video:true, audio:false });
-    const track = scr.getVideoTracks()[0];
-    LIVE.pcs.forEach(pc=>{ const s = pc.getSenders().find(s=>s.track && s.track.kind==='video'); if(s) s.replaceTrack(track); });
-    const s = $localVideo.srcObject; const cur = s.getVideoTracks()[0]; if(cur) s.removeTrack(cur); s.addTrack(track);
-    track.onended=()=>{
-      navigator.mediaDevices.getUserMedia({video:true}).then(cam=>{ const camTrack=cam.getVideoTracks()[0]; LIVE.pcs.forEach(pc=>{ const snd=pc.getSenders().find(s=>s.track&&s.track.kind==='video'); if(snd) snd.replaceTrack(camTrack); }); const s2=$localVideo.srcObject; const c2=s2.getVideoTracks()[0]; if(c2) s2.removeTrack(c2); s2.addTrack(camTrack); }).catch(()=>{});
-    };
-  }catch(_){ showToast('Екранът не е споделен'); }
-}
-
-// Show "Watch Live" if host present
-setInterval(()=>{
-  const hasRoom = !!S.currentRoom;
-  if(!hasRoom) return;
-  const btnId='btnWatchLive'; let btn=document.getElementById(btnId);
-  // naive detect host via room live channel presence not accessible directly; we rely on showing button always; user clicks to watch
-  if(!btn){ btn=document.createElement('button'); btn.id=btnId; btn.className='ml-2 px-3 py-2 rounded-xl border'; btn.textContent='▶️ Гледай LIVE'; btn.onclick=watchLive; document.querySelector('header').appendChild(btn); }
-}, 4000);
-
-// Add share via Web Share API for messages
-window.shareMsg = async function(id){
-  const m=S.messages.get(id); if(!m) return;
-  const url = `${location.origin}${location.pathname}#m-${id}`;
-  const text = (m.sender_name||'Потребител')+': '+(m.content||'').slice(0,120);
-  if(navigator.share){ try{ await navigator.share({ title:'T-MAP съобщение', text, url }); }catch(_){ } }
-  else { copyLink(id); }
-};
-
   </script>
 </body>
 </html>
