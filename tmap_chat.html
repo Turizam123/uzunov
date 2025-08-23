@@ -30,16 +30,112 @@
     @keyframes auroraSpin{to{transform:rotate(360deg)}}
 
     .hl{box-shadow:0 0 0 3px rgba(250,204,21,.5) inset}
-  :root{--ios-safe:env(safe-area-inset-bottom)}
-.callbar{background:#0b1220;color:#fff}
-.video-grid{display:grid;gap:.5rem}
-@media(min-width:768px){.video-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:767px){.video-grid{grid-template-columns:1fr}}
-.video-el{width:100%;aspect-ratio:16/9;background:#000;border-radius:12px}
-.call-ctrl{background:rgba(255,255,255,.08);border-radius:10px;padding:.35rem .6rem}
-.incoming{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);z-index:60}
-</style>
+  </style>
   <script src="favicon-injector.js"></script>
+
+  <style>/* WOW_MOBILE_THEME */
+  @media (max-width: 767px){
+    /* Background */
+    body{ 
+      background:
+        radial-gradient(1200px 600px at 50% -200px, rgba(14,165,233,.25), transparent 60%),
+        radial-gradient(800px 400px at 100% 0%, rgba(99,102,241,.25), transparent 50%),
+        #0f172a;
+      color:#0b1220;
+    }
+    /* App grid: keep single column */
+    #app{ grid-template-columns: 1fr !important; }
+    aside{ display:none !important; }
+    .scroll::-webkit-scrollbar{ display:none; }
+    
+    /* Header — glossy gradient */
+    header{ 
+      background: linear-gradient(135deg,#0ea5e9 0%, #6366f1 100%) !important;
+      color:#fff !important; 
+      border:none !important;
+      box-shadow:0 10px 30px rgba(2,6,23,.25);
+    }
+    header * { color:inherit }
+    #conn{ 
+      background: rgba(255,255,255,.18) !important; 
+      color:#fff !important; 
+      border:1px solid rgba(255,255,255,.25);
+    }
+    #btnLeave, #btnMute, #menu{
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.25);
+      color:#fff;
+    }
+    #roomName{ filter:drop-shadow(0 2px 6px rgba(0,0,0,.25)); }
+    
+    /* Messages */
+    #messages{ 
+      padding: 14px 14px 112px 14px !important;
+      background: linear-gradient(180deg, rgba(255,255,255,.0), rgba(255,255,255,.02));
+    }
+    #messages > *{ animation: chatPop .25s ease both; }
+    @keyframes chatPop{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)} }
+    
+    /* Other bubbles (glass) */
+    #messages .bg-white{
+      background: rgba(255,255,255,.88) !important;
+      border-color: rgba(255,255,255,.6) !important;
+      backdrop-filter: saturate(1.2) blur(10px);
+      box-shadow: 0 8px 22px rgba(2,6,23,.12);
+    }
+    /* My bubbles (neon gradient) */
+    #messages [class*="from-slate-900"]{
+      background: linear-gradient(135deg,#0ea5e9 0%, #2563eb 40%, #6366f1 100%) !important;
+      border-color: transparent !important;
+      box-shadow: 0 10px 28px rgba(14,165,233,.35);
+    }
+    
+    /* Composer — floating glass bar */
+    #composer{
+      position: fixed !important;
+      left: 12px; right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      border: 1px solid rgba(255,255,255,.6) !important;
+      background: rgba(255,255,255,.96) !important;
+      backdrop-filter: blur(12px) saturate(1.1);
+      border-radius: 20px !important;
+      box-shadow: 0 20px 40px rgba(2,6,23,.18);
+      padding: 12px !important;
+      gap: 8px !important;
+    }
+    #composer button, #composer textarea{ border-radius: 14px !important; }
+    #btnEmoji, #btnAttach{ background: rgba(15,23,42,.05); }
+    #input{ border-color: transparent !important; background: rgba(15,23,42,.03); }
+    
+    /* Floating "new messages" button */
+    #toBottom{
+      bottom: calc(98px + env(safe-area-inset-bottom)) !important;
+      right: 16px !important;
+      padding: 10px 14px !important;
+      border-radius: 9999px !important;
+      box-shadow: 0 12px 28px rgba(2,6,23,.22);
+      background: #111827 !important;
+    }
+    
+    /* Emoji panel — bigger & glassy */
+    .emoji-panel{
+      left: 16px !important;
+      bottom: calc(82px + env(safe-area-inset-bottom)) !important;
+      width: min(92vw, 420px) !important;
+      border-radius: 18px !important;
+      box-shadow: 0 20px 44px rgba(2,6,23,.22) !important;
+      backdrop-filter: blur(12px) !important;
+    }
+    
+    /* Toast */
+    #toast{
+      background: rgba(17,24,39,.95) !important;
+      border: 1px solid rgba(255,255,255,.1);
+      box-shadow: 0 16px 32px rgba(0,0,0,.25);
+    }
+  }
+  </style>
+    
 </head>
 
 <body class="h-screen overflow-hidden bg-slate-50 text-slate-800">
@@ -100,9 +196,9 @@
 
       <div id="pinbar" class="px-4 py-2 text-xs bg-amber-50 border-b border-amber-200 hidden"></div>
 
-      <section id="callBar" class="hidden callbar border-b"><div class="px-3 py-2 flex items-center gap-2"><div class="text-sm font-medium">Видеоразговор</div><div id="callState" class="text-xs opacity-80">—</div><div class="ml-auto flex items-center gap-2"><button id="btnMic" class="call-ctrl" title="Микрофон">🎙️</button><button id="btnCam" class="call-ctrl" title="Камера">📷</button><button id="btnHang" class="px-3 py-1.5 rounded-lg bg-rose-500" title="Затвори">⎋</button></div></div><div class="px-2 pb-2 video-grid"><video id="remoteVideo" class="video-el" autoplay playsinline></video><video id="localVideo" class="video-el" autoplay playsinline muted></video></div></section><section id="messages" class="scroll overflow-y-auto px-2 sm:px-4 py-4 space-y-3"></section>
+      <section id="messages" class="scroll overflow-y-auto px-2 sm:px-4 py-4 space-y-3"></section>
 
-      <form id="composer" class="sticky bottom-0 z-10 border-t bg-white px-2 sm:px-3 py-3 flex gap-2 items-end" style="padding-bottom:calc(.5rem + var(--ios-safe))">
+      <form id="composer" class="sticky bottom-0 z-10 border-t bg-white px-2 sm:px-3 py-3 flex gap-2 items-end">
         <button id="btnEmoji" type="button" title="Емотикони" class="px-3 py-2 rounded-xl border">🙂</button>
         <button id="btnAttach" type="button" title="Прикачи изображение" class="px-3 py-2 rounded-xl border">📎</button>
         <input id="file" type="file" accept="image/*" class="hidden" />
@@ -114,7 +210,7 @@
       <button id="toBottom" class="hidden fixed bottom-24 right-4 z-40 px-3 py-2 rounded-xl bg-slate-900 text-white shadow-lg">↓ Нови</button>
 
       <div id="toast" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-lg text-sm"></div>
-    </main><div id="incoming" class="incoming hidden">  <div class="bg-white rounded-2xl p-5 w-[min(92vw,380px)] text-center shadow-xl">    <div class="text-lg font-semibold">Входящо обаждане</div>    <div id="incFrom" class="mt-1 text-slate-600">—</div>    <div class="mt-4 flex items-center justify-center gap-3">      <button id="btnAccept" class="px-4 py-2 rounded-xl bg-emerald-600 text-white">Приеми</button>      <button id="btnDecline" class="px-4 py-2 rounded-xl bg-rose-600 text-white">Откажи</button>    </div>  </div></div><audio id="ringTone" preload="auto" loop>  <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAAAACAAACcQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" type="audio/mp3"></audio>
+    </main>
   </div>
 
   <audio id="ding" preload="auto">
@@ -292,21 +388,7 @@
       (data||[]).forEach(u=>{
         const online=isOnline(u.last_seen_at); if(online) count++;
         const el=document.createElement('div'); el.className='flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50';
-        el.innerHTML = `
-  <img src="${avatarUrl(u.username,u.avatar)}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/>
-  <div class='min-w-0'>
-    <div class='font-medium truncate'>${esc(u.username||'Потребител')}</div>
-    <div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div>
-  </div>
-  ${
-    u.id===S.user.id
-      ? '<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>'
-      : (online
-          ? `<button class="ml-auto text-xs px-2 py-1 rounded-xl border" onclick="inviteToCall('${u.id}')">📞 Покани</button>`
-          : ''
-        )
-  }
-`;
+        el.innerHTML=`<img src="${avatarUrl(u.username,u.avatar)}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/><div class='min-w-0'><div class='font-medium truncate'>${esc(u.username||'Потребител')}</div><div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div></div>${u.id===S.user.id?'<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>':''}`;
         $users.appendChild(el);
       });
       $activeCount.textContent = count;
@@ -687,134 +769,6 @@
     function loadOutbox(){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); if(Array.isArray(arr) && arr.length){ showToast(`Изпращане на ${arr.length} съобщ.`); } }catch(_){ } }
     function queueOutbox(row){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); arr.push(row); localStorage.setItem(OUTBOX_KEY, JSON.stringify(arr)); }catch(_){ } }
     async function flushOutbox(){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); if(!Array.isArray(arr) || !arr.length) return; const toSend = arr.slice(0,5); const { error } = await sb.from('messages').insert(toSend); if(!error){ const rest = arr.slice(toSend.length); localStorage.setItem(OUTBOX_KEY, JSON.stringify(rest)); if(rest.length) setTimeout(flushOutbox, 800); else showToast('Опашката е изпратена'); } }catch(_){ } }
-// ======= 1:1 Calls (Viber-like) with ringing via Supabase Realtime =======
-const RTC_CFG = { iceServers: [{ urls:'stun:stun.l.google.com:19302' }] };
-S.call = null; // { pc, stream, peerId, sessionId, role:'caller'|'callee' }
-S.rtcInbox = null;
-
-const $callBar = document.getElementById('callBar');
-const $callState = document.getElementById('callState');
-const $localVideo = document.getElementById('localVideo');
-const $remoteVideo = document.getElementById('remoteVideo');
-const $btnMic = document.getElementById('btnMic');
-const $btnCam = document.getElementById('btnCam');
-const $btnHang = document.getElementById('btnHang');
-const $incoming = document.getElementById('incoming');
-const $incFrom = document.getElementById('incFrom');
-const $btnAccept = document.getElementById('btnAccept');
-const $btnDecline = document.getElementById('btnDecline');
-const $ringTone = document.getElementById('ringTone');
-
-function updateCallUI(show, text){
-  if($callBar){ $callBar.classList.toggle('hidden', !show); }
-  if (text && $callState) $callState.textContent = text;
-}
-function startRinging(){
-  if (typeof MUTED!=='undefined' && MUTED) return;
-  try{ $ringTone.currentTime = 0; $ringTone.volume = 0.7; $ringTone.play().catch(()=>{});}catch(_){}
-}
-function stopRinging(){ try{ $ringTone.pause(); }catch(_){ } }
-
-function ensureInbox(){
-  if (S.rtcInbox || !S.user) return;
-  const ch = sb.channel('rtc:inbox', { config:{ broadcast:{ self:true }, presence:{ key: S.user.id } } });
-  ch.on('broadcast', { event:'dm' }, onInbox);
-  ch.subscribe((st)=>{ if(st==='SUBSCRIBED'){ ch.track({ uid:S.user.id, name:S.me.name }); } });
-  S.rtcInbox = ch;
-}
-// Hook after login
-const __orig_onLoggedIn = onLoggedIn;
-onLoggedIn = async function(user){ await __orig_onLoggedIn(user); ensureInbox(); };
-
-// Public function: call invite
-window.inviteToCall = async function(toId){
-  ensureInbox();
-  if (!S.user) return;
-  if (S.call) return showToast('Вече има активен разговор');
-  const sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  S.call = { pc:null, stream:null, peerId: toId, sessionId, role:'caller' };
-  updateCallUI(true, 'Позвъняване…'); startRinging();
-  S.rtcInbox.send({ type:'broadcast', event:'dm', payload:{ kind:'invite', to: toId, from:S.user.id, name:S.me.name, sessionId } });
-};
-
-async function onInbox(ev){
-  const p = ev.payload||{};
-  if (!S.user || !p) return;
-  if (p.kind==='invite' && p.to===S.user.id){
-    if (S.call){ S.rtcInbox.send({ type:'broadcast', event:'dm', payload:{ kind:'busy', to:p.from, from:S.user.id, sessionId:p.sessionId } }); return; }
-    S.call = { pc:null, stream:null, peerId:p.from, sessionId:p.sessionId, role:'callee' };
-    if ($incFrom) $incFrom.textContent = (p.name||'Потребител');
-    if ($incoming) $incoming.classList.remove('hidden');
-    startRinging();
-    $btnAccept.onclick = async ()=>{
-      stopRinging(); $incoming.classList.add('hidden'); updateCallUI(true, 'Свързване…');
-      S.rtcInbox.send({ type:'broadcast', event:'dm', payload:{ kind:'accept', to:p.from, from:S.user.id, sessionId:p.sessionId } });
-      await startDm(false);
-    };
-    $btnDecline.onclick = ()=>{
-      stopRinging(); $incoming.classList.add('hidden');
-      S.rtcInbox.send({ type:'broadcast', event:'dm', payload:{ kind:'reject', to:p.from, from:S.user.id, sessionId:p.sessionId } });
-      endCall();
-    };
-    return;
-  }
-  if (!S.call || p.sessionId!==S.call.sessionId) return;
-
-  if (p.kind==='accept' && p.to===S.user.id){
-    stopRinging(); updateCallUI(true, 'Свързване…'); startDm(true);
-  } else if (p.kind==='reject' && p.to===S.user.id){
-    stopRinging(); showToast('Поканата е отказана'); endCall();
-  } else if (p.kind==='busy' && p.to===S.user.id){
-    stopRinging(); showToast('Потребителят е зает'); endCall();
-  } else if (p.kind==='sdp' && p.to===S.user.id){
-    await S.call.pc.setRemoteDescription(new RTCSessionDescription(p.sdp));
-    if (p.sdp.type==='offer'){
-      const ans = await S.call.pc.createAnswer(); await S.call.pc.setLocalDescription(ans);
-      S.rtcInbox.send({ type:'broadcast', event:'dm', payload:{ kind:'sdp', to:S.call.peerId, from:S.user.id, sessionId:S.call.sessionId, sdp: ans } });
-    }
-  } else if (p.kind==='ice' && p.to===S.user.id && p.candidate){
-    try{ await S.call.pc.addIceCandidate(new RTCIceCandidate(p.candidate)); }catch(_){}
-  } else if (p.kind==='hang' && (p.to===S.user.id || p.from===S.user.id)){
-    showToast('Разговорът приключи'); endCall();
-  }
-}
-
-async function startDm(iAmCaller){
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
-    if ($localVideo) $localVideo.srcObject = stream;
-    const pc = new RTCPeerConnection(RTC_CFG);
-    stream.getTracks().forEach(t=>pc.addTrack(t, stream));
-    pc.ontrack = (e)=>{ if($remoteVideo){ $remoteVideo.srcObject = e.streams[0]; try{ $remoteVideo.muted=false; $remoteVideo.play().catch(()=>{});}catch(_){}} };
-    pc.onicecandidate = (e)=>{ if(e.candidate){ S.rtcInbox.send({ type:'broadcast', event:'dm', payload:{ kind:'ice', to:S.call.peerId, from:S.user.id, sessionId:S.call.sessionId, candidate:e.candidate } }); } };
-    S.call.pc = pc; S.call.stream = stream;
-    if ($btnMic) $btnMic.onclick = ()=> stream.getAudioTracks().forEach(t=>t.enabled=!t.enabled);
-    if ($btnCam) $btnCam.onclick = ()=> stream.getVideoTracks().forEach(t=>t.enabled=!t.enabled);
-    if ($btnHang) $btnHang.onclick = ()=>{ try{ S.rtcInbox.send({ type:'broadcast', event:'dm', payload:{ kind:'hang', to:S.call.peerId, from:S.user.id, sessionId:S.call.sessionId } }); }catch(_){ } endCall(); };
-
-    if (iAmCaller){
-      const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-      S.rtcInbox.send({ type:'broadcast', event:'dm', payload:{ kind:'sdp', to:S.call.peerId, from:S.user.id, sessionId:S.call.sessionId, sdp: offer } });
-      updateCallUI(true, 'Звъните…');
-    } else {
-      updateCallUI(true, 'Свързване…');
-    }
-  }catch(e){
-    showToast('Камера/микрофон грешка'); endCall();
-  }
-}
-
-function endCall(){
-  stopRinging();
-  try{
-    if(S.call?.pc){ try{ S.call.pc.getSenders().forEach(s=>s.track&&s.track.stop()); }catch(_){ } try{ S.call.pc.close(); }catch(_){ } }
-    if($localVideo?.srcObject){ $localVideo.srcObject.getTracks().forEach(t=>t.stop()); $localVideo.srcObject=null; }
-    if($remoteVideo?.srcObject){ $remoteVideo.srcObject.getTracks().forEach(t=>t.stop()); $remoteVideo.srcObject=null; }
-  }catch(_){}
-  S.call=null;
-  updateCallUI(false);
-}
-
   </script>
 </body>
 </html>
