@@ -30,7 +30,11 @@
     @keyframes auroraSpin{to{transform:rotate(360deg)}}
 
     .hl{box-shadow:0 0 0 3px rgba(250,204,21,.5) inset}
-  </style>
+  /* VOICE_ONLY_CALL_CSS */
+.vcallbar{background:#0b1220;color:#fff}
+.vbtn{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);padding:.35rem .6rem;border-radius:10px}
+.incoming{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);z-index:60}
+</style>
   <script src="favicon-injector.js"></script>
 </head>
 
@@ -92,7 +96,7 @@
 
       <div id="pinbar" class="px-4 py-2 text-xs bg-amber-50 border-b border-amber-200 hidden"></div>
 
-      <section id="messages" class="scroll overflow-y-auto px-2 sm:px-4 py-4 space-y-3"></section>
+      <section id="vCallBar" class="hidden vcallbar border-b"><div class="px-3 py-2 flex items-center gap-2"><div class="text-sm font-medium">Гласов разговор</div><div id="vCallState" class="text-xs opacity-80">—</div><div class="ml-auto flex items-center gap-2"><button id="btnVMic" class="vbtn" title="Микрофон">🎙️</button><button id="btnVHang" class="px-3 py-1.5 rounded-lg bg-rose-500" title="Край">⎋</button></div></div><div class="px-3 pb-2"><audio id="remoteAudio" autoplay playsinline></audio></div></section><section id="messages" class="scroll overflow-y-auto px-2 sm:px-4 py-4 space-y-3"></section>
 
       <form id="composer" class="sticky bottom-0 z-10 border-t bg-white px-2 sm:px-3 py-3 flex gap-2 items-end">
         <button id="btnEmoji" type="button" title="Емотикони" class="px-3 py-2 rounded-xl border">🙂</button>
@@ -106,7 +110,7 @@
       <button id="toBottom" class="hidden fixed bottom-24 right-4 z-40 px-3 py-2 rounded-xl bg-slate-900 text-white shadow-lg">↓ Нови</button>
 
       <div id="toast" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-lg text-sm"></div>
-    </main>
+    </main><div id="vIncoming" class="incoming hidden">  <div class="bg-white rounded-2xl p-5 w-[min(92vw,380px)] text-center shadow-xl">    <div class="text-lg font-semibold">Входящо гласово обаждане</div>    <div id="vIncFrom" class="mt-1 text-slate-600">—</div>    <div class="mt-4 flex items-center justify-center gap-3">      <button id="btnVAccept" class="px-4 py-2 rounded-xl bg-emerald-600 text-white">Приеми</button>      <button id="btnVDecline" class="px-4 py-2 rounded-xl bg-rose-600 text-white">Откажи</button>    </div>  </div></div>
   </div>
 
   <audio id="ding" preload="auto">
@@ -284,7 +288,7 @@
       (data||[]).forEach(u=>{
         const online=isOnline(u.last_seen_at); if(online) count++;
         const el=document.createElement('div'); el.className='flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-50';
-        el.innerHTML=`<img src="${avatarUrl(u.username,u.avatar)}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/><div class='min-w-0'><div class='font-medium truncate'>${esc(u.username||'Потребител')}</div><div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div></div>${u.id===S.user.id?'<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>':''}`;
+        el.innerHTML=`<img src="${avatarUrl(u.username,u.avatar)}" class="w-8 h-8 rounded-full ring-2 ring-slate-200"/><div class='min-w-0'><div class='font-medium truncate'>${esc(u.username||'Потребител')}</div><div class='text-xs ${online?'text-emerald-600':'text-slate-400'}'>${online?'онлайн':'офлайн'}</div></div>${u.id===S.user.id?'<span class="ml-auto text-xs px-2 py-1 rounded-full bg-slate-100">Вие</span>':(online?`<button class="ml-auto text-xs px-2 py-1 rounded-xl border" onclick="inviteToVoice('${u.id}')">📞 Гласово</button>`:'')}`;
         $users.appendChild(el);
       });
       $activeCount.textContent = count;
@@ -665,6 +669,129 @@
     function loadOutbox(){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); if(Array.isArray(arr) && arr.length){ showToast(`Изпращане на ${arr.length} съобщ.`); } }catch(_){ } }
     function queueOutbox(row){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); arr.push(row); localStorage.setItem(OUTBOX_KEY, JSON.stringify(arr)); }catch(_){ } }
     async function flushOutbox(){ try{ const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY)||'[]'); if(!Array.isArray(arr) || !arr.length) return; const toSend = arr.slice(0,5); const { error } = await sb.from('messages').insert(toSend); if(!error){ const rest = arr.slice(toSend.length); localStorage.setItem(OUTBOX_KEY, JSON.stringify(rest)); if(rest.length) setTimeout(flushOutbox, 800); else showToast('Опашката е изпратена'); } }catch(_){ } }
+/* VOICE_ONLY_CALL_V1 */
+(function(){
+  const RTC_CFG = { iceServers: [ { urls: 'stun:stun.l.google.com:19302' } ] };
+  const $bar=gid('vCallBar'), $state=gid('vCallState'), $btnMic=gid('btnVMic'), $btnHang=gid('btnVHang');
+  const $incoming=gid('vIncoming'), $incFrom=gid('vIncFrom'), $btnAccept=gid('btnVAccept'), $btnDecline=gid('btnVDecline');
+  const $remoteAudio=gid('remoteAudio');
+  function gid(id){ return document.getElementById(id); }
+  function ui(show,txt){ if($bar)$bar.classList.toggle('hidden',!show); if($state&&txt)$state.textContent=txt; }
+  function toast(t){ try{ window.toast && window.toast(t); }catch(_){ console.log(t); } }
+
+  window.S=window.S||{}; S.vcall=null; S.rtcInbox=S.rtcInbox||null;
+
+  // Ringtone (WebAudio)
+  let ac=null, osc=null, g=null;
+  function audioReady(){ try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); ac.resume&&ac.resume(); }catch(_){} }
+  function ring(){ audioReady(); if(!ac||osc) return; osc=ac.createOscillator(); g=ac.createGain(); osc.type='sine'; osc.frequency.value=880; g.gain.value=0; osc.connect(g); g.connect(ac.destination); osc.start(); const t0=ac.currentTime; for(let i=0;i<20;i++){const t=t0+i*0.8; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.35,t+0.05); g.gain.linearRampToValueAtTime(0,t+0.32);} }
+  function stopRing(){ try{osc&&osc.stop(); g&&g.disconnect();}catch(_){ } osc=null; g=null; }
+  window.addEventListener('pointerdown', audioReady, {passive:true});
+
+  function ensureInbox(){
+    if(S.rtcInbox||!window.sb||!S.user) return;
+    const ch = sb.channel('rtc:inbox',{config:{broadcast:{self:true},presence:{key:S.user.id}}});
+    ch.on('broadcast',{event:'dm'}, onInbox);
+    ch.subscribe(st=>{ if(st==='SUBSCRIBED'){ ch.track({uid:S.user.id,name:(S.me&&S.me.name)||''}); } });
+    S.rtcInbox=ch;
+  }
+  const _onLoggedIn=window.onLoggedIn|| (async()=>{});
+  window.onLoggedIn=async (u)=>{ await _onLoggedIn(u); ensureInbox(); };
+
+  // Outgoing voice invite
+  window.inviteToVoice = async function(toId){
+    ensureInbox(); if(!S.user) return;
+    if(S.vcall) return toast('Вече има активен разговор');
+    const sessionId = Math.random().toString(36).slice(2)+Date.now().toString(36);
+    S.vcall={ pc:null, stream:null, peerId:toId, sessionId, role:'caller', remoteReady:false, pendingICE:[] };
+    ui(true,'Позвъняване (глас)…'); ring();
+    S.rtcInbox?.send({type:'broadcast', event:'dm', payload:{kind:'invite', media:'audio', to:toId, from:S.user.id, name:(S.me&&S.me.name)||'', sessionId}});
+  };
+
+  async function onInbox(ev){
+    const p=ev.payload||{}; if(!S.user||!p) return;
+    if(p.kind==='invite' && p.media==='audio' && p.to===S.user.id){
+      if(S.vcall){ S.rtcInbox?.send({type:'broadcast',event:'dm',payload:{kind:'busy',to:p.from,from:S.user.id,sessionId:p.sessionId}}); return; }
+      S.vcall={ pc:null, stream:null, peerId:p.from, sessionId:p.sessionId, role:'callee', remoteReady:false, pendingICE:[] };
+      if($incFrom) $incFrom.textContent=p.name||'Потребител';
+      $incoming?.classList.remove('hidden'); ring();
+      $btnAccept?.addEventListener('click', async ()=>{
+        stopRing(); $incoming?.classList.add('hidden'); ui(true,'Свързване (глас)…');
+        S.rtcInbox?.send({type:'broadcast',event:'dm',payload:{kind:'accept',to:p.from,from:S.user.id,sessionId:p.sessionId}});
+        await startVoice(false);
+      },{once:true});
+      $btnDecline?.addEventListener('click', ()=>{
+        stopRing(); $incoming?.classList.add('hidden');
+        S.rtcInbox?.send({type:'broadcast',event:'dm',payload:{kind:'reject',to:p.from,from:S.user.id,sessionId:p.sessionId}});
+        endCall();
+      },{once:true});
+      return;
+    }
+    if(!S.vcall || p.sessionId!==S.vcall.sessionId) return;
+
+    if(p.kind==='accept' && p.to===S.user.id){ stopRing(); ui(true,'Свързване (глас)…'); startVoice(true); return; }
+    if(p.kind==='reject' && p.to===S.user.id){ stopRing(); toast('Поканата е отказана'); endCall(); return; }
+    if(p.kind==='busy'   && p.to===S.user.id){ stopRing(); toast('Потребителят е зает'); endCall(); return; }
+
+    if(p.kind==='sdp' && p.to===S.user.id){
+      await S.vcall.pc.setRemoteDescription(new RTCSessionDescription(p.sdp));
+      S.vcall.remoteReady=true;
+      (S.vcall.pendingICE||[]).forEach(async c=>{ try{ await S.vcall.pc.addIceCandidate(c);}catch(e){} });
+      S.vcall.pendingICE=[];
+      if(p.sdp.type==='offer'){
+        const ans=await S.vcall.pc.createAnswer(); await S.vcall.pc.setLocalDescription(ans);
+        S.rtcInbox?.send({type:'broadcast',event:'dm',payload:{kind:'sdp',to:S.vcall.peerId,from:S.user.id,sessionId:S.vcall.sessionId,sdp:ans}});
+      }
+      return;
+    }
+    if(p.kind==='ice' && p.to===S.user.id){
+      const cand=new RTCIceCandidate(p.candidate);
+      if(S.vcall.remoteReady){ try{ await S.vcall.pc.addIceCandidate(cand);}catch(e){} }
+      else{ (S.vcall.pendingICE ||= []).push(cand); }
+      return;
+    }
+    if(p.kind==='hang'){ endCall(); return; }
+  }
+
+  async function startVoice(iAmCaller){
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true }, video:false });
+      const pc = new RTCPeerConnection(RTC_CFG);
+      S.vcall.pc=pc; S.vcall.stream=stream; S.vcall.remoteReady=false; S.vcall.pendingICE=[];
+      stream.getAudioTracks().forEach(t=>pc.addTrack(t, stream));
+
+      // Lower Opus bitrate
+      pc.getSenders().forEach(s=>{
+        if(s.track && s.track.kind==='audio'){ const p=s.getParameters(); (p.encodings ||= [{}])[0].maxBitrate=24000; s.setParameters(p).catch(()=>{}); }
+      });
+
+      pc.onicecandidate = (e)=>{ if(e.candidate){ S.rtcInbox?.send({type:'broadcast',event:'dm',payload:{kind:'ice',to:S.vcall.peerId,from:S.user.id,sessionId:S.vcall.sessionId,candidate:e.candidate}}); } };
+      pc.ontrack = (e)=>{ if($remoteAudio){ $remoteAudio.srcObject=e.streams[0]; $remoteAudio.play().catch(()=>{}); } };
+      pc.onconnectionstatechange = ()=>{ if(pc.connectionState==='failed'){ toast('Връзката се провали (нужен е TURN)'); } };
+
+      $btnMic?.addEventListener('click', ()=> stream.getAudioTracks().forEach(t=>t.enabled=!t.enabled));
+      $btnHang?.addEventListener('click', ()=>{ S.rtcInbox?.send({type:'broadcast',event:'dm',payload:{kind:'hang',to:S.vcall.peerId,from:S.user.id,sessionId:S.vcall.sessionId}}); endCall(); });
+
+      if(iAmCaller){
+        const offer = await pc.createOffer({ offerToReceiveAudio:true, offerToReceiveVideo:false });
+        await pc.setLocalDescription(offer);
+        S.rtcInbox?.send({type:'broadcast',event:'dm',payload:{kind:'sdp',to:S.vcall.peerId,from:S.user.id,sessionId:S.vcall.sessionId,sdp:offer}});
+        ui(true,'Звъните (глас)…');
+      }else{
+        ui(true,'Свързване (глас)…');
+      }
+    }catch(err){ console.error('startVoice error', err); toast('Грешка микрофон: '+(err.name||'')); endCall(); }
+  }
+
+  function endCall(){
+    stopRing();
+    try{
+      if(S.vcall?.pc){ try{ S.vcall.pc.getSenders().forEach(s=>s.track&&s.track.stop()); }catch(_){ } try{ S.vcall.pc.close(); }catch(_){ } }
+      if(S.vcall?.stream){ S.vcall.stream.getTracks().forEach(t=>t.stop()); }
+    }catch(_){}
+    S.vcall=null; ui(false);
+  }
+})();
   </script>
 </body>
 </html>
