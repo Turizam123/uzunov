@@ -88,7 +88,7 @@
    },
   {
     "id": "route_route_tumba",
-    "name": "Маршрут Тумба",
+    "name": "Smolari РSM - вр.Тумба",
     "file": "route_tumba.geojson",
     "color": "#2563eb",
     "km": 3.313,
@@ -96,7 +96,7 @@
   },
   {
     "id": "route_route_botev",
-    "name": "Маршрут Ботев",
+    "name": "Априлци - х.Плевен - вр.Ботев",
     "file": "route_botev.geojson",
     "color": "#16a34a",
     "km": 11.891,
@@ -104,7 +104,7 @@
   },
   {
     "id": "route_route_bogdan",
-    "name": "Маршрут Богдан",
+    "name": "Копривчица - вр.Богдан",
     "file": "route_bogdan.geojson",
     "color": "#dc2626",
     "km": 13.199,
@@ -112,7 +112,7 @@
   },
   {
     "id": "route_route_midjur",
-    "name": "Маршрут Миджур",
+    "name": "h.Babin Zub Srb. - вр.Миджур",
     "file": "route_midjur.geojson",
     "color": "#9333ea",
     "km": 7.494,
