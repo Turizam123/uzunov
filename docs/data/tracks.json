@@ -85,6 +85,38 @@
     "color": "#2563eb",
     "km": 9,
     "visible": true
-   }
+   },
+  {
+    "id": "route_route_tumba",
+    "name": "Маршрут Тумба",
+    "file": "route_tumba.geojson",
+    "color": "#2563eb",
+    "km": 3.313,
+    "visible": true
+  },
+  {
+    "id": "route_route_botev",
+    "name": "Маршрут Ботев",
+    "file": "route_botev.geojson",
+    "color": "#16a34a",
+    "km": 11.891,
+    "visible": true
+  },
+  {
+    "id": "route_route_bogdan",
+    "name": "Маршрут Богдан",
+    "file": "route_bogdan.geojson",
+    "color": "#dc2626",
+    "km": 13.199,
+    "visible": true
+  },
+  {
+    "id": "route_route_midjur",
+    "name": "Маршрут Миджур",
+    "file": "route_midjur.geojson",
+    "color": "#9333ea",
+    "km": 7.494,
+    "visible": true
+  }
  ]
 }
