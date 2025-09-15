@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>T-MAP Туристически календар</title>
+  <meta name="theme-color" content="#0ea5e9" />
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#0e1726cc; --text:#e5edf5; --muted:#97a3b6;
+      --primary:#0ea5e9; --accent:#22c55e; --ring:rgba(14,165,233,.55);
+      --shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--text);
+      background:var(--bg);
+      font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial;
+      background-image:
+        radial-gradient(1200px 700px at 80% -10%, #0ea5e933, transparent 60%),
+        radial-gradient(700px 500px at -10% 110%, #7c3aed33, transparent 60%);
+    }
+    .app{max-width:1200px;margin:14px auto;padding:12px}
+    .shell{background:var(--panel);backdrop-filter:blur(14px) saturate(120%);
+      border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
+    .toolbar{display:flex;gap:10px;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08); position:sticky; top:0; background:var(--panel); z-index:5}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:800;letter-spacing:.3px}
+    .brand .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#0ea5e9,#7c3aed)}
+    .spacer{flex:1}
+    .btn{appearance:none;border:1px solid rgba(255,255,255,.12);color:var(--text);background:#ffffff0a;padding:10px 12px;border-radius:12px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;transition:.2s; box-shadow: inset 0 1px 0 rgba(255,255,255,.06)}
+    .btn:hover{background:#ffffff14}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{border-color:transparent;background:linear-gradient(180deg,#3cc8ff,#0ea5e9);color:#001827;font-weight:800}
+    .btn.icon{padding:10px}
+    .calendar{display:grid;grid-template-columns:1fr 340px;min-height:640px}
+    @media(max-width:980px){.calendar{grid-template-columns:1fr}}
+    .left{border-right:1px solid rgba(255,255,255,.08)}
+    @media(max-width:980px){.left{border-right:0;border-bottom:1px solid rgba(255,255,255,.08)}}
+    .panel{padding:16px;background: linear-gradient(180deg,#0b1220b0,#0b1220a0)}
+    .header{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:8px 16px}
+    .dow{opacity:.75;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+    .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:16px}
+    .cell{position:relative;aspect-ratio:1/1;border-radius:14px;padding:10px;background:#ffffff08;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:.2s;overflow:hidden}
+    .cell:hover{background:#ffffff12}
+    .cell.out{opacity:.45}
+    .cell.today{outline:2px solid var(--ring)}
+    .num{font-weight:900}
+    .marks{position:absolute;inset:auto 8px 8px 8px;display:flex;gap:6px;flex-wrap:wrap}
+    .dot{width:8px;height:8px;border-radius:999px;background:var(--muted);box-shadow:0 0 0 2px #0003}
+    .badge{position:absolute;top:6px;right:6px;font-size:11px;padding:3px 6px;border-radius:999px;background:#0007;border:1px solid rgba(255,255,255,.1)}
+    .footerbar{position:sticky;bottom:0;display:flex;gap:10px;padding:10px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.25) 20%, var(--panel) 60%)}
+    .section-title{opacity:.8;text-transform:uppercase;font-size:12px;letter-spacing:.18em;margin:6px 0 8px}
+    .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#ffffff10;border:1px solid rgba(255,255,255,.08);font-size:13px}
+    .chip .sw{width:12px;height:12px;border-radius:999px}
+    .events{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 260px);overflow:auto;padding-right:6px}
+    .empty{opacity:.7;padding:6px}
+    /* Еvent cards (дясна колона + списък) */
+    .event-card{display:grid;grid-template-columns:86px 1fr auto;gap:12px;padding:12px;border-radius:14px;background:#0b1323aa;border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow)}
+    .event-card .thumb{width:86px;height:86px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#0ea5e933,#7c3aed33)}
+    .event-card .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .event-card .title{font-weight:900}
+    .event-card .meta{font-size:12px;opacity:.85}
+    .event-card .actions{display:flex;gap:6px}
+    .event-card a.button{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:linear-gradient(180deg,#3cc8ff,#0ea5e9);color:#001827;text-decoration:none;font-weight:800;border:0}
+    @media(max-width:980px){.event-card{grid-template-columns:72px 1fr auto}.event-card .thumb{width:72px;height:72px}}
+    /* Admin visibility */
+    .adminOnly{display:none}
+    .is-admin .adminOnly{display:inline-flex}
+    .is-admin .adminOnly.block{display:block}
+    /* Bottom sheet (mobile day view) */
+    .sheet{position:fixed;inset:auto 0 0 0;background:var(--panel);border-top-left-radius:24px;border-top-right-radius:24px;box-shadow:0 -12px 40px rgba(0,0,0,.35);transform:translateY(110%);transition:.3s ease transform;z-index:40}
+    .sheet.open{transform:translateY(0)}
+    .sheet .grip{width:60px;height:6px;background:#ffffff33;border-radius:999px;margin:10px auto}
+    .sheet .content{padding:12px 16px 16px}
+    /* Modal */
+    .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.5);z-index:50}
+    .modal.open{display:grid}
+    .card{width:min(720px,92vw);background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:18px;box-shadow:var(--shadow);padding:16px}
+    .field{display:grid;gap:6px;margin:10px 0}
+    label{font-size:13px;opacity:.85}
+    input[type="text"], select, textarea{background:#ffffff12;border:1px solid rgba(255,255,255,.18);color:var(--text);border-radius:12px;padding:10px}
+    .actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding-top:8px}
+    .hint{font-size:12px;opacity:.8}
+    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);z-index:60;display:none}
+    .toast.show{display:block}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="shell">
+      <div class="toolbar">
+        <div class="brand">
+          <div class="logo" title="T-MAP">
+            <!-- T-MAP mountain logo -->
+            <svg viewBox="0 0 64 64" width="28" height="28" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 52L26 20l10 14 6-8 18 26H4Z" fill="url(#g)" opacity=".25"/>
+              <path d="M4 52L26 20l10 14 6-8 18 26H4Z"/>
+              <defs>
+                <linearGradient id="g" x1="0" x2="64" y1="64" y2="0">
+                  <stop stop-color="#0ea5e9"/><stop offset="1" stop-color="#7c3aed"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div style="font-size:20px;font-weight:800">T-MAP Туристически календар</div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn icon" id="prevBtn" title="Предишен месец" aria-label="Предишен месец">&#x276E;</button>
+        <div class="btn" id="title" style="pointer-events:none"></div>
+        <button class="btn icon" id="nextBtn" title="Следващ месец" aria-label="Следващ месец">&#x276F;</button>
+        <button class="btn" id="todayBtn">Днес</button>
+        <button class="btn primary adminOnly" id="newEventBtn">+ Ново събитие</button>
+        <button class="btn" id="adminBtn" title="Админ вход">Вход (админ)</button>
+      </div>
+
+      <div class="calendar">
+        <!-- Лява част: Календар -->
+        <section class="left">
+          <div class="header">
+            <div class="dow">Пон</div><div class="dow">Вто</div><div class="dow">Сря</div><div class="dow">Чет</div><div class="dow">Пет</div><div class="dow">Съб</div><div class="dow">Нед</div>
+          </div>
+          <div class="grid" id="grid"></div>
+          <div class="footerbar">
+            <button class="btn adminOnly" id="selectRangeBtn">Избор на диапазон</button>
+            <button class="btn adminOnly" id="clearSelectionBtn">Изчисти избора</button>
+          </div>
+        </section>
+
+        <!-- Дясна част: Предстоящи събития -->
+        <aside class="panel">
+          <div class="section-title">Филтри</div>
+          <div class="legend" id="legend"></div>
+
+          <div class="section-title">Предстоящи събития</div>
+          <div class="events" id="eventsList"></div>
+          <div class="empty" id="emptyEvents" hidden>Няма предстоящи събития за показване.</div>
+
+          <div class="section-title">Експорт / Импорт</div>
+          <div class="legend">
+            <button class="btn" id="exportJson">Експорт .JSON</button>
+            <button class="btn" id="exportIcs">Експорт .ICS</button>
+            <label class="btn adminOnly" for="importJson" style="cursor:pointer">Импорт .JSON
+              <input id="importJson" type="file" accept="application/json" hidden>
+            </label>
+          </div>
+          <p class="hint">Данните се пазят локално (offline). Само админ може да добавя/редактира.</p>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Събитие -->
+  <div class="modal" id="eventModal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2 style="margin:0 0 6px">Събитие</h2>
+      <p class="hint" id="eventDatesHint"></p>
+
+      <div class="field adminOnly">
+        <label for="evTitle">Заглавие</label>
+        <input id="evTitle" type="text" placeholder="напр. Преход до Мальовица" />
+      </div>
+      <div class="field adminOnly">
+        <label for="evCategory">Категория</label>
+        <select id="evCategory">
+          <option value="hike">Преход</option>
+          <option value="festival">Фестивал</option>
+          <option value="culture">Култура</option>
+          <option value="other">Друго</option>
+        </select>
+      </div>
+      <div class="field adminOnly">
+        <label>Цвят</label>
+        <div id="colorPicker" class="legend"></div>
+      </div>
+
+      <div class="field adminOnly">
+        <label for="evUrl">Линк към събитие (URL)</label>
+        <input id="evUrl" type="text" placeholder="https://..." />
+      </div>
+      <div class="field adminOnly">
+        <label for="evImage">URL на снимка</label>
+        <input id="evImage" type="text" placeholder="https://.../image.jpg" />
+      </div>
+      <div class="field adminOnly">
+        <label for="evNotes">Бележки</label>
+        <textarea id="evNotes" rows="3" placeholder="Детайли, срещи, GPS, застраховка..."></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="cancelEvent">Откажи</button>
+        <button class="btn primary adminOnly" id="saveEvent">Запази</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom sheet (мобилни детайли за ден) -->
+  <div class="sheet" id="daySheet" aria-hidden="true">
+    <div class="grip"></div>
+    <div class="content">
+      <h3 id="sheetTitle" style="margin:0 0 8px"></h3>
+      <div id="sheetEvents"></div>
+      <div class="actions" style="justify-content:flex-start">
+        <button class="btn adminOnly" id="addEventFromSheet">+ Добави събитие</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  ;(()=>{
+    const $ = (s,r=document)=>r.querySelector(s);
+    const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+    const pad = n => String(n).padStart(2,'0');
+    const iso = d => [d.getFullYear(), pad(d.getMonth()+1), pad(d.getDate())].join('-');
+    const parseISO = s => { const [Y,M,D]=s.split('-').map(Number); return new Date(Y,M-1,D) };
+    const save = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+    const load = (k,f)=>{ try{ return JSON.parse(localStorage.getItem(k)) ?? f }catch{ return f } };
+    const toast = m=>{ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800) };
+
+    // ---- Admin gate ----
+    const ADMIN_ID = '59e62f07-5fab-443f-a0cb-efd988b44b8f';
+    const adminBtn = $('#adminBtn');
+    const isAdmin = ()=> localStorage.getItem('tmap.adminId')===ADMIN_ID;
+    const setAdminMode = on => { document.body.classList.toggle('is-admin', !!on); adminBtn.textContent = on? 'Изход (админ)' : 'Вход (админ)'; };
+    adminBtn.addEventListener('click', ()=>{
+      if(isAdmin()){ localStorage.removeItem('tmap.adminId'); setAdminMode(false); toast('Излязохте от админ режим'); return }
+      const code = prompt('Въведете админ идентификатор:');
+      if(code===ADMIN_ID){ localStorage.setItem('tmap.adminId', ADMIN_ID); setAdminMode(true); toast('Добре дошли, админ!') }
+      else if(code){ toast('Невалиден идентификатор') }
+    });
+
+    // ---- State ----
+    const state = {
+      cursor: new Date(),
+      selection: new Set(),
+      events: load('tmap.events', []),
+      filters: new Set(load('tmap.filters', ['hike','festival','culture','other'])),
+      colors: ['#0ea5e9','#22c55e','#f59e0b','#ef4444','#a855f7','#14b8a6','#e11d48']
+    };
+
+    // ---- Categories ----
+    const categories = {
+      hike:{name:'Преход', color:'#22c55e'},
+      festival:{name:'Фестивал', color:'#f59e0b'},
+      culture:{name:'Култура', color:'#0ea5e9'},
+      other:{name:'Друго', color:'#a855f7'}
+    };
+    const catName = c => categories[c]?.name || 'Друго';
+
+    // ---- Header / Nav ----
+    const title = $('#title'), prevBtn=$('#prevBtn'), nextBtn=$('#nextBtn'), todayBtn=$('#todayBtn');
+    function setCursor(date){ state.cursor = new Date(date.getFullYear(), date.getMonth(), 1); render() }
+    function changeMonth(delta){ const d=new Date(state.cursor); d.setMonth(d.getMonth()+delta); setCursor(d) }
+    prevBtn.onclick=()=>changeMonth(-1);
+    nextBtn.onclick=()=>changeMonth(1);
+    todayBtn.onclick=()=>setCursor(new Date());
+
+    // ---- Legend (filters) ----
+    const legend = $('#legend');
+    function renderLegend(){
+      legend.innerHTML='';
+      Object.entries(categories).forEach(([key,val])=>{
+        const chip=document.createElement('button');
+        chip.className='chip'; chip.setAttribute('aria-pressed', state.filters.has(key));
+        chip.innerHTML = `<span class="sw" style="background:${val.color}"></span>${val.name}`;
+        chip.onclick=()=>{
+          if(state.filters.has(key)) state.filters.delete(key); else state.filters.add(key);
+          save('tmap.filters', Array.from(state.filters));
+          chip.setAttribute('aria-pressed', state.filters.has(key));
+          renderEventsList(); renderGridDots(); injectJsonLdFromState();
+        };
+        legend.appendChild(chip);
+      });
+    }
+
+    // ---- Calendar grid ----
+    const grid = $('#grid');
+    function monthMatrix(year,month){
+      const first = new Date(year, month, 1);
+      const firstDow = (first.getDay()+6)%7; // Mon=0
+      const start = new Date(year, month, 1-firstDow);
+      const days=[];
+      for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); days.push(d) }
+      return days;
+    }
+
+    let dragging=false, dragAdd=true;
+    function render(){
+      const d=state.cursor, monthName=d.toLocaleDateString('bg-BG',{month:'long', year:'numeric'});
+      title.textContent = monthName.charAt(0).toUpperCase()+monthName.slice(1);
+      grid.innerHTML='';
+      const days = monthMatrix(d.getFullYear(), d.getMonth());
+      days.forEach(day=>{
+        const dayIso=iso(day);
+        const cell=document.createElement('div'); cell.className='cell'; cell.dataset.date=dayIso;
+        if(day.getMonth()!==d.getMonth()) cell.classList.add('out');
+        if(dayIso===iso(new Date())) cell.classList.add('today');
+        cell.innerHTML = `<div class="num">${day.getDate()}</div><div class="badge" hidden></div><div class="marks"></div>`;
+        grid.appendChild(cell);
+      });
+      renderGridDots();
+      $$('.cell',grid).forEach(cell=>{
+        cell.addEventListener('pointerdown', ()=>{
+          dragging=true; dragAdd=!state.selection.has(cell.dataset.date);
+          toggleSelect(cell.dataset.date, dragAdd);
+        });
+        cell.addEventListener('pointerenter', ()=>{ if(dragging) toggleSelect(cell.dataset.date, dragAdd, true) });
+        cell.addEventListener('click', ()=>{ if(window.matchMedia('(max-width:980px)').matches) openDaySheet(cell.dataset.date) });
+      });
+      window.addEventListener('pointerup', ()=> dragging=false, {once:true});
+      paintSelection();
+    }
+
+    function visibleEvents(){ return state.events.filter(ev=> state.filters.has(ev.category)) }
+    function renderGridDots(){
+      $$('.cell',grid).forEach(cell=>{
+        const dIso=cell.dataset.date; const box=$('.marks',cell); box.innerHTML='';
+        const list = visibleEvents().filter(ev=> ev.dates.includes(dIso));
+        list.slice(0,5).forEach(ev=>{
+          const dot=document.createElement('span'); dot.className='dot';
+          dot.style.background = ev.color || categories[ev.category]?.color || 'var(--muted)'; dot.title=ev.title;
+          box.appendChild(dot);
+        });
+        const more=list.length-5; const b=$('.badge',cell); if(more>0){ b.hidden=false; b.textContent=`+${more}` } else { b.hidden=true }
+      });
+    }
+
+    // ---- Selection helpers ----
+    const clearSelectionBtn=$('#clearSelectionBtn'), selectRangeBtn=$('#selectRangeBtn');
+    clearSelectionBtn.onclick=()=>{ state.selection.clear(); paintSelection() }
+    selectRangeBtn.onclick=()=>{
+      const sel=[...state.selection].sort(); if(sel.length<1){ toast('Изберете начална дата'); return }
+      const start=parseISO(sel[0]); const end=prompt('Край (ГГГГ-ММ-ДД):', iso(start)); if(!end) return;
+      const e=parseISO(end); if(isNaN(e)){ toast('Невалидна дата'); return }
+      const cur=new Date(start); while(cur<=e){ state.selection.add(iso(cur)); cur.setDate(cur.getDate()+1) }
+      paintSelection();
+    };
+    function toggleSelect(isoDate, on, silent=false){ if(on) state.selection.add(isoDate); else state.selection.delete(isoDate); paintCell(isoDate,on); if(!silent) updateDatesHint() }
+    function paintCell(isoDate,on){ const c=$(`.cell[data-date="${isoDate}"]`,grid); if(!c) return; c.style.outline = on? '3px solid var(--ring)' : (c.classList.contains('today')? '2px solid var(--ring)' : '') }
+    function paintSelection(){ $$('.cell',grid).forEach(c=> c.style.outline = state.selection.has(c.dataset.date)? '3px solid var(--ring)' : (c.classList.contains('today')? '2px solid var(--ring)' : '')) ; updateDatesHint() }
+    function compressDates(dates){
+      const ds=dates.slice().sort(); if(!ds.length) return '';
+      const ranges=[]; let start=ds[0], prev=ds[0];
+      for(let i=1;i<ds.length;i++){ const cur=ds[i]; const p=parseISO(prev); p.setDate(p.getDate()+1); if(iso(p)===cur){ prev=cur; continue } ranges.push([start,prev]); start=prev=cur }
+      ranges.push([start,prev]);
+      const fmt=s=>{ const d=parseISO(s); return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}` };
+      return ranges.map(([a,b])=> a===b? fmt(a): `${fmt(a)}–${fmt(b)}`).join(', ')
+    }
+
+    // ---- Events list (дясно) ----
+    const eventsList=$('#eventsList'), emptyEvents=$('#emptyEvents');
+    function renderEventsList(){
+      const todayIso=iso(new Date());
+      const list = visibleEvents()
+        .map(ev=>({...ev, first: ev.dates[0]}))
+        .filter(ev=> ev.first >= todayIso)
+        .sort((a,b)=> a.first.localeCompare(b.first));
+      eventsList.innerHTML=''; emptyEvents.hidden = list.length>0;
+      list.forEach(ev=>{
+        const item=document.createElement('div'); item.className='event-card';
+        const datesShort = compressDates(ev.dates);
+        item.innerHTML = `
+          <div class="thumb">${ev.image?`<img src="${ev.image}" alt="${escapeHtml(ev.title)}">`:''}</div>
+          <div>
+            <div class="title">${escapeHtml(ev.title)}</div>
+            <div class="meta">${datesShort} • ${catName(ev.category)}</div>
+            ${ev.notes?`<div class="meta">${escapeHtml(ev.notes)}</div>`:''}
+          </div>
+          <div class="actions">
+            ${ev.url?`<a class="button" href="${ev.url}" target="_blank" rel="noopener">Виж повече</a>`:''}
+            <button class="btn icon adminOnly" title="Редакция">✎</button>
+            <button class="btn icon adminOnly" title="Изтриване">🗑️</button>
+          </div>`;
+        const [moreBtn, editBtn, delBtn] = item.querySelectorAll('a.button, button');
+        editBtn?.addEventListener('click', ()=> isAdmin()? openEventModal(ev) : toast('Само админ'));
+        delBtn?.addEventListener('click', ()=>{
+          if(!isAdmin()){ toast('Само админ'); return }
+          if(confirm('Да изтрия ли това събитие?')){
+            state.events = state.events.filter(e=>e.id!==ev.id);
+            save('tmap.events', state.events);
+            renderEventsList(); renderGridDots(); injectJsonLdFromState();
+          }
+        });
+        eventsList.appendChild(item);
+      });
+    }
+
+    // ---- Modal ----
+    const eventModal=$('#eventModal'), newEventBtn=$('#newEventBtn'), saveEventBtn=$('#saveEvent'), cancelEventBtn=$('#cancelEvent');
+    const evTitle=$('#evTitle'), evCategory=$('#evCategory'), evNotes=$('#evNotes'), evUrl=$('#evUrl'), evImage=$('#evImage'), colorPicker=$('#colorPicker');
+    let editing=null, selectedColor='#0ea5e9';
+
+    function openEventModal(ev=null){
+      if(!isAdmin()){ toast('Само админ може да редактира'); return }
+      editing=ev; updateDatesHint();
+      if(ev){
+        evTitle.value=ev.title; evCategory.value=ev.category; evNotes.value=ev.notes||''; evUrl.value=ev.url||''; evImage.value=ev.image||'';
+        selectedColor=ev.color||state.colors[0]; selectColor(selectedColor);
+        state.selection = new Set(ev.dates); paintSelection();
+      } else {
+        evTitle.value=''; evCategory.value='hike'; evNotes.value=''; evUrl.value=''; evImage.value='';
+        selectedColor=state.colors[0]; selectColor(selectedColor);
+        if(state.selection.size===0){ state.selection.add(iso(new Date())); paintSelection() }
+      }
+      eventModal.classList.add('open'); eventModal.setAttribute('aria-hidden','false');
+    }
+    function closeEventModal(){ eventModal.classList.remove('open'); eventModal.setAttribute('aria-hidden','true') }
+    newEventBtn?.addEventListener('click', ()=>{
+      if(!isAdmin()){ toast('Само админ може да добавя'); return }
+      if(state.selection.size===0){ state.selection.add(iso(new Date())); paintSelection() }
+      openEventModal();
+    });
+    cancelEventBtn.onclick=closeEventModal;
+    eventModal.addEventListener('click', e=>{ if(e.target===eventModal) closeEventModal() });
+
+    function renderColorPicker(){ colorPicker.innerHTML=''; state.colors.forEach(c=>{ const b=document.createElement('button'); b.className='chip'; b.dataset.color=c; b.innerHTML=`<span class="sw" style="background:${c}"></span>${c}`; b.onclick=()=>selectColor(c); colorPicker.appendChild(b) }) }
+    function selectColor(c){ selectedColor=c; $$('[data-color]',colorPicker).forEach(x=>x.style.outline=''); const btn=$(`[data-color="${c}"]`,colorPicker); if(btn) btn.style.outline='2px solid var(--ring)' }
+
+    function updateDatesHint(){ const el=$('#eventDatesHint'); if(!el) return; const ds=[...state.selection].sort(); el.textContent = ds.length? `Избрани дати: ${compressDates(ds)}` : 'Няма избрани дати' }
+
+    saveEventBtn?.addEventListener('click', ()=>{
+      const title=evTitle.value.trim(); if(!title){ toast('Добавете заглавие'); return }
+      const dates=[...state.selection].sort(); if(dates.length===0){ toast('Изберете поне една дата'); return }
+      const obj = editing || { id: crypto.randomUUID() };
+      Object.assign(obj, { title, category: evCategory.value, color: selectedColor, dates, notes: evNotes.value.trim(), url: evUrl.value.trim(), image: evImage.value.trim() });
+      if(!editing) state.events.push(obj);
+      save('tmap.events', state.events);
+      closeEventModal(); renderEventsList(); renderGridDots(); injectJsonLdFromState(); toast('Събитието е записано');
+    });
+
+    // ---- Day Sheet (mobile) ----
+    const daySheet=$('#daySheet'), sheetTitle=$('#sheetTitle'), sheetEvents=$('#sheetEvents'), addEventFromSheet=$('#addEventFromSheet');
+    function openDaySheet(isoDate){
+      const d=parseISO(isoDate);
+      sheetTitle.textContent = d.toLocaleDateString('bg-BG',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+      state.selection = new Set([isoDate]); paintSelection(); renderSheet(isoDate);
+      daySheet.classList.add('open');
+      addEventFromSheet.onclick = ()=> isAdmin()? openEventModal() : toast('Само админ');
+      let startY=null; daySheet.onpointerdown=e=>{ startY=e.clientY }; daySheet.onpointerup=e=>{ if(startY && e.clientY-startY>80) closeDaySheet(); startY=null };
+    }
+    function closeDaySheet(){ daySheet.classList.remove('open') }
+    daySheet.addEventListener('click', e=>{ if(e.target===daySheet) closeDaySheet() });
+    function renderSheet(isoDate){
+      const list = visibleEvents().filter(ev=> ev.dates.includes(isoDate));
+      sheetEvents.innerHTML = list.length? '' : '<div class="empty">Няма събития за този ден.</div>';
+      list.forEach(ev=>{
+        const row=document.createElement('div'); row.className='event-card';
+        row.innerHTML = `
+          <div class="thumb">${ev.image?`<img src="${ev.image}" alt="${escapeHtml(ev.title)}">`:''}</div>
+          <div><div class="title">${escapeHtml(ev.title)}</div><div class="meta">${catName(ev.category)}</div><div class="meta">${escapeHtml(ev.notes||'')}</div></div>
+          <div class="actions">${ev.url?`<a class="button" href="${ev.url}" target="_blank" rel="noopener">Виж повече</a>`:''}</div>`;
+        sheetEvents.appendChild(row);
+      });
+    }
+
+    // ---- Export / Import ----
+    $('#exportJson').onclick=()=>{
+      const data={events:state.events};
+      download('tmap-calendar.json', JSON.stringify(data,null,2));
+    };
+    $('#exportIcs').onclick=()=>{
+      const ics=toICS(state.events); download('tmap-calendar.ics', ics);
+    };
+    $('#importJson').addEventListener('change', async (e)=>{
+      if(!isAdmin()){ toast('Само админ може да импортира'); e.target.value=''; return }
+      const f=e.target.files[0]; if(!f) return; const text=await f.text();
+      try{ const obj=JSON.parse(text); if(obj.events) state.events=obj.events; save('tmap.events', state.events); renderEventsList(); renderGridDots(); injectJsonLdFromState(); toast('Импорт успешно') }catch{ toast('Грешен JSON') }
+      e.target.value='';
+    });
+    function download(name,text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'})); a.download=name; document.body.appendChild(a); a.click(); a.remove() }
+    function toICS(events){
+      const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//T-MAP//Tour Calendar//BG'];
+      const esc=s=> String(s||'').replace(/[\\,;\\n]/g,m=>({'\\':'\\\\',',':'\\,',';':'\\;','\\n':'\\n'}[m]));
+      events.forEach(ev=>{
+        ev.dates.forEach(dISO=>{
+          const d=parseISO(dISO), y=d.getFullYear(), m=pad(d.getMonth()+1), da=pad(d.getDate());
+          const nextDay=new Date(d); nextDay.setDate(d.getDate()+1);
+          lines.push('BEGIN:VEVENT');
+          lines.push('UID:'+(ev.id||crypto.randomUUID())+'-'+dISO);
+          lines.push('DTSTAMP:'+y+m+da+'T090000Z');
+          lines.push('DTSTART;VALUE=DATE:'+y+m+da);
+          lines.push('DTEND;VALUE=DATE:'+nextDay.getFullYear()+pad(nextDay.getMonth()+1)+pad(nextDay.getDate()));
+          lines.push('SUMMARY:'+esc(ev.title));
+          if(ev.notes) lines.push('DESCRIPTION:'+esc(ev.notes));
+          if(ev.url) lines.push('URL:'+esc(ev.url));
+          lines.push('CATEGORIES:'+esc(catName(ev.category)));
+          lines.push('END:VEVENT');
+        });
+      });
+      lines.push('END:VCALENDAR'); return lines.join('\r\n');
+    }
+
+    // ---- JSON-LD (SEO) ----
+    function injectJsonLdFromState(){
+      const old=$('#ldjson-events'); if(old) old.remove();
+      const todayIso=iso(new Date());
+      const upcoming = state.events
+        .map(ev=>({ title:ev.title, date:ev.dates[0], endDate: ev.dates[ev.dates.length-1], desc:ev.notes||'', link:ev.url||location.href, img:ev.image }))
+        .filter(e=> e.date >= todayIso)
+        .sort((a,b)=> a.date.localeCompare(b.date));
+      const data = upcoming.map(ev=>({
+        "@context":"https://schema.org",
+        "@type":"Event",
+        name: ev.title,
+        startDate: ev.date,
+        endDate: ev.endDate || ev.date,
+        eventStatus: "https://schema.org/EventScheduled",
+        description: ev.desc,
+        url: ev.link,
+        image: ev.img ? [ev.img] : undefined,
+        organizer: {"@type":"Organization","name":"T-MAP"},
+        location: {"@type":"VirtualLocation","url": ev.link}
+      }));
+      const s=document.createElement('script'); s.type='application/ld+json'; s.id='ldjson-events'; s.textContent=JSON.stringify(data); document.head.appendChild(s);
+    }
+
+    // ---- Helpers ----
+    function escapeHtml(s){ return String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+    // ---- Init ----
+    function init(){
+      renderColorPicker();
+      renderLegend();
+      setCursor(new Date());
+      renderEventsList();
+      setAdminMode(isAdmin());
+      injectJsonLdFromState();
+
+      window.addEventListener('keydown', e=>{
+        if(e.key==='ArrowLeft') changeMonth(-1);
+        else if(e.key==='ArrowRight') changeMonth(1);
+        else if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='n'){ e.preventDefault(); if(isAdmin()) openEventModal(); }
+      });
+    }
+    init();
+  })();
+  </script>
+</body>
+</html>
