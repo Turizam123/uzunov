@@ -8,24 +8,16 @@
   <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96">
   <style>
     :root{
-      --tmap-blue:#0ea5e9;
-      --tmap-dark:#0b1220;
-      --text:#0b1220;
-      --muted:#667085;
-      --bg:#f5f7fb;
-      --card:#ffffff;
-      --ring:rgba(14,165,233,.45);
-      --radius:18px;
+      --tmap-blue:#0ea5e9; --tmap-dark:#0b1220; --text:#0b1220; --muted:#667085;
+      --bg:#f5f7fb; --card:#ffffff; --ring:rgba(14,165,233,.45); --radius:18px;
       --shadow:0 10px 30px rgba(16,24,40,.08), 0 2px 10px rgba(16,24,40,.05);
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    *{box-sizing:border-box} html,body{height:100%}
     body{
       margin:0; color:var(--text);
       font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial;
       background: radial-gradient(1200px 700px at 80% -10%, #c0f0ff66, transparent 60%),
-                  radial-gradient(800px 600px at -10% 110%, #e2c8ff55, transparent 60%),
-                  var(--bg);
+                  radial-gradient(800px 600px at -10% 110%, #e2c8ff55, transparent 60%), var(--bg);
       background-image:
         radial-gradient(1200px 700px at 80% -10%, #c0f0ff66, transparent 60%),
         radial-gradient(800px 600px at -10% 110%, #e2c8ff55, transparent 60%),
@@ -40,8 +32,7 @@
     .brand .title{font-weight:800;letter-spacing:.2px;font-size:20px}
     .spacer{flex:1}
     .btn{appearance:none;border:1px solid rgba(2,6,23,.08);background:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;transition:.2s;box-shadow: inset 0 1px 0 rgba(255,255,255,.7)}
-    .btn:hover{transform:translateY(-1px)}
-    .btn:active{transform:translateY(0)}
+    .btn:hover{transform:translateY(-1px)} .btn:active{transform:translateY(0)}
     .btn.primary{border-color:transparent;background:linear-gradient(180deg,#5dd7ff,#0ea5e9);color:#001a26;font-weight:800}
     .btn.icon{padding:10px}
     .calendar{display:grid;grid-template-columns:1fr 360px;min-height:640px}
@@ -70,15 +61,12 @@
     .chip .sw{width:12px;height:12px;border-radius:999px}
     .chip .count{margin-left:8px;padding:2px 8px;font-size:12px;font-weight:800;border-radius:999px;background:#f3f4f6;border:1px solid rgba(2,6,23,.06)}
 
-    /* Invisible scrollbar utility */
     .invisible-scroll{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
     .invisible-scroll::-webkit-scrollbar{width:0;height:0}
 
-    /* Events list */
     .events{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 260px);padding-right:6px}
     .empty{opacity:.7;padding:6px}
 
-    /* Event card */
     .event-card{
       display:grid; grid-template-columns:1fr; gap:10px;
       padding:12px; border-radius:16px; background:#fff;
@@ -97,18 +85,15 @@
     .event-card .actions{display:flex;gap:6px}
     .event-card a.button{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:linear-gradient(180deg,#5dd7ff,#0ea5e9);color:#001a26;text-decoration:none;font-weight:800;border:0}
 
-    /* Bottom sheet */
     .sheet{position:fixed;inset:auto 0 0 0;background:#ffffffee;border-top-left-radius:24px;border-top-right-radius:24px;box-shadow:0 -12px 40px rgba(16,24,40,.18);transform:translateY(110%);transition:.3s ease transform;z-index:40}
     .sheet.open{transform:translateY(0)}
     .sheet .grip{width:60px;height:6px;background:#98a2b3;border-radius:999px;margin:10px auto}
     .sheet .content{padding:12px 16px 16px}
 
-    /* Modals */
     .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(2,6,23,.35);z-index:60}
     .modal.open{display:grid}
     .card.modal-card{width:min(720px,92vw);padding:16px}
 
-    /* Info modal */
     .card.info-card{
       width:min(720px,92vw);padding:16px;
       display:grid;grid-template-columns:110px 1fr;gap:14px
@@ -120,7 +105,6 @@
       .info-left img{width:100%;height:160px}
     }
 
-    /* Admin visibility */
     .adminOnly{display:none}
     .is-admin .adminOnly{display:inline-flex}
     .is-admin .adminOnly.block{display:block}
@@ -141,18 +125,10 @@
     .drawer .drawer-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(2,6,23,.06)}
     .drawer .drawer-body{padding:14px;gap:12px;display:flex;flex-direction:column}
 
-    /* Показване/скриване според устройство */
-    @media (min-width:981px){
-      #menuBtn{ display:none !important; }                 /* няма меню на десктоп */
-      .drawer, .drawer-backdrop{ display:none !important;} /* напълно изключено */
-    }
-    @media (max-width:980px){
-      #menuBtn{ display:inline-flex; }                     /* бутон ≡ само на мобилно */
-    }
+    @media (min-width:981px){ #menuBtn{ display:none !important; } .drawer, .drawer-backdrop{ display:none !important; } }
+    @media (max-width:980px){ #menuBtn{ display:inline-flex; } }
 
-    /* При отворен drawer скрий „Днес“ и „Вход“ */
-    .drawer-open #todayBtn,
-    .drawer-open #adminBtn{ display:none !important; }
+    .drawer-open #todayBtn, .drawer-open #adminBtn{ display:none !important; }
   </style>
 </head>
 <body>
@@ -203,7 +179,7 @@
               <input id="importJson" type="file" accept="application/json" hidden>
             </label>
           </div>
-          <p class="hint">Данните се пазят локално. Само админ може да добавя/редактира.</p>
+          <p class="hint">Данните се пазят в Supabase. Локални филтри/режим админ – в браузъра.</p>
         </aside>
       </div>
     </div>
@@ -286,9 +262,7 @@
   <!-- Modal: Инфо (pop-up за всички) -->
   <div class="modal" id="infoModal" aria-hidden="true" role="dialog" aria-modal="true">
     <div class="card info-card invisible-scroll">
-      <div class="info-left">
-        <img id="infoImg" alt="" style="display:none">
-      </div>
+      <div class="info-left"><img id="infoImg" alt="" style="display:none"></div>
       <div class="info-body">
         <h2 id="infoTitle" style="margin:0 0 6px"></h2>
         <p class="hint" id="infoDates" style="margin:0 0 6px"></p>
@@ -315,6 +289,9 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
   ;(()=>{
     const $ = (s,r=document)=>r.querySelector(s);
@@ -326,7 +303,51 @@
     const load = (k,f)=>{ try{ return JSON.parse(localStorage.getItem(k)) ?? f }catch{ return f } };
     const toast = m=>{ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800) };
 
-    // ---- Admin gate ----
+    /* ---------- Supabase ---------- */
+    const SUPABASE_URL = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
+    const TABLE = 'tmap_calendar_events';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function db_list(){
+      const { data, error } = await sb.from(TABLE).select('*').order('created_at', { ascending:true });
+      if(error){ console.warn(error); toast('Грешка при зареждане'); return [] }
+      return (data||[]).map(r=>({
+        id:r.id, title:r.title, category:r.category||'other', color:r.color||null,
+        notes:r.notes||'', url:r.url||'', image:r.image||'',
+        dates:(r.dates||[]).map(String)
+      }));
+    }
+    async function db_upsert(ev){
+      const code = localStorage.getItem('tmap.adminId');
+      if(code !== ADMIN_ID) throw new Error('not admin');
+      const { data, error } = await sb.rpc('tmap_admin_upsert_event', {
+        p_code: code, p_id: ev.id || null, p_title: ev.title, p_category: ev.category,
+        p_color: ev.color, p_notes: ev.notes || null, p_url: ev.url || null, p_image: ev.image || null,
+        p_dates: ev.dates
+      });
+      if(error) throw error;
+      if(!ev.id && data) ev.id = data;
+    }
+    async function db_delete(id){
+      const code = localStorage.getItem('tmap.adminId');
+      if(code !== ADMIN_ID) throw new Error('not admin');
+      const { error } = await sb.rpc('tmap_admin_delete_event', { p_code: code, p_id: id });
+      if(error) throw error;
+    }
+    async function db_bulk_upsert(list){
+      for(const ev of list){
+        await db_upsert({
+          id: ev.id || null,
+          title: ev.title, category: ev.category || 'other',
+          color: ev.color || null, notes: ev.notes || null,
+          url: ev.url || null, image: ev.image || null,
+          dates: ev.dates || []
+        });
+      }
+    }
+
+    /* ---------- Admin gate ---------- */
     const ADMIN_ID = '59e62f07-5fab-443f-a0cb-efd988b44b8f';
     const adminBtn = $('#adminBtn');
     const isAdmin = ()=> localStorage.getItem('tmap.adminId')===ADMIN_ID;
@@ -338,15 +359,14 @@
       else if(code){ toast('Невалиден идентификатор') }
     });
 
-    // ---- State ----
+    /* ---------- State ---------- */
     const state = {
       cursor: new Date(),
       selection: new Set(),
-      events: load('tmap.events', []),
+      events: [], // ще се зареди от Supabase
       filters: new Set(load('tmap.filters', ['hike','festival','culture','other'])),
       colors: ['#0ea5e9','#22c55e','#f59e0b','#ef4444','#a855f7','#14b8a6','#e11d48']
     };
-
     const categories = {
       hike:{name:'Преход', color:'#22c55e'},
       festival:{name:'Фестивал', color:'#f59e0b'},
@@ -355,7 +375,7 @@
     };
     const catName = c => categories[c]?.name || 'Друго';
 
-    // ---- Header / Nav ----
+    /* ---------- Header / Nav ---------- */
     const title = $('#title'), prevBtn=$('#prevBtn'), nextBtn=$('#nextBtn'), todayBtn=$('#todayBtn');
     function setCursor(date){ state.cursor = new Date(date.getFullYear(), date.getMonth(), 1); render() }
     function changeMonth(delta){ const d=new Date(state.cursor); d.setMonth(d.getMonth()+delta); setCursor(d) }
@@ -363,69 +383,36 @@
     nextBtn.onclick=()=>changeMonth(1);
     todayBtn.onclick=()=>setCursor(new Date());
 
-    // ---- Mobile drawer ----
-    const menuBtn=$('#menuBtn'),
-          drawer=$('#drawer'),
-          drawerBackdrop=$('#drawerBackdrop'),
-          drawerClose=$('#drawerClose');
-
-    function openDrawer(){
-      drawer.classList.add('open');
-      drawerBackdrop.classList.add('open');
-      drawer.setAttribute('aria-hidden','false');
-      document.body.classList.add('drawer-open');   // скрий "Днес" и "Вход"
-    }
-    function closeDrawer(){
-      drawer.classList.remove('open');
-      drawerBackdrop.classList.remove('open');
-      drawer.setAttribute('aria-hidden','true');
-      document.body.classList.remove('drawer-open');
-    }
-    menuBtn.onclick=openDrawer;
-    drawerClose.onclick=closeDrawer;
-    drawerBackdrop.onclick=closeDrawer;
+    /* ---------- Drawer (mobile) ---------- */
+    const menuBtn=$('#menuBtn'), drawer=$('#drawer'), drawerBackdrop=$('#drawerBackdrop'), drawerClose=$('#drawerClose');
+    function openDrawer(){ drawer.classList.add('open'); drawerBackdrop.classList.add('open'); drawer.setAttribute('aria-hidden','false'); document.body.classList.add('drawer-open'); }
+    function closeDrawer(){ drawer.classList.remove('open'); drawerBackdrop.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); document.body.classList.remove('drawer-open'); }
+    menuBtn.onclick=openDrawer; drawerClose.onclick=closeDrawer; drawerBackdrop.onclick=closeDrawer;
     window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer() });
-    // ако преминем към десктоп – затвори и изчисти състоянието
-    window.addEventListener('resize', ()=>{ if (window.innerWidth >= 981) closeDrawer(); });
+    window.addEventListener('resize', ()=>{ if(window.innerWidth>=981) closeDrawer() });
 
-    // ---- Legend (filters) + counters ----
+    /* ---------- Legend / filters ---------- */
     const legend = $('#legend'), legendMobile = $('#legendMobile');
-
     function getUpcomingCounts(){
       const todayIso = iso(new Date());
       const counts = {hike:0, festival:0, culture:0, other:0};
-      state.events.forEach(ev=>{
-        const first = ev.dates?.[0];
-        if(first && first >= todayIso){
-          const k = ev.category ?? 'other';
-          counts[k] = (counts[k] || 0) + 1;
-        }
-      });
+      state.events.forEach(ev=>{ const first=ev.dates?.[0]; if(first && first>=todayIso){ counts[ev.category||'other']=(counts[ev.category||'other']||0)+1 }});
       return counts;
     }
-
     function renderLegend(){
       const counts = getUpcomingCounts();
       [legend, legendMobile].forEach(container=>{
-        if(!container) return;
-        container.innerHTML='';
+        if(!container) return; container.innerHTML='';
         Object.entries(categories).forEach(([key,val])=>{
           const chip=document.createElement('button');
           chip.className='chip';
           chip.setAttribute('aria-pressed', state.filters.has(key));
           chip.title='Клик: само тази • Ctrl/⌘ или Shift: многoизбор';
-          chip.innerHTML = `
-            <span class="sw" style="background:${val.color}"></span>
-            ${val.name}
-            <span class="count">${counts[key] ?? 0}</span>
-          `;
+          chip.innerHTML = `<span class="sw" style="background:${val.color}"></span>${val.name}<span class="count">${counts[key] ?? 0}</span>`;
           chip.onclick=(e)=>{
-            const multi = e.ctrlKey || e.metaKey || e.shiftKey;
-            if(multi){
-              if(state.filters.has(key)) state.filters.delete(key); else state.filters.add(key);
-            }else{
-              state.filters = new Set([key]); // ексклузивно
-            }
+            const multi = e.ctrlKey||e.metaKey||e.shiftKey;
+            if(multi){ state.filters.has(key)?state.filters.delete(key):state.filters.add(key) }
+            else{ state.filters = new Set([key]) }
             save('tmap.filters', Array.from(state.filters));
             renderLegend(); renderEventsList(); renderGridDots(); injectJsonLdFromState();
           };
@@ -434,68 +421,53 @@
       });
     }
 
-    // ---- Calendar grid ----
+    /* ---------- Calendar grid ---------- */
     const grid = $('#grid');
     function monthMatrix(year,month){
-      const first = new Date(year, month, 1);
-      const firstDow = (first.getDay()+6)%7; // Mon=0
-      const start = new Date(year, month, 1-firstDow);
+      const first=new Date(year,month,1);
+      const firstDow=(first.getDay()+6)%7; // Mon=0
+      const start=new Date(year,month,1-firstDow);
       const days=[];
       for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); days.push(d) }
       return days;
     }
-
     let dragging=false, dragAdd=true;
     function render(){
-      const d=state.cursor, monthName=d.toLocaleDateString('bg-BG',{month:'long', year:'numeric'});
+      const d=state.cursor, monthName=d.toLocaleDateString('bg-BG',{month:'long',year:'numeric'});
       title.textContent = monthName.charAt(0).toUpperCase()+monthName.slice(1);
       grid.innerHTML='';
-      const days = monthMatrix(d.getFullYear(), d.getMonth());
+      const days=monthMatrix(d.getFullYear(), d.getMonth());
       days.forEach(day=>{
         const dayIso=iso(day);
         const cell=document.createElement('div'); cell.className='cell'; cell.dataset.date=dayIso;
         if(day.getMonth()!==d.getMonth()) cell.classList.add('out');
         if(dayIso===iso(new Date())) cell.classList.add('today');
-        cell.innerHTML = `<div class="num">${day.getDate()}</div><div class="badge" hidden></div><div class="marks"></div>`;
+        cell.innerHTML=`<div class="num">${day.getDate()}</div><div class="badge" hidden></div><div class="marks"></div>`;
         grid.appendChild(cell);
       });
       renderGridDots();
       $$('.cell',grid).forEach(cell=>{
-        cell.addEventListener('pointerdown', ()=>{
-          dragging=true; dragAdd=!state.selection.has(cell.dataset.date);
-          toggleSelect(cell.dataset.date, dragAdd);
-        });
+        cell.addEventListener('pointerdown', ()=>{ dragging=true; dragAdd=!state.selection.has(cell.dataset.date); toggleSelect(cell.dataset.date, dragAdd); });
         cell.addEventListener('pointerenter', ()=>{ if(dragging) toggleSelect(cell.dataset.date, dragAdd, true) });
         cell.addEventListener('click', ()=>{ if(window.matchMedia('(max-width:980px)').matches) openDaySheet(cell.dataset.date) });
       });
       window.addEventListener('pointerup', ()=> dragging=false, {once:true});
       paintSelection();
     }
-
     function visibleEvents(){ return state.events.filter(ev=> state.filters.has(ev.category)) }
     function renderGridDots(){
       $$('.cell',grid).forEach(cell=>{
         const dIso=cell.dataset.date; const box=$('.marks',cell); box.innerHTML='';
         const list = visibleEvents().filter(ev=> ev.dates.includes(dIso));
-        list.slice(0,5).forEach(ev=>{
-          const dot=document.createElement('span'); dot.className='dot';
-          dot.style.background = ev.color || categories[ev.category]?.color || '#98a2b3'; dot.title=ev.title;
-          box.appendChild(dot);
-        });
-        const more=list.length-5; const b=$('.badge',cell); if(more>0){ b.hidden=false; b.textContent=`+${more}` } else { b.hidden=true }
+        list.slice(0,5).forEach(ev=>{ const dot=document.createElement('span'); dot.className='dot'; dot.style.background=ev.color||categories[ev.category]?.color||'#98a2b3'; dot.title=ev.title; box.appendChild(dot) });
+        const more=list.length-5; const b=$('.badge',cell); if(more>0){ b.hidden=false; b.textContent=`+${more}` } else b.hidden=true;
       });
     }
 
-    // ---- Selection helpers ----
+    /* ---------- Selection ---------- */
     const clearSelectionBtn=$('#clearSelectionBtn'), selectRangeBtn=$('#selectRangeBtn');
     clearSelectionBtn.onclick=()=>{ state.selection.clear(); paintSelection() }
-    selectRangeBtn.onclick=()=>{
-      const sel=[...state.selection].sort(); if(sel.length<1){ toast('Изберете начална дата'); return }
-      const start=parseISO(sel[0]); const end=prompt('Край (ГГГГ-ММ-ДД):', iso(start)); if(!end) return;
-      const e=parseISO(end); if(isNaN(e)){ toast('Невалидна дата'); return }
-      const cur=new Date(start); while(cur<=e){ state.selection.add(iso(cur)); cur.setDate(cur.getDate()+1) }
-      paintSelection();
-    };
+    selectRangeBtn.onclick=()=>{ const sel=[...state.selection].sort(); if(sel.length<1){ toast('Изберете начална дата'); return } const start=parseISO(sel[0]); const end=prompt('Край (ГГГГ-ММ-ДД):', iso(start)); if(!end) return; const e=parseISO(end); if(isNaN(e)){ toast('Невалидна дата'); return } const cur=new Date(start); while(cur<=e){ state.selection.add(iso(cur)); cur.setDate(cur.getDate()+1) } paintSelection() };
     function toggleSelect(isoDate, on, silent=false){ if(on) state.selection.add(isoDate); else state.selection.delete(isoDate); paintCell(isoDate,on); if(!silent) updateDatesHint() }
     function paintCell(isoDate,on){ const c=$(`.cell[data-date="${isoDate}"]`,grid); if(!c) return; c.style.boxShadow = on? `0 0 0 3px var(--ring) inset` : '' }
     function paintSelection(){ $$('.cell',grid).forEach(c=> c.style.boxShadow = state.selection.has(c.dataset.date)? `0 0 0 3px var(--ring) inset` : '') ; updateDatesHint() }
@@ -508,13 +480,11 @@
       return ranges.map(([a,b])=> a===b? fmt(a): `${fmt(a)}–${fmt(b)}`).join(', ')
     }
 
-    // ---- Events list (дясно и мобилно)
+    /* ---------- Events list ---------- */
     const eventsList=$('#eventsList'), emptyEvents=$('#emptyEvents');
     const eventsListMobile=$('#eventsListMobile'), emptyEventsMobile=$('#emptyEventsMobile');
-
     function renderEventsInto(container, emptyEl, list){
-      if(!container) return;
-      container.innerHTML=''; emptyEl.hidden = list.length>0;
+      if(!container) return; container.innerHTML=''; emptyEl.hidden = list.length>0;
       list.forEach(ev=>{
         const item=document.createElement('div'); item.className='event-card';
         const datesShort = compressDates(ev.dates);
@@ -534,31 +504,27 @@
         item.addEventListener('click', e=>{ if(e.target.closest('a,button')) return; openInfoModal(ev); });
         const [moreBtn, editBtn, delBtn] = item.querySelectorAll('a.button, button');
         editBtn?.addEventListener('click', e=>{ e.stopPropagation(); isAdmin()? openEventModal(ev) : toast('Само админ') });
-        delBtn?.addEventListener('click', e=>{
+        delBtn?.addEventListener('click', async e=>{
           e.stopPropagation();
           if(!isAdmin()){ toast('Само админ'); return }
           if(confirm('Да изтрия ли това събитие?')){
-            state.events = state.events.filter(e=>e.id!==ev.id);
-            save('tmap.events', state.events);
-            renderEventsList(); renderGridDots(); injectJsonLdFromState();
+            try{ await db_delete(ev.id); await refreshEvents(); toast('Изтрито') }catch{ toast('Грешка при изтриване') }
           }
         });
         container.appendChild(item);
       });
     }
-
     function renderEventsList(){
       const todayIso=iso(new Date());
       const list = visibleEvents()
         .map(ev=>({...ev, first: ev.dates[0]}))
         .filter(ev=> ev.first >= todayIso)
         .sort((a,b)=> a.first.localeCompare(b.first));
-
       renderEventsInto(eventsList, emptyEvents, list);
       renderEventsInto(eventsListMobile, emptyEventsMobile, list);
     }
 
-    // ---- Info pop-up (за всички)
+    /* ---------- Info modal ---------- */
     const infoModal=$('#infoModal'), infoTitle=$('#infoTitle'), infoDates=$('#infoDates'), infoDesc=$('#infoDesc'), infoImg=$('#infoImg'), infoLink=$('#infoLink');
     $('#infoClose').onclick=()=> infoModal.classList.remove('open');
     infoModal.addEventListener('click', e=>{ if(e.target===infoModal) infoModal.classList.remove('open') });
@@ -571,7 +537,7 @@
       infoModal.classList.add('open');
     }
 
-    // ---- Modal (админ)
+    /* ---------- Event modal (admin) ---------- */
     const eventModal=$('#eventModal'), newEventBtn=$('#newEventBtn'), saveEventBtn=$('#saveEvent'), cancelEventBtn=$('#cancelEvent');
     const evTitle=$('#evTitle'), evCategory=$('#evCategory'), evNotes=$('#evNotes'), evUrl=$('#evUrl'), evImage=$('#evImage'), colorPicker=$('#colorPicker');
     let editing=null, selectedColor='#0ea5e9';
@@ -604,17 +570,18 @@
 
     function updateDatesHint(){ const el=$('#eventDatesHint'); if(!el) return; const ds=[...state.selection].sort(); el.textContent = ds.length? `Избрани дати: ${compressDates(ds)}` : 'Няма избрани дати' }
 
-    saveEventBtn?.addEventListener('click', ()=>{
+    saveEventBtn?.addEventListener('click', async ()=>{
       const title=evTitle.value.trim(); if(!title){ toast('Добавете заглавие'); return }
       const dates=[...state.selection].sort(); if(dates.length===0){ toast('Изберете поне една дата'); return }
       const obj = editing || { id: crypto.randomUUID() };
       Object.assign(obj, { title, category: evCategory.value, color: selectedColor, dates, notes: evNotes.value.trim(), url: evUrl.value.trim(), image: evImage.value.trim() });
-      if(!editing) state.events.push(obj);
-      save('tmap.events', state.events);
-      closeEventModal(); renderEventsList(); renderGridDots(); injectJsonLdFromState(); renderLegend(); toast('Събитието е записано');
+      try{
+        await db_upsert(obj);
+        closeEventModal(); await refreshEvents(); toast('Събитието е записано');
+      }catch(e){ console.warn(e); toast('Грешка при запис') }
     });
 
-    // ---- Day Sheet (mobile)
+    /* ---------- Day Sheet (mobile) ---------- */
     const daySheet=$('#daySheet'), sheetTitle=$('#sheetTitle'), sheetEvents=$('#sheetEvents'), addEventFromSheet=$('#addEventFromSheet');
     function openDaySheet(isoDate){
       const d=parseISO(isoDate);
@@ -645,7 +612,8 @@
       });
     }
 
-    // ---- Export / Import
+    /* ---------- Export / Import ---------- */
+    function download(name,text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'})); a.download=name; document.body.appendChild(a); a.click(); a.remove() }
     function exportJson(){ const data={events:state.events}; download('tmap-calendar.json', JSON.stringify(data,null,2)); }
     function exportIcs(){ const ics=toICS(state.events); download('tmap-calendar.ics', ics); }
     $('#exportJson').onclick=exportJson; $('#exportIcs').onclick=exportIcs;
@@ -658,20 +626,16 @@
         const f=e.target.files[0]; if(!f) return; const text=await f.text();
         try{
           const obj=JSON.parse(text);
-          if(obj.events) state.events=obj.events;
-          save('tmap.events', state.events);
-          renderEventsList(); renderGridDots(); injectJsonLdFromState(); renderLegend();
-          toast('Импорт успешно')
+          if(obj.events){ await db_bulk_upsert(obj.events); await refreshEvents(); toast('Импорт успешно') }
         }catch{ toast('Грешен JSON') }
         e.target.value='';
       });
     }
     hookImport($('#importJson')); hookImport($('#importJson2'));
 
-    function download(name,text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'})); a.download=name; document.body.appendChild(a); a.click(); a.remove() }
     function toICS(events){
       const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//T-MAP//Tour Calendar//BG'];
-      const esc=s=> String(s||'').replace(/[\\,;\\n]/g,m=>({'\\':'\\\\',',':'\\,',';':'\\;','\\n':'\\n'}[m]));
+      const esc=s=> String(s||'').replace(/[\\,;\n]/g,m=>({'\\':'\\\\',',':'\\,',';':'\\;','\n':'\\n'}[m]));
       events.forEach(ev=>{
         ev.dates.forEach(dISO=>{
           const d=parseISO(dISO), y=d.getFullYear(), m=pad(d.getMonth()+1), da=pad(d.getDate());
@@ -691,7 +655,7 @@
       lines.push('END:VCALENDAR'); return lines.join('\r\n');
     }
 
-    // ---- JSON-LD (SEO)
+    /* ---------- JSON-LD ---------- */
     function injectJsonLdFromState(){
       const old=document.getElementById('ldjson-events'); if(old) old.remove();
       const todayIso=iso(new Date());
@@ -702,12 +666,9 @@
         .map(ev=>({
           "@context":"https://schema.org",
           "@type":"Event",
-          name: ev.title,
-          startDate: ev.date,
-          endDate: ev.endDate || ev.date,
+          name: ev.title, startDate: ev.date, endDate: ev.endDate || ev.date,
           eventStatus: "https://schema.org/EventScheduled",
-          description: ev.desc,
-          url: ev.link,
+          description: ev.desc, url: ev.link,
           image: ev.img ? [ev.img] : undefined,
           organizer: {"@type":"Organization","name":"T-MAP"},
           location: {"@type":"VirtualLocation","url": ev.link}
@@ -715,14 +676,19 @@
       const s=document.createElement('script'); s.type='application/ld+json'; s.id='ldjson-events'; s.textContent=JSON.stringify(data); document.head.appendChild(s);
     }
 
-    // ---- Helpers / Init
-    function escapeHtml(s){ return String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+    /* ---------- Helpers / Init ---------- */
+    function escapeHtml(s){ return String(s||'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+    async function refreshEvents(){
+      state.events = await db_list();
+      renderEventsList(); renderGridDots(); renderLegend(); injectJsonLdFromState();
+    }
+
     function init(){
       renderLegend();
       setCursor(new Date());
-      renderEventsList();
       setAdminMode(isAdmin());
-      injectJsonLdFromState();
+      refreshEvents();
       window.addEventListener('keydown', e=>{
         if(e.key==='ArrowLeft') changeMonth(-1);
         else if(e.key==='ArrowRight') changeMonth(1);
@@ -732,5 +698,3 @@
     init();
   })();
   </script>
-</body>
-</html>
