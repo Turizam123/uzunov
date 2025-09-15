@@ -65,23 +65,33 @@
     .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
     .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#fff;border:1px solid rgba(2,6,23,.06);font-size:13px}
     .chip .sw{width:12px;height:12px;border-radius:999px}
-    .events{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 260px);overflow:auto;padding-right:6px}
+
+    /* Invisible scrollbar utility */
+    .invisible-scroll{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
+    .invisible-scroll::-webkit-scrollbar{width:0;height:0}
+
+    /* Events list */
+    .events{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 260px);padding-right:6px}
     .empty{opacity:.7;padding:6px}
-    .event-card{display:grid;grid-template-columns:92px 1fr auto;gap:14px;padding:12px;border-radius:16px;background:#ffffff;border:1px solid rgba(2,6,23,.06);box-shadow:var(--shadow);cursor:pointer}
-    .event-card .thumb{width:92px;height:92px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#e6f9ff,#efe7ff);border:1px solid rgba(2,6,23,.06)}
+
+    /* Card layout like the mock */
+    .event-card{
+      display:grid; grid-template-columns:1fr; gap:10px;
+      padding:12px; border-radius:16px; background:#fff;
+      border:1px solid rgba(2,6,23,.06); box-shadow:var(--shadow); cursor:pointer
+    }
+    .event-card .thumb{position:relative;width:100%;height:180px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#e6f9ff,#efe7ff);border:1px solid rgba(2,6,23,.06)}
     .event-card .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-    .event-card .title{font-weight:900}
-    .event-card .title .dates{font-weight:700;font-size:12px;color:#0ea5e9;margin-left:8px}
+    .event-card .date-badge{
+      position:absolute;top:8px;left:8px;background:#fff;color:#0b1220;
+      padding:4px 10px;border-radius:999px;font-weight:800;font-size:12px;
+      box-shadow:0 6px 18px rgba(16,24,40,.15);border:1px solid rgba(2,6,23,.08)
+    }
+    .event-card .title{font-weight:900;font-size:16px}
     .event-card .meta{font-size:12px;opacity:.9}
     .event-card .desc{font-size:13px;color:#475467}
     .event-card .actions{display:flex;gap:6px}
     .event-card a.button{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:linear-gradient(180deg,#5dd7ff,#0ea5e9);color:#001a26;text-decoration:none;font-weight:800;border:0}
-    @media(max-width:980px){.event-card{grid-template-columns:80px 1fr auto}.event-card .thumb{width:80px;height:80px}}
-
-    /* Admin visibility */
-    .adminOnly{display:none}
-    .is-admin .adminOnly{display:inline-flex}
-    .is-admin .adminOnly.block{display:block}
 
     /* Bottom sheet */
     .sheet{position:fixed;inset:auto 0 0 0;background:#ffffffee;border-top-left-radius:24px;border-top-right-radius:24px;box-shadow:0 -12px 40px rgba(16,24,40,.18);transform:translateY(110%);transition:.3s ease transform;z-index:40}
@@ -93,7 +103,24 @@
     .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(2,6,23,.35);z-index:60}
     .modal.open{display:grid}
     .card.modal-card{width:min(720px,92vw);padding:16px}
-    .card.info-card{width:min(720px,92vw);padding:16px}
+
+    /* Info modal: small image left, text right */
+    .card.info-card{
+      width:min(720px,92vw);padding:16px;
+      display:grid;grid-template-columns:110px 1fr;gap:14px
+    }
+    .info-left{display:grid;align-content:start}
+    .info-left img{width:110px;height:110px;object-fit:cover;border-radius:12px;border:1px solid rgba(2,6,23,.08)}
+    @media(max-width:560px){
+      .card.info-card{grid-template-columns:1fr}
+      .info-left img{width:100%;height:160px}
+    }
+
+    /* Admin visibility */
+    .adminOnly{display:none}
+    .is-admin .adminOnly{display:inline-flex}
+    .is-admin .adminOnly.block{display:block}
+
     .field{display:grid;gap:6px;margin:10px 0}
     label{font-size:13px;opacity:.9}
     input[type="text"], select, textarea{background:#fff;border:1px solid rgba(2,6,23,.12);color:#0b1220;border-radius:12px;padding:10px}
@@ -139,7 +166,7 @@
           </div>
 
           <div class="section-title" style="margin-top:12px">Предстоящи събития</div>
-          <div class="events" id="eventsList"></div>
+          <div class="events invisible-scroll" id="eventsList"></div>
           <div class="empty" id="emptyEvents" hidden>Няма предстоящи събития.</div>
 
           <div class="section-title">Експорт / Импорт</div>
@@ -201,14 +228,18 @@
 
   <!-- Modal: Инфо (pop-up за всички) -->
   <div class="modal" id="infoModal" aria-hidden="true" role="dialog" aria-modal="true">
-    <div class="card info-card">
-      <h2 id="infoTitle" style="margin:0 0 6px"></h2>
-      <p class="hint" id="infoDates"></p>
-      <p id="infoDesc" style="margin:.2rem 0 0.6rem"></p>
-      <img id="infoImg" alt="" style="max-width:100%;border-radius:12px;display:none">
-      <div class="actions" style="justify-content:flex-start">
-        <a id="infoLink" class="btn primary" href="#" target="_blank" rel="noopener" style="display:none">Виж повече</a>
-        <button class="btn" id="infoClose">Затвори</button>
+    <div class="card info-card invisible-scroll">
+      <div class="info-left">
+        <img id="infoImg" alt="" style="display:none">
+      </div>
+      <div class="info-body">
+        <h2 id="infoTitle" style="margin:0 0 6px"></h2>
+        <p class="hint" id="infoDates" style="margin:0 0 6px"></p>
+        <p id="infoDesc" style="margin:.2rem 0 .6rem"></p>
+        <div class="actions" style="justify-content:flex-start">
+          <a id="infoLink" class="btn primary" href="#" target="_blank" rel="noopener" style="display:none">Виж повече</a>
+          <button class="btn" id="infoClose">Затвори</button>
+        </div>
       </div>
     </div>
   </div>
@@ -216,7 +247,7 @@
   <!-- Bottom sheet (мобилни детайли за ден) -->
   <div class="sheet" id="daySheet" aria-hidden="true">
     <div class="grip"></div>
-    <div class="content">
+    <div class="content invisible-scroll">
       <h3 id="sheetTitle" style="margin:0 0 8px"></h3>
       <div id="sheetEvents"></div>
       <div class="actions" style="justify-content:flex-start">
@@ -367,7 +398,7 @@
       return ranges.map(([a,b])=> a===b? fmt(a): `${fmt(a)}–${fmt(b)}`).join(', ')
     }
 
-    // ---- Events list (дясно) ----
+    // ---- Events list (дясно)
     const eventsList=$('#eventsList'), emptyEvents=$('#emptyEvents');
     function renderEventsList(){
       const todayIso=iso(new Date());
@@ -380,22 +411,19 @@
         const item=document.createElement('div'); item.className='event-card';
         const datesShort = compressDates(ev.dates);
         item.innerHTML = `
-          <div class="thumb">${ev.image?`<img src="${ev.image}" alt="${escapeHtml(ev.title)}">`:''}</div>
-          <div>
-            <div class="title">${escapeHtml(ev.title)} <span class="dates">${datesShort}</span></div>
-            <div class="meta">${catName(ev.category)}</div>
-            ${ev.notes?`<div class="desc">${escapeHtml(ev.notes)}</div>`:''}
+          <div class="thumb">
+            ${ev.image?`<img src="${ev.image}" alt="${escapeHtml(ev.title)}">`:''}
+            <div class="date-badge">${datesShort}</div>
           </div>
+          <div class="title">${escapeHtml(ev.title)}</div>
+          <div class="meta">${catName(ev.category)}</div>
+          ${ev.notes?`<div class="desc">${escapeHtml(ev.notes)}</div>`:''}
           <div class="actions">
             ${ev.url?`<a class="button" href="${ev.url}" target="_blank" rel="noopener">Виж повече</a>`:''}
             <button class="btn icon adminOnly" title="Редакция">✎</button>
             <button class="btn icon adminOnly" title="Изтриване">🗑️</button>
           </div>`;
-        // Откриване на инфо pop-up при клик върху картата (без да пречи на бутоните)
-        item.addEventListener('click', e=>{
-          if(e.target.closest('a,button')) return;
-          openInfoModal(ev);
-        });
+        item.addEventListener('click', e=>{ if(e.target.closest('a,button')) return; openInfoModal(ev); });
         const [moreBtn, editBtn, delBtn] = item.querySelectorAll('a.button, button');
         editBtn?.addEventListener('click', e=>{ e.stopPropagation(); isAdmin()? openEventModal(ev) : toast('Само админ') });
         delBtn?.addEventListener('click', e=>{
@@ -411,7 +439,7 @@
       });
     }
 
-    // ---- Info pop-up (за всички) ----
+    // ---- Info pop-up (за всички)
     const infoModal=$('#infoModal'), infoTitle=$('#infoTitle'), infoDates=$('#infoDates'), infoDesc=$('#infoDesc'), infoImg=$('#infoImg'), infoLink=$('#infoLink');
     $('#infoClose').onclick=()=> infoModal.classList.remove('open');
     infoModal.addEventListener('click', e=>{ if(e.target===infoModal) infoModal.classList.remove('open') });
@@ -424,7 +452,7 @@
       infoModal.classList.add('open');
     }
 
-    // ---- Modal (админ) ----
+    // ---- Modal (админ)
     const eventModal=$('#eventModal'), newEventBtn=$('#newEventBtn'), saveEventBtn=$('#saveEvent'), cancelEventBtn=$('#cancelEvent');
     const evTitle=$('#evTitle'), evCategory=$('#evCategory'), evNotes=$('#evNotes'), evUrl=$('#evUrl'), evImage=$('#evImage'), colorPicker=$('#colorPicker');
     let editing=null, selectedColor='#0ea5e9';
@@ -467,7 +495,7 @@
       closeEventModal(); renderEventsList(); renderGridDots(); injectJsonLdFromState(); toast('Събитието е записано');
     });
 
-    // ---- Day Sheet (mobile) ----
+    // ---- Day Sheet (mobile)
     const daySheet=$('#daySheet'), sheetTitle=$('#sheetTitle'), sheetEvents=$('#sheetEvents'), addEventFromSheet=$('#addEventFromSheet');
     function openDaySheet(isoDate){
       const d=parseISO(isoDate);
@@ -485,15 +513,20 @@
       list.forEach(ev=>{
         const row=document.createElement('div'); row.className='event-card';
         row.innerHTML = `
-          <div class="thumb">${ev.image?`<img src="${ev.image}" alt="${escapeHtml(ev.title)}">`:''}</div>
-          <div><div class="title">${escapeHtml(ev.title)} <span class="dates">${compressDates(ev.dates)}</span></div><div class="meta">${catName(ev.category)}</div><div class="meta">${escapeHtml(ev.notes||'')}</div></div>
+          <div class="thumb">
+            ${ev.image?`<img src="${ev.image}" alt="${escapeHtml(ev.title)}">`:''}
+            <div class="date-badge">${compressDates(ev.dates)}</div>
+          </div>
+          <div class="title">${escapeHtml(ev.title)}</div>
+          <div class="meta">${catName(ev.category)}</div>
+          ${ev.notes?`<div class="desc">${escapeHtml(ev.notes)}</div>`:''}
           <div class="actions">${ev.url?`<a class="button" href="${ev.url}" target="_blank" rel="noopener">Виж повече</a>`:''}</div>`;
         row.addEventListener('click', e=>{ if(e.target.closest('a,button')) return; openInfoModal(ev) });
         sheetEvents.appendChild(row);
       });
     }
 
-    // ---- Export / Import ----
+    // ---- Export / Import
     $('#exportJson').onclick=()=>{
       const data={events:state.events};
       download('tmap-calendar.json', JSON.stringify(data,null,2));
@@ -530,7 +563,7 @@
       lines.push('END:VCALENDAR'); return lines.join('\r\n');
     }
 
-    // ---- JSON-LD (SEO) ----
+    // ---- JSON-LD (SEO)
     function injectJsonLdFromState(){
       const old=document.getElementById('ldjson-events'); if(old) old.remove();
       const todayIso=iso(new Date());
@@ -554,10 +587,8 @@
       const s=document.createElement('script'); s.type='application/ld+json'; s.id='ldjson-events'; s.textContent=JSON.stringify(data); document.head.appendChild(s);
     }
 
-    // ---- Helpers ----
+    // ---- Helpers / Init
     function escapeHtml(s){ return String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
-
-    // ---- Init ----
     function init(){
       renderLegend();
       setCursor(new Date());
