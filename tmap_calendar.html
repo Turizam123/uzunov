@@ -2,89 +2,103 @@
 <html lang="bg">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>T-MAP Туристически календар</title>
   <meta name="theme-color" content="#0ea5e9" />
+  <link rel="icon" type="image/png" href="favicon-64.png" sizes="64x64">
   <style>
     :root{
-      --bg:#0b1220; --panel:#0e1726cc; --text:#e5edf5; --muted:#97a3b6;
-      --primary:#0ea5e9; --accent:#22c55e; --ring:rgba(14,165,233,.55);
-      --shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+      --tmap-blue:#0ea5e9;
+      --tmap-dark:#0b1220;
+      --text:#0b1220;
+      --muted:#667085;
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --ring:rgba(14,165,233,.45);
       --radius:18px;
+      --shadow:0 10px 30px rgba(16,24,40,.08), 0 2px 10px rgba(16,24,40,.05);
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0; color:var(--text);
-      background:var(--bg);
-      font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial;
+      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial;
+      background: radial-gradient(1200px 700px at 80% -10%, #c0f0ff66, transparent 60%),
+                  radial-gradient(800px 600px at -10% 110%, #e2c8ff55, transparent 60%),
+                  var(--bg);
+      /* subtle topo pattern */
       background-image:
-        radial-gradient(1200px 700px at 80% -10%, #0ea5e933, transparent 60%),
-        radial-gradient(700px 500px at -10% 110%, #7c3aed33, transparent 60%);
+        radial-gradient(1200px 700px at 80% -10%, #c0f0ff66, transparent 60%),
+        radial-gradient(800px 600px at -10% 110%, #e2c8ff55, transparent 60%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320' opacity='.18'><defs><pattern id='p' width='160' height='160' patternUnits='userSpaceOnUse'><path d='M0 80c40-40 80-40 120 0s80 40 120 0' fill='none' stroke='%2388a' stroke-width='0.8'/><path d='M-40 120c40-40 80-40 120 0s80 40 120 0' fill='none' stroke='%2388a' stroke-width='0.6' opacity='.6'/></pattern></defs><rect width='100%' height='100%' fill='url(%23p)'/></svg>");
+      background-attachment: fixed;
     }
-    .app{max-width:1200px;margin:14px auto;padding:12px}
-    .shell{background:var(--panel);backdrop-filter:blur(14px) saturate(120%);
-      border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
-    .toolbar{display:flex;gap:10px;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08); position:sticky; top:0; background:var(--panel); z-index:5}
-    .brand{display:flex;gap:10px;align-items:center;font-weight:800;letter-spacing:.3px}
-    .brand .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#0ea5e9,#7c3aed)}
+    .app{max-width:1200px;margin:20px auto;padding:0 14px}
+    .shell{background:rgba(255,255,255,.72);backdrop-filter:blur(10px) saturate(120%);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1px solid rgba(14,165,233,.08)}
+    .toolbar{display:flex;gap:12px;align-items:center;padding:14px 16px;background:#ffffffb0;border-bottom:1px solid rgba(2,6,23,.06)}
+    .brand{display:flex;gap:12px;align-items:center}
+    .brand .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#e6f9ff,#e9d7ff);border:1px solid rgba(14,165,233,.25)}
+    .brand .title{font-weight:800;letter-spacing:.2px;font-size:20px}
     .spacer{flex:1}
-    .btn{appearance:none;border:1px solid rgba(255,255,255,.12);color:var(--text);background:#ffffff0a;padding:10px 12px;border-radius:12px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;transition:.2s; box-shadow: inset 0 1px 0 rgba(255,255,255,.06)}
-    .btn:hover{background:#ffffff14}
-    .btn:active{transform:translateY(1px)}
-    .btn.primary{border-color:transparent;background:linear-gradient(180deg,#3cc8ff,#0ea5e9);color:#001827;font-weight:800}
+    .btn{appearance:none;border:1px solid rgba(2,6,23,.08);background:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;transition:.2s;box-shadow: inset 0 1px 0 rgba(255,255,255,.7)}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
+    .btn.primary{border-color:transparent;background:linear-gradient(180deg,#5dd7ff,#0ea5e9);color:#001a26;font-weight:800}
     .btn.icon{padding:10px}
-    .calendar{display:grid;grid-template-columns:1fr 340px;min-height:640px}
+    .calendar{display:grid;grid-template-columns:1fr 360px;min-height:640px}
     @media(max-width:980px){.calendar{grid-template-columns:1fr}}
-    .left{border-right:1px solid rgba(255,255,255,.08)}
-    @media(max-width:980px){.left{border-right:0;border-bottom:1px solid rgba(255,255,255,.08)}}
-    .panel{padding:16px;background: linear-gradient(180deg,#0b1220b0,#0b1220a0)}
-    .header{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:8px 16px}
-    .dow{opacity:.75;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+    .left{background:transparent}
+    .panel{padding:16px}
+    .card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);border:1px solid rgba(2,6,23,.06)}
+    .header{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:12px 16px}
+    .dow{opacity:.7;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
     .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:16px}
-    .cell{position:relative;aspect-ratio:1/1;border-radius:14px;padding:10px;background:#ffffff08;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:.2s;overflow:hidden}
-    .cell:hover{background:#ffffff12}
-    .cell.out{opacity:.45}
+    .cell{position:relative;aspect-ratio:1/1;border-radius:14px;padding:10px;background:#fff;border:1px solid rgba(2,6,23,.08);cursor:pointer;transition:.15s;overflow:hidden}
+    .cell:hover{box-shadow:0 0 0 2px var(--ring) inset}
+    .cell.out{opacity:.45;background:#fff}
     .cell.today{outline:2px solid var(--ring)}
     .num{font-weight:900}
     .marks{position:absolute;inset:auto 8px 8px 8px;display:flex;gap:6px;flex-wrap:wrap}
-    .dot{width:8px;height:8px;border-radius:999px;background:var(--muted);box-shadow:0 0 0 2px #0003}
-    .badge{position:absolute;top:6px;right:6px;font-size:11px;padding:3px 6px;border-radius:999px;background:#0007;border:1px solid rgba(255,255,255,.1)}
-    .footerbar{position:sticky;bottom:0;display:flex;gap:10px;padding:10px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.25) 20%, var(--panel) 60%)}
+    .dot{width:8px;height:8px;border-radius:999px;background:#98a2b3;box-shadow:0 0 0 2px #00000010}
+    .badge{position:absolute;top:6px;right:6px;font-size:11px;padding:3px 6px;border-radius:999px;background:#0b1220;opacity:.75;color:#fff}
+    .footerbar{position:sticky;bottom:0;display:flex;gap:10px;padding:10px}
     .section-title{opacity:.8;text-transform:uppercase;font-size:12px;letter-spacing:.18em;margin:6px 0 8px}
     .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
-    .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#ffffff10;border:1px solid rgba(255,255,255,.08);font-size:13px}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#fff;border:1px solid rgba(2,6,23,.06);font-size:13px}
     .chip .sw{width:12px;height:12px;border-radius:999px}
     .events{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 260px);overflow:auto;padding-right:6px}
     .empty{opacity:.7;padding:6px}
-    /* Еvent cards (дясна колона + списък) */
-    .event-card{display:grid;grid-template-columns:86px 1fr auto;gap:12px;padding:12px;border-radius:14px;background:#0b1323aa;border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow)}
-    .event-card .thumb{width:86px;height:86px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#0ea5e933,#7c3aed33)}
+    .event-card{display:grid;grid-template-columns:92px 1fr auto;gap:14px;padding:12px;border-radius:16px;background:#ffffff;border:1px solid rgba(2,6,23,.06);box-shadow:var(--shadow)}
+    .event-card .thumb{width:92px;height:92px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#e6f9ff,#efe7ff);border:1px solid rgba(2,6,23,.06)}
     .event-card .thumb img{width:100%;height:100%;object-fit:cover;display:block}
     .event-card .title{font-weight:900}
-    .event-card .meta{font-size:12px;opacity:.85}
+    .event-card .meta{font-size:12px;opacity:.9}
+    .event-card .desc{font-size:13px;color:#475467}
     .event-card .actions{display:flex;gap:6px}
-    .event-card a.button{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:linear-gradient(180deg,#3cc8ff,#0ea5e9);color:#001827;text-decoration:none;font-weight:800;border:0}
-    @media(max-width:980px){.event-card{grid-template-columns:72px 1fr auto}.event-card .thumb{width:72px;height:72px}}
+    .event-card a.button{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:linear-gradient(180deg,#5dd7ff,#0ea5e9);color:#001a26;text-decoration:none;font-weight:800;border:0}
+    @media(max-width:980px){.event-card{grid-template-columns:80px 1fr auto}.event-card .thumb{width:80px;height:80px}}
+
     /* Admin visibility */
     .adminOnly{display:none}
     .is-admin .adminOnly{display:inline-flex}
     .is-admin .adminOnly.block{display:block}
+
     /* Bottom sheet (mobile day view) */
-    .sheet{position:fixed;inset:auto 0 0 0;background:var(--panel);border-top-left-radius:24px;border-top-right-radius:24px;box-shadow:0 -12px 40px rgba(0,0,0,.35);transform:translateY(110%);transition:.3s ease transform;z-index:40}
+    .sheet{position:fixed;inset:auto 0 0 0;background:#ffffffee;border-top-left-radius:24px;border-top-right-radius:24px;box-shadow:0 -12px 40px rgba(16,24,40,.18);transform:translateY(110%);transition:.3s ease transform;z-index:40}
     .sheet.open{transform:translateY(0)}
-    .sheet .grip{width:60px;height:6px;background:#ffffff33;border-radius:999px;margin:10px auto}
+    .sheet .grip{width:60px;height:6px;background:#98a2b3;border-radius:999px;margin:10px auto}
     .sheet .content{padding:12px 16px 16px}
+
     /* Modal */
-    .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.5);z-index:50}
+    .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(2,6,23,.35);z-index:50}
     .modal.open{display:grid}
-    .card{width:min(720px,92vw);background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:18px;box-shadow:var(--shadow);padding:16px}
+    .card.modal-card{width:min(720px,92vw);padding:16px}
     .field{display:grid;gap:6px;margin:10px 0}
-    label{font-size:13px;opacity:.85}
-    input[type="text"], select, textarea{background:#ffffff12;border:1px solid rgba(255,255,255,.18);color:var(--text);border-radius:12px;padding:10px}
+    label{font-size:13px;opacity:.9}
+    input[type="text"], select, textarea{background:#fff;border:1px solid rgba(2,6,23,.12);color:#0b1220;border-radius:12px;padding:10px}
     .actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding-top:8px}
-    .hint{font-size:12px;opacity:.8}
-    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);z-index:60;display:none}
+    .hint{font-size:12px;opacity:.75}
+    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0b1220;color:#fff;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);z-index:60;display:none}
     .toast.show{display:block}
   </style>
 </head>
@@ -93,19 +107,8 @@
     <div class="shell">
       <div class="toolbar">
         <div class="brand">
-          <div class="logo" title="T-MAP">
-            <!-- T-MAP mountain logo -->
-            <svg viewBox="0 0 64 64" width="28" height="28" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M4 52L26 20l10 14 6-8 18 26H4Z" fill="url(#g)" opacity=".25"/>
-              <path d="M4 52L26 20l10 14 6-8 18 26H4Z"/>
-              <defs>
-                <linearGradient id="g" x1="0" x2="64" y1="64" y2="0">
-                  <stop stop-color="#0ea5e9"/><stop offset="1" stop-color="#7c3aed"/>
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <div style="font-size:20px;font-weight:800">T-MAP Туристически календар</div>
+          <div class="logo"><img src="favicon-64.png" alt="T-MAP" width="32" height="32" style="display:block;border-radius:10px"></div>
+          <div class="title">T-MAP Туристически календар</div>
         </div>
         <div class="spacer"></div>
         <button class="btn icon" id="prevBtn" title="Предишен месец" aria-label="Предишен месец">&#x276E;</button>
@@ -118,7 +121,7 @@
 
       <div class="calendar">
         <!-- Лява част: Календар -->
-        <section class="left">
+        <section class="left card">
           <div class="header">
             <div class="dow">Пон</div><div class="dow">Вто</div><div class="dow">Сря</div><div class="dow">Чет</div><div class="dow">Пет</div><div class="dow">Съб</div><div class="dow">Нед</div>
           </div>
@@ -131,12 +134,14 @@
 
         <!-- Дясна част: Предстоящи събития -->
         <aside class="panel">
-          <div class="section-title">Филтри</div>
-          <div class="legend" id="legend"></div>
+          <div class="card" style="padding:16px">
+            <div class="section-title">Филтри</div>
+            <div class="legend" id="legend"></div>
+          </div>
 
-          <div class="section-title">Предстоящи събития</div>
+          <div class="section-title" style="margin-top:12px">Предстоящи събития</div>
           <div class="events" id="eventsList"></div>
-          <div class="empty" id="emptyEvents" hidden>Няма предстоящи събития за показване.</div>
+          <div class="empty" id="emptyEvents" hidden>Няма предстоящи събития.</div>
 
           <div class="section-title">Експорт / Импорт</div>
           <div class="legend">
@@ -146,7 +151,7 @@
               <input id="importJson" type="file" accept="application/json" hidden>
             </label>
           </div>
-          <p class="hint">Данните се пазят локално (offline). Само админ може да добавя/редактира.</p>
+          <p class="hint">Данните се пазят локално. Само админ може да добавя/редактира.</p>
         </aside>
       </div>
     </div>
@@ -154,7 +159,7 @@
 
   <!-- Modal: Събитие -->
   <div class="modal" id="eventModal" aria-hidden="true" role="dialog" aria-modal="true">
-    <div class="card">
+    <div class="card modal-card">
       <h2 style="margin:0 0 6px">Събитие</h2>
       <p class="hint" id="eventDatesHint"></p>
 
@@ -171,6 +176,7 @@
           <option value="other">Друго</option>
         </select>
       </div>
+
       <div class="field adminOnly">
         <label>Цвят</label>
         <div id="colorPicker" class="legend"></div>
@@ -185,8 +191,8 @@
         <input id="evImage" type="text" placeholder="https://.../image.jpg" />
       </div>
       <div class="field adminOnly">
-        <label for="evNotes">Бележки</label>
-        <textarea id="evNotes" rows="3" placeholder="Детайли, срещи, GPS, застраховка..."></textarea>
+        <label for="evNotes">Описание / Бележки</label>
+        <textarea id="evNotes" rows="3" placeholder="Описание на маршрута, среща, GPS, застраховка..."></textarea>
       </div>
 
       <div class="actions">
@@ -322,7 +328,7 @@
         const list = visibleEvents().filter(ev=> ev.dates.includes(dIso));
         list.slice(0,5).forEach(ev=>{
           const dot=document.createElement('span'); dot.className='dot';
-          dot.style.background = ev.color || categories[ev.category]?.color || 'var(--muted)'; dot.title=ev.title;
+          dot.style.background = ev.color || categories[ev.category]?.color || '#98a2b3'; dot.title=ev.title;
           box.appendChild(dot);
         });
         const more=list.length-5; const b=$('.badge',cell); if(more>0){ b.hidden=false; b.textContent=`+${more}` } else { b.hidden=true }
@@ -340,8 +346,8 @@
       paintSelection();
     };
     function toggleSelect(isoDate, on, silent=false){ if(on) state.selection.add(isoDate); else state.selection.delete(isoDate); paintCell(isoDate,on); if(!silent) updateDatesHint() }
-    function paintCell(isoDate,on){ const c=$(`.cell[data-date="${isoDate}"]`,grid); if(!c) return; c.style.outline = on? '3px solid var(--ring)' : (c.classList.contains('today')? '2px solid var(--ring)' : '') }
-    function paintSelection(){ $$('.cell',grid).forEach(c=> c.style.outline = state.selection.has(c.dataset.date)? '3px solid var(--ring)' : (c.classList.contains('today')? '2px solid var(--ring)' : '')) ; updateDatesHint() }
+    function paintCell(isoDate,on){ const c=$(`.cell[data-date="${isoDate}"]`,grid); if(!c) return; c.style.boxShadow = on? `0 0 0 3px var(--ring) inset` : '' }
+    function paintSelection(){ $$('.cell',grid).forEach(c=> c.style.boxShadow = state.selection.has(c.dataset.date)? `0 0 0 3px var(--ring) inset` : '') ; updateDatesHint() }
     function compressDates(dates){
       const ds=dates.slice().sort(); if(!ds.length) return '';
       const ranges=[]; let start=ds[0], prev=ds[0];
@@ -368,7 +374,7 @@
           <div>
             <div class="title">${escapeHtml(ev.title)}</div>
             <div class="meta">${datesShort} • ${catName(ev.category)}</div>
-            ${ev.notes?`<div class="meta">${escapeHtml(ev.notes)}</div>`:''}
+            ${ev.notes?`<div class="desc">${escapeHtml(ev.notes)}</div>`:''}
           </div>
           <div class="actions">
             ${ev.url?`<a class="button" href="${ev.url}" target="_blank" rel="noopener">Виж повече</a>`:''}
@@ -496,25 +502,25 @@
 
     // ---- JSON-LD (SEO) ----
     function injectJsonLdFromState(){
-      const old=$('#ldjson-events'); if(old) old.remove();
+      const old=document.getElementById('ldjson-events'); if(old) old.remove();
       const todayIso=iso(new Date());
-      const upcoming = state.events
+      const data = state.events
         .map(ev=>({ title:ev.title, date:ev.dates[0], endDate: ev.dates[ev.dates.length-1], desc:ev.notes||'', link:ev.url||location.href, img:ev.image }))
         .filter(e=> e.date >= todayIso)
-        .sort((a,b)=> a.date.localeCompare(b.date));
-      const data = upcoming.map(ev=>({
-        "@context":"https://schema.org",
-        "@type":"Event",
-        name: ev.title,
-        startDate: ev.date,
-        endDate: ev.endDate || ev.date,
-        eventStatus: "https://schema.org/EventScheduled",
-        description: ev.desc,
-        url: ev.link,
-        image: ev.img ? [ev.img] : undefined,
-        organizer: {"@type":"Organization","name":"T-MAP"},
-        location: {"@type":"VirtualLocation","url": ev.link}
-      }));
+        .sort((a,b)=> a.date.localeCompare(b.date))
+        .map(ev=>({
+          "@context":"https://schema.org",
+          "@type":"Event",
+          name: ev.title,
+          startDate: ev.date,
+          endDate: ev.endDate || ev.date,
+          eventStatus: "https://schema.org/EventScheduled",
+          description: ev.desc,
+          url: ev.link,
+          image: ev.img ? [ev.img] : undefined,
+          organizer: {"@type":"Organization","name":"T-MAP"},
+          location: {"@type":"VirtualLocation","url": ev.link}
+        }));
       const s=document.createElement('script'); s.type='application/ld+json'; s.id='ldjson-events'; s.textContent=JSON.stringify(data); document.head.appendChild(s);
     }
 
@@ -523,13 +529,12 @@
 
     // ---- Init ----
     function init(){
-      renderColorPicker();
       renderLegend();
       setCursor(new Date());
       renderEventsList();
       setAdminMode(isAdmin());
       injectJsonLdFromState();
-
+      // keyboard
       window.addEventListener('keydown', e=>{
         if(e.key==='ArrowLeft') changeMonth(-1);
         else if(e.key==='ArrowRight') changeMonth(1);
