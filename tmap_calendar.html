@@ -48,6 +48,8 @@
     @media(max-width:980px){.calendar{grid-template-columns:1fr}}
     .left{background:transparent}
     .panel{padding:16px}
+    @media(max-width:980px){ .panel{display:none} } /* скриваме дясната колона на мобилно */
+
     .card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);border:1px solid rgba(2,6,23,.06)}
     .header{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:12px 16px}
     .dow{opacity:.7;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
@@ -63,8 +65,10 @@
     .footerbar{position:sticky;bottom:0;display:flex;gap:10px;padding:10px}
     .section-title{opacity:.8;text-transform:uppercase;font-size:12px;letter-spacing:.18em;margin:6px 0 8px}
     .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
-    .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#fff;border:1px solid rgba(2,6,23,.06);font-size:13px}
+    .chip{position:relative;display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#fff;border:1px solid rgba(2,6,23,.06);font-size:13px}
+    .chip[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ring) inset}
     .chip .sw{width:12px;height:12px;border-radius:999px}
+    .chip .count{margin-left:8px;padding:2px 8px;font-size:12px;font-weight:800;border-radius:999px;background:#f3f4f6;border:1px solid rgba(2,6,23,.06)}
 
     /* Invisible scrollbar utility */
     .invisible-scroll{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
@@ -128,6 +132,14 @@
     .hint{font-size:12px;opacity:.75}
     .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0b1220;color:#fff;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);z-index:70;display:none}
     .toast.show{display:block}
+
+    /* Mobile drawer */
+    .drawer-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.35);display:none;z-index:55}
+    .drawer{position:fixed;top:0;right:0;height:100dvh;width:min(86vw,380px);background:#fff;box-shadow:-12px 0 40px rgba(16,24,40,.18);transform:translateX(110%);transition:.28s ease transform;z-index:56;display:flex;flex-direction:column}
+    .drawer.open{transform:translateX(0)}
+    .drawer-backdrop.open{display:block}
+    .drawer .drawer-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(2,6,23,.06)}
+    .drawer .drawer-body{padding:14px;gap:12px;display:flex;flex-direction:column}
   </style>
 </head>
 <body>
@@ -139,6 +151,7 @@
           <div class="title">T-MAP Туристически календар</div>
         </div>
         <div class="spacer"></div>
+        <button class="btn icon" id="menuBtn" title="Меню">&#9776;</button>
         <button class="btn icon" id="prevBtn" title="Предишен месец" aria-label="Предишен месец">&#x276E;</button>
         <div class="btn" id="title" style="pointer-events:none"></div>
         <button class="btn icon" id="nextBtn" title="Следващ месец" aria-label="Следващ месец">&#x276F;</button>
@@ -182,6 +195,37 @@
       </div>
     </div>
   </div>
+
+  <!-- Drawer (mobile) -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+  <aside id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <strong style="font-weight:800">Меню</strong>
+      <div class="spacer"></div>
+      <button id="drawerClose" class="btn icon" title="Затвори">✕</button>
+    </div>
+    <div class="drawer-body invisible-scroll">
+      <div class="card" style="padding:16px">
+        <div class="section-title">Филтри</div>
+        <div class="legend" id="legendMobile"></div>
+      </div>
+
+      <div class="section-title" style="margin-top:12px">Предстоящи събития</div>
+      <div class="events" id="eventsListMobile"></div>
+      <div class="empty" id="emptyEventsMobile" hidden>Няма предстоящи събития.</div>
+
+      <div class="card" style="padding:16px;margin-top:10px">
+        <div class="section-title">Експорт / Импорт</div>
+        <div class="legend">
+          <button class="btn" id="exportJson2">Експорт .JSON</button>
+          <button class="btn" id="exportIcs2">Експорт .ICS</button>
+          <label class="btn adminOnly" for="importJson2" style="cursor:pointer">Импорт .JSON
+            <input id="importJson2" type="file" accept="application/json" hidden>
+          </label>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <!-- Modal: Събитие (админ) -->
   <div class="modal" id="eventModal" aria-hidden="true" role="dialog" aria-modal="true">
@@ -306,21 +350,56 @@
     nextBtn.onclick=()=>changeMonth(1);
     todayBtn.onclick=()=>setCursor(new Date());
 
-    // ---- Legend (filters) ----
-    const legend = $('#legend');
+    // ---- Mobile drawer ----
+    const menuBtn=$('#menuBtn'), drawer=$('#drawer'), drawerBackdrop=$('#drawerBackdrop'), drawerClose=$('#drawerClose');
+    function openDrawer(){ drawer.classList.add('open'); drawerBackdrop.classList.add('open'); drawer.setAttribute('aria-hidden','false') }
+    function closeDrawer(){ drawer.classList.remove('open'); drawerBackdrop.classList.remove('open'); drawer.setAttribute('aria-hidden','true') }
+    menuBtn.onclick=openDrawer; drawerClose.onclick=closeDrawer; drawerBackdrop.onclick=closeDrawer;
+    window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer() });
+
+    // ---- Legend (filters) + counters ----
+    const legend = $('#legend'), legendMobile = $('#legendMobile');
+
+    function getUpcomingCounts(){
+      const todayIso = iso(new Date());
+      const counts = {hike:0, festival:0, culture:0, other:0};
+      state.events.forEach(ev=>{
+        const first = ev.dates?.[0];
+        if(first && first >= todayIso){
+          const k = ev.category ?? 'other';
+          counts[k] = (counts[k] || 0) + 1;
+        }
+      });
+      return counts;
+    }
+
     function renderLegend(){
-      legend.innerHTML='';
-      Object.entries(categories).forEach(([key,val])=>{
-        const chip=document.createElement('button');
-        chip.className='chip'; chip.setAttribute('aria-pressed', state.filters.has(key));
-        chip.innerHTML = `<span class="sw" style="background:${val.color}"></span>${val.name}`;
-        chip.onclick=()=>{
-          if(state.filters.has(key)) state.filters.delete(key); else state.filters.add(key);
-          save('tmap.filters', Array.from(state.filters));
+      const counts = getUpcomingCounts();
+      [legend, legendMobile].forEach(container=>{
+        if(!container) return;
+        container.innerHTML='';
+        Object.entries(categories).forEach(([key,val])=>{
+          const chip=document.createElement('button');
+          chip.className='chip';
           chip.setAttribute('aria-pressed', state.filters.has(key));
-          renderEventsList(); renderGridDots(); injectJsonLdFromState();
-        };
-        legend.appendChild(chip);
+          chip.title='Клик: само тази • Ctrl/⌘ или Shift: многoизбор';
+          chip.innerHTML = `
+            <span class="sw" style="background:${val.color}"></span>
+            ${val.name}
+            <span class="count">${counts[key] ?? 0}</span>
+          `;
+          chip.onclick=(e)=>{
+            const multi = e.ctrlKey || e.metaKey || e.shiftKey;
+            if(multi){
+              if(state.filters.has(key)) state.filters.delete(key); else state.filters.add(key);
+            }else{
+              state.filters = new Set([key]); // ексклузивно
+            }
+            save('tmap.filters', Array.from(state.filters));
+            renderLegend(); renderEventsList(); renderGridDots(); injectJsonLdFromState();
+          };
+          container.appendChild(chip);
+        });
       });
     }
 
@@ -398,15 +477,12 @@
       return ranges.map(([a,b])=> a===b? fmt(a): `${fmt(a)}–${fmt(b)}`).join(', ')
     }
 
-    // ---- Events list (дясно)
+    // ---- Events list (дясно и мобилно)
     const eventsList=$('#eventsList'), emptyEvents=$('#emptyEvents');
-    function renderEventsList(){
-      const todayIso=iso(new Date());
-      const list = visibleEvents()
-        .map(ev=>({...ev, first: ev.dates[0]}))
-        .filter(ev=> ev.first >= todayIso)
-        .sort((a,b)=> a.first.localeCompare(b.first));
-      eventsList.innerHTML=''; emptyEvents.hidden = list.length>0;
+    const eventsListMobile=$('#eventsListMobile'), emptyEventsMobile=$('#emptyEventsMobile');
+
+    function renderEventsInto(container, emptyEl, list){
+      container.innerHTML=''; emptyEl.hidden = list.length>0;
       list.forEach(ev=>{
         const item=document.createElement('div'); item.className='event-card';
         const datesShort = compressDates(ev.dates);
@@ -435,8 +511,19 @@
             renderEventsList(); renderGridDots(); injectJsonLdFromState();
           }
         });
-        eventsList.appendChild(item);
+        container.appendChild(item);
       });
+    }
+
+    function renderEventsList(){
+      const todayIso=iso(new Date());
+      const list = visibleEvents()
+        .map(ev=>({...ev, first: ev.dates[0]}))
+        .filter(ev=> ev.first >= todayIso)
+        .sort((a,b)=> a.first.localeCompare(b.first));
+
+      renderEventsInto(eventsList, emptyEvents, list);
+      renderEventsInto(eventsListMobile, emptyEventsMobile, list);
     }
 
     // ---- Info pop-up (за всички)
@@ -492,7 +579,7 @@
       Object.assign(obj, { title, category: evCategory.value, color: selectedColor, dates, notes: evNotes.value.trim(), url: evUrl.value.trim(), image: evImage.value.trim() });
       if(!editing) state.events.push(obj);
       save('tmap.events', state.events);
-      closeEventModal(); renderEventsList(); renderGridDots(); injectJsonLdFromState(); toast('Събитието е записано');
+      closeEventModal(); renderEventsList(); renderGridDots(); injectJsonLdFromState(); renderLegend(); toast('Събитието е записано');
     });
 
     // ---- Day Sheet (mobile)
@@ -527,19 +614,27 @@
     }
 
     // ---- Export / Import
-    $('#exportJson').onclick=()=>{
-      const data={events:state.events};
-      download('tmap-calendar.json', JSON.stringify(data,null,2));
-    };
-    $('#exportIcs').onclick=()=>{
-      const ics=toICS(state.events); download('tmap-calendar.ics', ics);
-    };
-    $('#importJson').addEventListener('change', async (e)=>{
-      if(!isAdmin()){ toast('Само админ може да импортира'); e.target.value=''; return }
-      const f=e.target.files[0]; if(!f) return; const text=await f.text();
-      try{ const obj=JSON.parse(text); if(obj.events) state.events=obj.events; save('tmap.events', state.events); renderEventsList(); renderGridDots(); injectJsonLdFromState(); toast('Импорт успешно') }catch{ toast('Грешен JSON') }
-      e.target.value='';
-    });
+    function exportJson(){ const data={events:state.events}; download('tmap-calendar.json', JSON.stringify(data,null,2)); }
+    function exportIcs(){ const ics=toICS(state.events); download('tmap-calendar.ics', ics); }
+    $('#exportJson').onclick=exportJson; $('#exportIcs').onclick=exportIcs;
+    $('#exportJson2').onclick=exportJson; $('#exportIcs2').onclick=exportIcs;
+
+    function hookImport(input){
+      input.addEventListener('change', async (e)=>{
+        if(!isAdmin()){ toast('Само админ може да импортира'); e.target.value=''; return }
+        const f=e.target.files[0]; if(!f) return; const text=await f.text();
+        try{
+          const obj=JSON.parse(text);
+          if(obj.events) state.events=obj.events;
+          save('tmap.events', state.events);
+          renderEventsList(); renderGridDots(); injectJsonLdFromState(); renderLegend();
+          toast('Импорт успешно')
+        }catch{ toast('Грешен JSON') }
+        e.target.value='';
+      });
+    }
+    hookImport($('#importJson')); hookImport($('#importJson2'));
+
     function download(name,text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'})); a.download=name; document.body.appendChild(a); a.click(); a.remove() }
     function toICS(events){
       const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//T-MAP//Tour Calendar//BG'];
