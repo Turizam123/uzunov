@@ -1,871 +1,700 @@
-<!doctype html>
-<html lang="bg" class="h-full">
+<!DOCTYPE html>
+<html lang="bg">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>T-MAP – Туристическа карта</title>
-  <meta name="description" content="Игрива и анимирана начална страница на T-MAP – интерактивна туристическа карта на България. Планирай, споделяй и откривай!" />
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- FAVICONS — твоите файлове -->
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="favicon-512.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-  <meta name="theme-color" content="#10b981">
-
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>T-MAP Календар</title>
+  <meta name="theme-color" content="#0ea5e9" />
+  <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96">
   <style>
-    /* -------------------- Base -------------------- */
-    :root{ --brand1:#10b981; --brand2:#3b82f6; --brand3:#06b6d4; --ink:#0f172a }
-    html,body{ height:100% }
+    :root{
+      --tmap-blue:#0ea5e9; --tmap-dark:#0b1220; --text:#0b1220; --muted:#667085;
+      --bg:#f5f7fb; --card:#ffffff; --ring:rgba(14,165,233,.45); --radius:18px;
+      --shadow:0 10px 30px rgba(16,24,40,.08), 0 2px 10px rgba(16,24,40,.05);
+    }
+    *{box-sizing:border-box} html,body{height:100%}
     body{
-      color:var(--ink);
-      background:
-        radial-gradient(1200px 600px at 120% -10%, rgba(16,185,129,.12), rgba(255,255,255,0)) no-repeat,
-        radial-gradient(900px 500px at -10% 0%, rgba(59,130,246,.10), rgba(255,255,255,0)) no-repeat,
-        linear-gradient(180deg,#ffffff 0%,#f9fafb 100%);
+      margin:0; color:var(--text);
+      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial;
+      background: radial-gradient(1200px 700px at 80% -10%, #c0f0ff66, transparent 60%),
+                  radial-gradient(800px 600px at -10% 110%, #e2c8ff55, transparent 60%), var(--bg);
+      background-image:
+        radial-gradient(1200px 700px at 80% -10%, #c0f0ff66, transparent 60%),
+        radial-gradient(800px 600px at -10% 110%, #e2c8ff55, transparent 60%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320' opacity='.18'><defs><pattern id='p' width='160' height='160' patternUnits='userSpaceOnUse'><path d='M0 80c40-40 80-40 120 0s80 40 120 0' fill='none' stroke='%2388a' stroke-width='0.8'/><path d='M-40 120c40-40 80-40 120 0s80 40 120 0' fill='none' stroke='%2388a' stroke-width='0.6' opacity='.6'/></pattern></defs><rect width='100%' height='100%' fill='url(%23p)'/></svg>");
+      background-attachment: fixed;
     }
-    .glass{ backdrop-filter:saturate(180%) blur(10px) }
-    .reveal{ opacity:0; transform:translateY(18px); transition:opacity .7s ease, transform .7s ease }
-    .reveal.is-visible{ opacity:1; transform:translateY(0) }
+    .app{max-width:1200px;margin:20px auto;padding:0 14px}
+    .shell{background:rgba(255,255,255,.72);backdrop-filter:blur(10px) saturate(120%);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1px solid rgba(14,165,233,.08)}
+    .toolbar{display:flex;gap:12px;align-items:center;padding:14px 16px;background:#ffffffb0;border-bottom:1px solid rgba(2,6,23,.06)}
+    .brand{display:flex;gap:12px;align-items:center}
+    .brand .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#e6f9ff,#e9d7ff);border:1px solid rgba(14,165,233,.25)}
+    .brand .title{font-weight:800;letter-spacing:.2px;font-size:20px}
+    .spacer{flex:1}
+    .btn{appearance:none;border:1px solid rgba(2,6,23,.08);background:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;transition:.2s;box-shadow: inset 0 1px 0 rgba(255,255,255,.7)}
+    .btn:hover{transform:translateY(-1px)} .btn:active{transform:translateY(0)}
+    .btn.primary{border-color:transparent;background:linear-gradient(180deg,#5dd7ff,#0ea5e9);color:#001a26;font-weight:800}
+    .btn.icon{padding:10px}
+    .calendar{display:grid;grid-template-columns:1fr 360px;min-height:640px}
+    @media(max-width:980px){.calendar{grid-template-columns:1fr}}
+    .left{background:transparent}
+    .panel{padding:16px}
+    @media(max-width:980px){ .panel{display:none} } /* дясната колона е скрита на мобилно */
 
-    /* -------------------- Buttons -------------------- */
-    @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-    .btn-cta{
-      border-radius:16px; padding:.85rem 1.1rem; font-weight:800; color:#fff;
-      background:linear-gradient(120deg,var(--brand1),var(--brand2),#22c55e,var(--brand3)); background-size:220% 220%;
-      animation:gradientShift 8s ease infinite;
-      box-shadow:0 10px 20px rgba(16,185,129,.25); transition:.15s ease; position:relative; overflow:hidden;
+    .card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);border:1px solid rgba(2,6,23,.06)}
+    .header{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:12px 16px}
+    .dow{opacity:.7;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+    .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:16px}
+    .cell{position:relative;aspect-ratio:1/1;border-radius:14px;padding:10px;background:#fff;border:1px solid rgba(2,6,23,.08);cursor:pointer;transition:.15s;overflow:hidden}
+    .cell:hover{box-shadow:0 0 0 2px var(--ring) inset}
+    .cell.out{opacity:.45;background:#fff}
+    .cell.today{outline:2px solid var(--ring)}
+    .num{font-weight:900}
+    .marks{position:absolute;inset:auto 8px 8px 8px;display:flex;gap:6px;flex-wrap:wrap}
+    .dot{width:8px;height:8px;border-radius:999px;background:#98a2b3;box-shadow:0 0 0 2px #00000010}
+    .badge{position:absolute;top:6px;right:6px;font-size:11px;padding:3px 6px;border-radius:999px;background:#0b1220;opacity:.75;color:#fff}
+    .footerbar{position:sticky;bottom:0;display:flex;gap:10px;padding:10px}
+    .section-title{opacity:.8;text-transform:uppercase;font-size:12px;letter-spacing:.18em;margin:6px 0 8px}
+    .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+    .chip{position:relative;display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#fff;border:1px solid rgba(2,6,23,.06);font-size:13px}
+    .chip[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ring) inset}
+    .chip .sw{width:12px;height:12px;border-radius:999px}
+    .chip .count{margin-left:8px;padding:2px 8px;font-size:12px;font-weight:800;border-radius:999px;background:#f3f4f6;border:1px solid rgba(2,6,23,.06)}
+
+    .invisible-scroll{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
+    .invisible-scroll::-webkit-scrollbar{width:0;height:0}
+
+    .events{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 260px);padding-right:6px}
+    .empty{opacity:.7;padding:6px}
+
+    .event-card{
+      display:grid; grid-template-columns:1fr; gap:10px;
+      padding:12px; border-radius:16px; background:#fff;
+      border:1px solid rgba(2,6,23,.06); box-shadow:var(--shadow); cursor:pointer
     }
-    .btn-cta:hover{ transform:translateY(-2px); box-shadow:0 16px 28px rgba(16,185,129,.32) }
-    .btn-ghost{ border-radius:14px; background:#fff; box-shadow:0 6px 16px rgba(0,0,0,.06); border:1px solid rgba(0,0,0,.05); transition:.15s ease }
-    .btn-ghost:hover{ transform:translateY(-2px); box-shadow:0 12px 18px rgba(0,0,0,.08) }
-
-    /* -------------------- Hero phone -------------------- */
-    .phone-mask{
-      -webkit-mask-image: radial-gradient(140% 140% at 50% 50%, #000 72%, rgba(0,0,0,0) 100%);
-              mask-image: radial-gradient(140% 140% at 50% 50%, #000 72%, transparent 100%);
-      -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+    .event-card .thumb{position:relative;width:100%;height:180px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#e6f9ff,#efe7ff);border:1px solid rgba(2,6,23,.06)}
+    .event-card .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .event-card .date-badge{
+      position:absolute;top:8px;left:8px;background:#fff;color:#0b1220;
+      padding:4px 10px;border-radius:999px;font-weight:800;font-size:12px;
+      box-shadow:0 6px 18px rgba(16,24,40,.15);border:1px solid rgba(2,6,23,.08)
     }
-    .phone-wrap{ transform:rotate(10deg); will-change:transform;
-      filter:drop-shadow(0 20px 34px rgba(16,185,129,.18)) drop-shadow(0 8px 14px rgba(59,130,246,.10)) }
-    .phone-frame{ border-radius:24px; background:linear-gradient(180deg,#fff 0%,#f8fafc 100%); border:1px solid rgba(0,0,0,.06); padding:8px }
-    @media (prefers-reduced-motion:no-preference){ .phone-wrap:hover{ transform: rotate(7deg) scale(1.01); transition:transform .35s ease } }
+    .event-card .title{font-weight:900;font-size:16px}
+    .event-card .meta{font-size:12px;opacity:.9}
+    .event-card .desc{font-size:13px;color:#475467}
+    .event-card .actions{display:flex;gap:6px}
+    .event-card a.button{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:linear-gradient(180deg,#5dd7ff,#0ea5e9);color:#001a26;text-decoration:none;font-weight:800;border:0}
 
-    /* -------------------- Mountains footer -------------------- */
-    @keyframes drift{0%{transform:translateX(0)}100%{transform:translateX(-50px)}}
-    .mountain-layer{ transform:translateZ(0) }
-    .mountain-layer[data-slow]{ animation:drift 30s ease-in-out infinite alternate }
-    .mountain-layer[data-fast]{ animation:drift 18s ease-in-out infinite alternate-reverse }
+    .sheet{position:fixed;inset:auto 0 0 0;background:#ffffffee;border-top-left-radius:24px;border-top-right-radius:24px;box-shadow:0 -12px 40px rgba(16,24,40,.18);transform:translateY(110%);transition:.3s ease transform;z-index:40}
+    .sheet.open{transform:translateY(0)}
+    .sheet .grip{width:60px;height:6px;background:#98a2b3;border-radius:999px;margin:10px auto}
+    .sheet .content{padding:12px 16px 16px}
 
-    /* -------------------- Floating particles -------------------- */
-    #bg-canvas{ position:fixed; inset:0; z-index:-1; opacity:.35 }
+    .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(2,6,23,.35);z-index:60}
+    .modal.open{display:grid}
+    .card.modal-card{width:min(720px,92vw);padding:16px}
 
-    /* -------------------- Command palette -------------------- */
-    .palette-enter{ opacity:0; transform:scale(.98); transition:.12s ease }
-    .palette-enter.show{ opacity:1; transform:scale(1) }
+    .card.info-card{
+      width:min(720px,92vw);padding:16px;
+      display:grid;grid-template-columns:110px 1fr;gap:14px
+    }
+    .info-left{display:grid;align-content:start}
+    .info-left img{width:110px;height:110px;object-fit:cover;border-radius:12px;border:1px solid rgba(2,6,23,.08)}
+    @media(max-width:560px){
+      .card.info-card{grid-template-columns:1fr}
+      .info-left img{width:100%;height:160px}
+    }
 
-    /* Tilt hover for cards */
-    .hover-tilt{ transform-style:preserve-3d; perspective:800px }
-    .hover-tilt > .tilt-item{ transition: transform .15s ease; transform: translateZ(0) }
+    .adminOnly{display:none}
+    .is-admin .adminOnly{display:inline-flex}
+    .is-admin .adminOnly.block{display:block}
+
+    .field{display:grid;gap:6px;margin:10px 0}
+    label{font-size:13px;opacity:.9}
+    input[type="text"], select, textarea{background:#fff;border:1px solid rgba(2,6,23,.12);color:#0b1220;border-radius:12px;padding:10px}
+    .actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding-top:8px}
+    .hint{font-size:12px;opacity:.75}
+    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0b1220;color:#fff;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);z-index:70;display:none}
+    .toast.show{display:block}
+
+    /* Mobile drawer (вдясно) */
+    .drawer-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.35);display:none;z-index:55}
+    .drawer{position:fixed;top:0;right:0;height:100dvh;width:min(86vw,380px);background:#fff;box-shadow:-12px 0 40px rgba(16,24,40,.18);transform:translateX(110%);transition:.28s ease transform;z-index:56;display:flex;flex-direction:column}
+    .drawer.open{transform:translateX(0)}
+    .drawer-backdrop.open{display:block}
+    .drawer .drawer-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(2,6,23,.06)}
+    .drawer .drawer-body{padding:14px;gap:12px;display:flex;flex-direction:column}
+
+    @media (min-width:981px){ #menuBtn{ display:none !important; } .drawer, .drawer-backdrop{ display:none !important; } }
+    @media (max-width:980px){ #menuBtn{ display:inline-flex; } }
+
+    .drawer-open #todayBtn, .drawer-open #adminBtn{ display:none !important; }
   </style>
 </head>
-<body class="selection:bg-emerald-100/70">
-  <canvas id="bg-canvas" aria-hidden="true"></canvas>
-
-  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-white text-gray-900 px-3 py-2 rounded-md shadow">Към съдържанието</a>
-
-  <!-- Header -->
-  <header class="fixed inset-x-0 top-0 z-50 border-b border-black/5 bg-white md:bg-white/80 md:backdrop-blur">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex h-16 items-center justify-between">
-        <a class="flex items-center gap-3" href="tmap.html" aria-label="T-MAP">
-          <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/published/logo01082025-removebg-preview.png?1754135840" alt="T-MAP" class="h-8 w-auto" decoding="async"/>
-          <span class="text-lg font-extrabold tracking-tight">T-MAP</span>
-        </a>
-        <div class="flex items-center gap-1">
-          <button id="openPalette" class="hidden sm:inline-flex rounded-xl p-2 hover:bg-gray-100" title="Търси / Ctrl/Cmd+K" aria-label="Търси">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </button>
-          <button id="menuBtn" class="rounded-xl p-2 hover:bg-gray-100" aria-label="Меню" aria-expanded="false">
-            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </button>
+<body>
+  <div class="app">
+    <div class="shell">
+      <div class="toolbar">
+        <div class="brand">
+          <div class="logo"><img src="favicon-96x96.png" alt="T-MAP" width="32" height="32" style="display:block;border-radius:10px"></div>
+          <div class="title">Календар</div>
         </div>
-      </div>
-    </div>
-
-    <!-- Drawer -->
-    <div id="overlay" class="fixed inset-0 bg-black/40 hidden"></div>
-    <aside id="mobileDrawer" class="fixed top-0 right-0 h-full w-80 max-w-[85%] translate-x-full transition-transform duration-300 ease-out bg-white shadow-2xl border-l border-black/5 overflow-y-auto">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-black/5">
-        <div class="flex items-center gap-2">
-          <span class="font-semibold">Меню</span>
-        </div>
-        <button id="closeDrawer" class="rounded-lg p-2 hover:bg-gray-100" aria-label="Затвори меню">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </button>
-      </div>
-      <nav class="px-3 py-4 space-y-1">
-        <a href="tmap.html" class="block rounded-xl px-3 py-3 hover:bg-gray-50">Карта</a>
-        <a href="https://turizam123.github.io/uzunov/dashboard.html" class="block rounded-xl px-3 py-3 hover:bg-gray-50" rel="noopener">Моето табло</a>
-        <a href="https://turizam123.github.io/uzunov/docs/activate_gid.html" class="block rounded-xl px-3 py-3 hover:bg-gray-50" rel="noopener">Активирай ГИД</a>
-        <a href="https://turizam123.github.io/uzunov/docs/join_gid.html" class="block rounded-xl px-3 py-3 hover:bg-gray-50" rel="noopener">Присъедини се към ГИД</a>
-        <div class="pt-2">
-          <p class="px-3 pb-1 text-xs uppercase tracking-wide text-gray-500">Чат</p>
-          <a href="https://turizam123.github.io/uzunov/tmap_chat.html" class="block rounded-xl px-3 py-3 hover:bg-gray-50">Общ чат</a>
-          <a href="#" data-open-policy="chat_rules" class="block rounded-xl px-3 py-3 hover:bg-gray-50">Правила на чата</a>
-        </div>
-        <div class="pt-4 flex gap-2">
-          <a href="https://turizam123.github.io/uzunov/tmap_chat.html" class="flex-1 rounded-2xl border border-black/5 bg-white px-4 py-2 text-center text-sm font-semibold shadow-sm">Влез в чата</a>
-          <a href="tmap.html" class="flex-1 rounded-2xl bg-emerald-600 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm">Към картата</a>
-        </div>
-      </nav>
-    </aside>
-  </header>
-
-  <main id="main" class="pt-24">
-    <!-- HERO -->
-    <section class="relative overflow-hidden">
-      <div class="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl"></div>
-      <div class="pointer-events-none absolute top-20 -left-12 h-72 w-72 rounded-full bg-sky-400/20 blur-3xl"></div>
-
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="grid gap-10 lg:grid-cols-2 items-center py-12 lg:py-20">
-          <div class="reveal">
-            <p id="greet" class="text-sm font-semibold tracking-wide text-emerald-700"></p>
-            <h1 class="mt-1 leading-none">
-              <span class="block text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900">
-                <span id="typewriter"></span>
-              </span>
-              <span class="hero-brand block mt-2 text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 via-sky-600 to-emerald-500">
-                T-MAP
-              </span>
-            </h1>
-
-            <p class="mt-5 text-lg text-gray-700">
-              Интерактивна туристическа карта. Добавяш локации, общуваш в чат, а скоро – офлайн тракинг (PWA).
-            </p>
-
-            <div class="mt-7 flex flex-wrap gap-3">
-              <a href="tmap.html" class="btn-cta text-sm px-5 py-3">Виж картата</a>
-              <a href="https://turizam123.github.io/uzunov/docs/bgx_multi.html" class="btn-ghost text-sm px-5 py-3" rel="noopener">Трекинг маршрути</a>
-              <a href="https://turizam123.github.io/uzunov/dashboard.html" class="btn-ghost text-sm px-5 py-3" rel="noopener">Добави обект</a>
-              <button id="installBtnTop" class="btn-ghost text-sm px-5 py-3 hidden">Инсталирай приложението</button>
-            </div>
-
-            <!-- Badges -->
-            <div class="mt-6 flex flex-wrap items-center gap-3 text-sm text-gray-600">
-              <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-black/5">
-                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Нови обекти всеки ден
-              </span>
-              <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-black/5">
-                <svg class="h-4 w-4 text-sky-600" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H8l-4 4V5з" stroke="currentColor" stroke-width="1.5"/></svg> Общ чат в реално време
-              </span>
-              <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-black/5">
-                <svg class="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M5 7h14M5 17h7" stroke="currentColor" stroke-width="1.5"/></svg> Лек интерфейс
-              </span>
-            </div>
-          </div>
-
-          <!-- Right: tilted phone -->
-          <div class="reveal">
-            <div class="relative max-w-[220px] sm:max-w-[260px] lg:max-w-[300px] mx-auto hover-tilt" id="phoneTilt">
-              <div class="absolute -inset-6 bg-gradient-to-br from-emerald-200/40 via-sky-200/35 to-emerald-100/40 blur-3xl rounded-[40px]"></div>
-              <div class="relative phone-wrap tilt-item">
-                <div class="phone-frame">
-                  <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/529016311-1278612336749748-5228008378896628298-n_orig.jpg"
-                       alt="T-MAP на телефон – маршрути и карта"
-                       class="w-full h-auto rounded-[20px] object-cover phone-mask"
-                       loading="lazy" decoding="async"/>
-                </div>
-                <div class="pointer-events-none absolute inset-0 rounded-[24px]"><div class="absolute -top-8 -right-10 h-24 w-36 bg-white/30 blur-2xl rounded-full"></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick gimmick cards -->
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 reveal">
-          <a href="tmap.html" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition hover-tilt">
-            <div class="tilt-item">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-xl bg-emerald-600/10 grid place-content-center">
-                  <svg class="h-5 w-5 text-emerald-700 group-hover:animate-pulse" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-7.2 8-13a8 8 0 10-16 0c0 5.8 8 13 8 13z" stroke="currentColor" stroke-width="1.5"/></svg>
-                </div>
-                <h3 class="font-semibold">Отвори T-MAP</h3>
-              </div>
-              <p class="mt-2 text-sm text-gray-600">Забележителности, върхове, водопади и още.</p>
-            </div>
-          </a>
-          <a href="https://turizam123.github.io/uzunov/dashboard.html" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition hover-tilt" rel="noopener">
-            <div class="tilt-item">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-xl bg-amber-500/10 grid place-content-center">
-                  <svg class="х-5 w-5 text-amber-600 group-hover:animate-bounce" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M5 7h14M5 17h7" stroke="currentColor" stroke-width="1.5"/></svg>
-                </div>
-                <h3 class="font-semibold">Добави обект</h3>
-              </div>
-              <p class="mt-2 text-sm text-gray-600">Сподели любимо място – ние ще го одобрим.</p>
-            </div>
-          </a>
-          <button id="openInstall" class="group rounded-2xl p-5 border border-black/5 bg-white shadow-sm hover:shadow-md transition text-left hover-tilt">
-            <div class="tilt-item">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-xl bg-sky-500/10 grid place-content-center">
-                  <svg class="h-5 w-5 text-sky-600" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 3v12m0 0l-4-4m4 4 4-4M4 21h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                </div>
-                <h3 class="font-semibold">Инсталирай като приложение</h3>
-              </div>
-              <p class="mt-2 text-sm text-gray-600">Работи бързо, има офлайн кеш и икона на началния екран.</p>
-            </div>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Слайдер със снимки от картата -->
-    <section class="py-12 lg:py-16 reveal" id="tmap-photo-slider">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex items-end justify-between mb-4">
-          <div>
-            <h2 class="text-2xl lg:text-3xl font-extrabold">Снимки от T-MAP</h2>
-            <p class="text-gray-600">Плъзни – и се вдъхнови за следващата дестинация.</p>
-          </div>
-          <div class="hidden md:flex items-center gap-2">
-            <button type="button" id="pv-prev" class="rounded-xl border border-black/10 bg-white px-3 py-2 shadow-sm hover:shadow-md">←</button>
-            <button type="button" id="pv-next" class="rounded-xl border border-black/10 bg-white px-3 py-2 shadow-sm hover:shadow-md">→</button>
-          </div>
-        </div>
-        <div class="relative">
-          <div class="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-white to-transparent rounded-l-2xl"></div>
-          <div class="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-white to-transparent rounded-r-2xl"></div>
-          <div id="pv-track" class="no-scrollbar snap-x snap-mandatory overflow-x-auto scroll-smooth flex gap-4 pb-2">
-            <!-- скелетони -->
-            <div class="shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 animate-pulse"></div>
-            <div class="shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 animate-pulse"></div>
-            <div class="shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 animate-pulse"></div>
-          </div>
-        </div>
-        <div class="mt-4 flex justify-end">
-          <a href="tmap.html" class="btn-ghost px-4 py-2 text-sm font-semibold">Виж всички в картата</a>
-        </div>
-      </div>
-    </section>
-
-    <!-- Долен сегмент с планини -->
-    <section class="relative mt-10">
-      <div class="absolute inset-x-0 bottom-0 h-[260px] overflow-hidden pointer-events-none -z-10">
-        <svg class="absolute bottom-0 w-[200%] h-[180px] mountain-layer" data-slow viewBox="0 0 1440 320" preserveAspectRatio="none">
-          <path fill="#e8f7f0" d="M0,192L48,202.7C96,213,192,235,288,240C384,245,480,235,576,208C672,181,768,139,864,138.7C960,139,1056,181,1152,197.3C1248,213,1344,203,1392,197.3L1440,192L1440,320L0,320Z"></path>
-        </svg>
-        <svg class="absolute bottom-0 w-[200%] h-[200px] mountain-layer" data-fast viewBox="0 0 1440 320" preserveAspectRatio="none">
-          <path fill="#dff3ea" d="M0,256L60,256C120,256,240,256,360,240C480,224,600,192,720,197.3C840,203,960,245,1080,261.3C1200,277,1320,267,1380,261.3Л1440,256L1440,320L0,320Z"></path>
-        </svg>
-        <svg class="absolute bottom-0 w-[200%] h-[220px] mountain-layer" viewBox="0 0 1440 320" preserveAspectRatio="none">
-          <path fill="#cfeadf" d="M0,288L80,282.7C160,277,320,267,480,234.7C640,203,800,149,960,149.3C1120,149,1280,203,1360,229.3Л1440,256L1440,320L0,320Z"></path>
-        </svg>
+        <div class="spacer"></div>
+        <button class="btn icon" id="menuBtn" title="Меню">&#9776;</button>
+        <button class="btn icon" id="prevBtn" title="Предишен месец" aria-label="Предишен месец">&#x276E;</button>
+        <div class="btn" id="title" style="pointer-events:none"></div>
+        <button class="btn icon" id="nextBtn" title="Следващ месец" aria-label="Следващ месец">&#x276F;</button>
+        <button class="btn" id="todayBtn">Днес</button>
+        <button class="btn primary adminOnly" id="newEventBtn">+ Ново събитие</button>
+        <button class="btn" id="adminBtn" title="Админ вход">Вход (админ)</button>
       </div>
 
-      <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="glass rounded-3xl border border-black/5 bg-white/70 shadow-xl p-6 md:p-8 mb-24 md:mb-0 relative z-10">
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <p class="text-sm text-gray-700">© <span id="year"></span> T-MAP • Туристическа карта</p>
-            <nav class="flex flex-wrap itemscenter gap-3 text-sm">
-              <button type="button" data-open-policy="privacy" class="hover:underline">Политика за поверителност</button>
-              <button type="button" data-open-policy="terms" class="hover:underline">Условия за ползване</button>
-              <button type="button" data-open-policy="cookies" class="hover:underline">Политика за бисквитки</button>
-              <button type="button" data-open-policy="chat_rules" class="hover:underline">Правила на чата</button>
-              <span class="hidden sm:inline-block h-5 w-px bg-gray-300"></span>
-              <a href="https://turistibg.weebly.com" target="_blank" rel="noopener" class="hover:underline">Основен сайт</a>
-              <a href="https://www.facebook.com/turizamworld?locale=bg_BG" target="_blank" rel="noopener" aria-label="Facebook" class="inline-flex items-center gap-1 hover:underline">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.53 17.52 2 12 2S2 6.53 2 12.06c0 4.99 3.66 9.13 8.44 9.94v-7.03H7.9v-2.9h2.54V9.41c0-2.5 1.49-3.88 3.77-3.88 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.81 8.44-4.95 8.44-9.94z"/></svg>
-              </a>
-            </nav>
+      <div class="calendar">
+        <section class="left card">
+          <div class="header">
+            <div class="dow">Пон</div><div class="dow">Вто</div><div class="dow">Сря</div><div class="dow">Чет</div><div class="dow">Пет</div><div class="dow">Съб</div><div class="dow">Нед</div>
           </div>
-        </div>
-        <div class="h-[240px]"></div>
-      </div>
-    </section>
-  </main>
+          <div class="grid" id="grid"></div>
+          <div class="footerbar">
+            <button class="btn adminOnly" id="selectRangeBtn">Избор на диапазон</button>
+            <button class="btn adminOnly" id="clearSelectionBtn">Изчисти избора</button>
+          </div>
+        </section>
 
-  <!-- Sticky мобилен бар -->
-  <div class="md:hidden fixed inset-x-3 bottom-3 z-50">
-  <div class="glass bg-white/90 border border-black/5 shadow-xl rounded-2xl p-2 flex gap-2">
-    <a href="tmap.html" class="flex-1 btn-ghost px-4 py-3 text-sm text-center font-semibold">Карта</a>
-    <a href="https://turizam123.github.io/uzunov/docs/bgx_multi.html" class="flex-1 btn-cta px-4 py-3 text-sm text-center" rel="noopener">Трекинг</a>
-    <a href="https://turizam123.github.io/uzunov/tmap_chat.html" class="flex-1 btn-ghost px-4 py-3 text-sm text-center font-semibold" rel="noopener">Чат</a>
+        <aside class="panel">
+          <div class="card" style="padding:16px">
+            <div class="section-title">Филтри</div>
+            <div class="legend" id="legend"></div>
+          </div>
+
+          <div class="section-title" style="margin-top:12px">Предстоящи събития</div>
+          <div class="events invisible-scroll" id="eventsList"></div>
+          <div class="empty" id="emptyEvents" hidden>Няма предстоящи събития.</div>
+
+          <div class="section-title">Експорт / Импорт</div>
+          <div class="legend">
+            <button class="btn" id="exportJson">Експорт .JSON</button>
+            <button class="btn" id="exportIcs">Експорт .ICS</button>
+            <label class="btn adminOnly" for="importJson" style="cursor:pointer">Импорт .JSON
+              <input id="importJson" type="file" accept="application/json" hidden>
+            </label>
+          </div>
+          <p class="hint">Данните се пазят в Supabase. Локални филтри/режим админ – в браузъра.</p>
+        </aside>
+      </div>
     </div>
   </div>
 
-  <!-- Command palette -->
-  <div id="paletteOverlay" class="fixed inset-0 bg-black/50 hidden z-[60]"></div>
-  <section id="palette" class="palette-enter hidden fixed inset-x-4 top-10 md:inset-x-auto md:right-6 md:left-auto max-w-2xl md:w-[640px] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 z-[61]">
-    <div class="border-b border-gray-200 px-4 py-3 flex items-center gap-2">
-      <svg class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      <input id="paletteInput" class="w-full outline-none" placeholder="Търси: Карта, Чат, Добави, Правила…" />
-      <kbd class="hidden md:inline text-xs text-gray-500">Esc</kbd>
+  <!-- Drawer (mobile, вдясно) -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+  <aside id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <strong style="font-weight:800">Меню</strong>
+      <div class="spacer"></div>
+      <button id="drawerClose" class="btn icon" title="Затвори">✕</button>
     </div>
-    <ul id="paletteList" class="max-h-[60vh] overflow-y-auto p-2">
-      <li class="px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer" data-href="tmap.html">🔎 Отвори картата</li>
-      <li class="px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer" data-href="https://turizam123.github.io/uzunov/tmap_chat.html">💬 Общ чат</li>
-      <li class="px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer" data-href="https://turizam123.github.io/uzunov/tmap_calendar.html">🗓️ Календар</li>
-      <li class="px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer" data-href="https://turizam123.github.io/uzunov/dashboard.html">➕ Добави обект</li>
-      <li class="px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer" data-policy="chat_rules">📜 Правила на чата</li>
-    </ul>
-  </section>
+    <div class="drawer-body invisible-scroll">
+      <div class="card" style="padding:16px">
+        <div class="section-title">Филтри</div>
+        <div class="legend" id="legendMobile"></div>
+      </div>
 
-  <!-- Bottom-sheet Install -->
-  <div id="installSheet" class="hidden fixed inset-x-0 bottom-0 z-[55]">
-    <div class="mx-auto max-w-2xl px-4 pb-4">
-      <div class="glass bg-white/90 border border-black/5 shadow-2xl rounded-2xl p-4">
-        <div class="flex items-start gap-3">
-          <div class="h-10 w-10 rounded-xl bg-emerald-600/10 grid place-content-center">
-            <svg class="h-6 w-6 text-emerald-600" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4 4-4M4 21h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </div>
-          <div class="flex-1">
-            <h3 class="font-semibold">Инсталирай T-MAP</h3>
-            <p class="text-sm text-gray-600">По-бърз достъп и офлайн кеш. Ще добавим и икона на началния екран.</p>
-            <div class="mt-3 flex gap-2">
-              <button id="installNow" class="btn-cta px-4 py-2 text-sm">Инсталирай</button>
-              <button id="installClose" class="btn-ghost px-4 py-2 text-sm">По-късно</button>
-            </div>
-          </div>
+      <div class="section-title" style="margin-top:12px">Предстоящи събития</div>
+      <div class="events" id="eventsListMobile"></div>
+      <div class="empty" id="emptyEventsMobile" hidden>Няма предстоящи събития.</div>
+
+      <div class="card" style="padding:16px;margin-top:10px">
+        <div class="section-title">Експорт / Импорт</div>
+        <div class="legend">
+          <button class="btn" id="exportJson2">Експорт .JSON</button>
+          <button class="btn" id="exportIcs2">Експорт .ICS</button>
+          <label class="btn adminOnly" for="importJson2" style="cursor:pointer">Импорт .JSON
+            <input id="importJson2" type="file" accept="application/json" hidden>
+          </label>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Modal: Събитие (админ) -->
+  <div class="modal" id="eventModal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="card modal-card">
+      <h2 style="margin:0 0 6px">Събитие</h2>
+      <p class="hint" id="eventDatesHint"></p>
+
+      <div class="field adminOnly">
+        <label for="evTitle">Заглавие</label>
+        <input id="evTitle" type="text" placeholder="напр. Преход до Мальовица" />
+      </div>
+      <div class="field adminOnly">
+        <label for="evCategory">Категория</label>
+        <select id="evCategory">
+          <option value="hike">Преход</option>
+          <option value="festival">Фестивал</option>
+          <option value="culture">Култура</option>
+          <option value="other">Друго</option>
+        </select>
+      </div>
+      <div class="field adminOnly">
+        <label>Цвят</label>
+        <div id="colorPicker" class="legend"></div>
+      </div>
+      <div class="field adminOnly">
+        <label for="evUrl">Линк към събитие (URL)</label>
+        <input id="evUrl" type="text" placeholder="https://..." />
+      </div>
+      <div class="field adminOnly">
+        <label for="evImage">URL на снимка</label>
+        <input id="evImage" type="text" placeholder="https://.../image.jpg" />
+      </div>
+      <div class="field adminOnly">
+        <label for="evNotes">Описание / Бележки</label>
+        <textarea id="evNotes" rows="3" placeholder="Описание на маршрута, среща, GPS, застраховка..."></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="cancelEvent">Откажи</button>
+        <button class="btn primary adminOnly" id="saveEvent">Запази</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Инфо (pop-up за всички) -->
+  <div class="modal" id="infoModal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="card info-card invisible-scroll">
+      <div class="info-left"><img id="infoImg" alt="" style="display:none"></div>
+      <div class="info-body">
+        <h2 id="infoTitle" style="margin:0 0 6px"></h2>
+        <p class="hint" id="infoDates" style="margin:0 0 6px"></p>
+        <p id="infoDesc" style="margin:.2rem 0 .6rem"></p>
+        <div class="actions" style="justify-content:flex-start">
+          <a id="infoLink" class="btn primary" href="#" target="_blank" rel="noopener" style="display:none">Виж повече</a>
+          <button class="btn" id="infoClose">Затвори</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Policy modal -->
-  <div id="policy-overlay" class="fixed inset-0 bg-black/50 hidden z-50"></div>
-  <section id="policy-modal" class="fixed inset-x-4 top-10 md:inset-x-auto md:right-6 md:left-auto z-50 hidden max-w-2xl md:w-[640px] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden">
-    <header class="flex items-center justify-between px-5 py-3 border-b border-gray-200">
-      <h2 id="policy-title" class="text-base font-semibold">Политики</h2>
-      <button type="button" id="policy-close" class="rounded-lg p-2 hover:bg-gray-50" aria-label="Затвори">
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      </button>
-    </header>
-    <article id="policy-content" class="px-5 py-4 max-h-[70vh] overflow-y-auto text-sm leading-6 text-gray-700 space-y-3"></article>
-    <footer class="px-5 py-3 border-t border-gray-200 text-right">
-      <button type="button" id="policy-ok" class="btn-cta text-sm px-4 py-2">ОК</button>
-    
-<!-- === Начална секция: Предстоящи събития (карти) === -->
-<section class="py-10 lg:py-12 reveal" id="tmap-events-cards">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="flex items-end justify-between mb-3">
-      <div>
-        <h2 class="text-2xl lg:text-3xl font-extrabold">Предстоящи събития</h2>
-        <p class="text-gray-600">Плъзни хоризонтално, за да разгледаш.</p>
-      </div>
-      <div class="hidden md:flex items-center gap-2">
-        <button type="button" id="ev-prev" class="rounded-xl border border-black/10 bg-white px-3 py-2 shadow-sm hover:shadow-md">←</button>
-        <button type="button" id="ev-next" class="rounded-xl border border-black/10 bg-white px-3 py-2 shadow-sm hover:shadow-md">→</button>
+  <!-- Bottom sheet (мобилни детайли за ден) -->
+  <div class="sheet" id="daySheet" aria-hidden="true">
+    <div class="grip"></div>
+    <div class="content invisible-scroll">
+      <h3 id="sheetTitle" style="margin:0 0 8px"></h3>
+      <div id="sheetEvents"></div>
+      <div class="actions" style="justify-content:flex-start">
+        <button class="btn adminOnly" id="addEventFromSheet">+ Добави събитие</button>
       </div>
     </div>
-    <div id="eventsByYear" class="space-y-8"></div>
   </div>
-  <style>
-    #tmap-events-cards .track{ overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth; display:flex; gap:14px; padding-bottom:6px; }
-    #tmap-events-cards .track::-webkit-scrollbar{ height:0 }
-    #tmap-events-cards .track{ scrollbar-width:none; -ms-overflow-style:none }
-    #tmap-events-cards .card{
-      flex:0 0 auto; width: clamp(240px, 26vw, 340px);
-      background:#fff; border-radius:18px; box-shadow:0 10px 24px rgba(0,0,0,.10); border:1px solid rgba(0,0,0,.06);
-      overflow:hidden; scroll-snap-align:start; transition:.12s ease transform, .12s ease box-shadow;
-    }
-    #tmap-events-cards .card:hover{ transform:translateY(-2px); box-shadow:0 14px 30px rgba(0,0,0,.16) }
-    #tmap-events-cards .thumb{ position:relative; aspect-ratio:16/10; background:#eef2f7; }
-    #tmap-events-cards .thumb img{ width:100%; height:100%; object-fit:cover; display:block }
-    #tmap-events-cards .date-pill{
-      position:absolute; top:10px; left:10px; background:#fff; color:#0f172a; font-weight:800;
-      padding:6px 12px; border-radius:999px; box-shadow:0 6px 18px rgba(0,0,0,.15); font-size:13px;
-    }
-    #tmap-events-cards .title{ padding:12px 14px 14px; font-weight:900; font-size:clamp(16px,2vw,18px) }
-  </style>
-</section>
-</footer>
-  </section>
 
-  <!-- Supabase -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
-    // ---------- Helpers ----------
-    const $ = sel => document.querySelector(sel);
-    const $$ = sel => [...document.querySelectorAll(sel)];
-    $('#year').textContent = new Date().getFullYear();
+  ;(()=>{
+    const $ = (s,r=document)=>r.querySelector(s);
+    const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+    const pad = n => String(n).padStart(2,'0');
+    const iso = d => [d.getFullYear(), pad(d.getMonth()+1), pad(d.getDate())].join('-');
+    const parseISO = s => { const [Y,M,D]=s.split('-').map(Number); return new Date(Y,M-1,D) };
+    const save = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+    const load = (k,f)=>{ try{ return JSON.parse(localStorage.getItem(k)) ?? f }catch{ return f } };
+    const toast = m=>{ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800) };
 
-    // Greeting
-    (function greet(){
-      const h = new Date().getHours();
-      const t = h<11 ? 'Добро утро!' : h<18 ? 'Хей, приятно следобено приключение!' : 'Вечерна разходка?';
-      const el = document.getElementById('greet'); el.textContent = t;
-    })();
+    /* ---------- Supabase ---------- */
+    const SUPABASE_URL = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
+    const TABLE = 'tmap_calendar_events';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Typewriter
-    (function typewriter(){
-      const messages = ['Открий България с', 'Планирай. Споделяй. Откривай с', 'Готов ли си за следващия връх с'];
-      let i=0, j=0, dir=1, hold=0;
-      const el = document.getElementById('typewriter');
-      function tick(){
-        const m = messages[i];
-        j += dir;
-        el.textContent = m.slice(0, j) + (j<m.length ? '|' : '');
-        if (j===m.length){ hold++; if(hold>10){ dir=-1; hold=0; } }
-        if (j===0 && dir===-1){ dir=1; i=(i+1)%messages.length; }
-        requestAnimationFrame(tick);
-      }
-      tick();
-    })();
-
-    // Reveal on view
-    const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('is-visible'); }),{threshold:.12});
-    $$('.reveal').forEach(el=>io.observe(el));
-
-    // Drawer
-    const menuBtn = $('#menuBtn'), overlay = $('#overlay'), drawer = $('#mobileDrawer'), closeDrawer = $('#closeDrawer');
-    function openDrawer(){ overlay.classList.remove('hidden'); requestAnimationFrame(()=>drawer.classList.remove('translate-x-full')); menuBtn.setAttribute('aria-expanded','true'); document.documentElement.classList.add('overflow-hidden'); document.body.classList.add('overflow-hidden'); }
-    function hideDrawer(){ drawer.classList.add('translate-x-full'); overlay.classList.add('hidden'); menuBtn.setAttribute('aria-expanded','false'); document.documentElement.classList.remove('overflow-hidden'); document.body.classList.remove('overflow-hidden'); }
-    menuBtn.addEventListener('click', openDrawer); overlay.addEventListener('click', hideDrawer); closeDrawer.addEventListener('click', hideDrawer); document.addEventListener('keydown', e=>{ if(e.key==='Escape') hideDrawer(); });
-
-    // Policy modal content
-    const policyOverlay=$('#policy-overlay'), policyModal=$('#policy-modal'), policyTitle=$('#policy-title'), policyContent=$('#policy-content');
-    const policyClose=$('#policy-close'), policyOk=$('#policy-ok');
-    const POLICY_TEXT={
-      privacy:{title:'Политика за поверителност',html:`<p>Ние уважаваме личните данни на посетителите. Събираме минимална информация, необходима за работата на платформата T-MAP, като например технически логове (IP, user-agent) за сигурност и диагностика.</p>
-          <p>Данни, които доброволно ни предоставяте (напр. заглавие/описание на обект, координати) се използват само за показване на картата и модериране. Не продаваме и не споделяме данни с трети страни извън необходимите доставчици (напр. хостинг/Supabase) съгласно техните политики.</p><p>Можете да поискате преглед/изтриване на свои данни чрез контакт на администраторa.</p>`},
-      terms:{title:'Условия за ползване',html:`<p>Използвайки сайта, се съгласявате да публикувате само вярно и законосъобразно съдържание, да уважавате авторски права и лични данни.</p><p>Администраторът може да редактира/премахва съдържание и да ограничава достъп при нарушения. Услугата се предоставя "както е" без гаранции за непрекъснатост.</p><p>Добавените от потребители обекти се публикуват след одобрение..</p>`},
-      cookies:{title:'Политика за бисквитки',html:`<p>Използваме основни бисквитки за запомняне на предпочитания (напр. видени обекти) и статистически/функционални бисквитки за подобряване на услугата.</p><p>Можете да изтриете или блокирате бисквитки от настройките на браузъра си. Някои функции може да не работят оптимално без бисквитки.</p>`},
-      chat_rules: {
-        title: 'Правила на чата',
-        html: `
-          <h3 class="font-semibold">1) Уважение и тон</h3>
-          <ul class="list-disc pl-5">
-            <li>Без обиди, реч на омраза, дискриминация или токсично поведение.</li>
-            <li>Без спам и агресивна реклама. Партньорски/търговски линкове – само след одобрение.</li>
-          </ul>
-          <h3 class="font-semibold mt-3">2) Поверителност и безопасност</h3>
-          <ul class="list-disc pl-5">
-            <li>Не публикувай лични данни (телефони, имейли, адреси) без съгласие.</li>
-            <li>Не споделяй точни координати на частни домове/имоти. За защитени територии – следвай местните правила.</li>
-            <li>Снимки на други хора – само ако имаш право да ги споделиш.</li>
-          </ul>
-          <h3 class="font-semibold mt-3">3) Съдържание и тема</h3>
-          <ul class="list-disc pl-5">
-            <li>Остани по темата: туризъм, маршрути, обекти, безопасност, екипировка.</li>
-            <li>Фалшива/подвеждаща информация и опасни съвети са забранени.</li>
-            <li>NSFW/неподходящо съдържание не е позволено.</li>
-          </ul>
-          <h3 class="font-semibold mt-3">4) Модерация</h3>
-          <ul class="list-disc pl-5">
-            <li>Модераторите могат да редактират/изтриват съобщения и да ограничават достъп при нарушения.</li>
-            <li>Стъпки: предупреждение → временно ограничение → постоянна забрана (при сериозни/повтарящи се нарушения).</li>
-          </ul>
-          <h3 class="font-semibold mt-3">5) Съхранение на съобщения</h3>
-          <ul class="list-disc pl-5">
-            <li>Чатът е краткоживеещ: съобщенията се изчистват автоматично (в момента: приблизително до 1 час).</li>
-            <li>Архив не се поддържа, освен минимални технически логове за сигурност.</li>
-          </ul>
-          <h3 class="font-semibold mt-3">6) Сигнализиране</h3>
-          <ul class="list-disc pl-5">
-            <li>Сигнализирай проблемно съдържание на: <a class="underline" href="mailto:82angeluzunov@gmail.com">82angeluzunov@gmail.com</a>.</li>
-          </ul>
-          <p class="text-sm text-gray-600 mt-3">При използване на чата приемаш тези правила. Може да бъдат актуализирани при нужда.</p>
-        `
-      }
-    };
-    function openPolicy(key){ const p=POLICY_TEXT[key]; if(!p) return; policyTitle.textContent=p.title; policyContent.innerHTML=p.html; policyOverlay.classList.remove('hidden'); policyModal.classList.remove('hidden'); }
-    function closePolicy(){ policyOverlay.classList.add('hidden'); policyModal.classList.add('hidden'); }
-    $$('[data-open-policy]').forEach(btn=>btn.addEventListener('click', ()=>{ try{ hideDrawer(); }catch(_){} openPolicy(btn.getAttribute('data-open-policy')); }));
-    policyOverlay.addEventListener('click', closePolicy); policyClose.addEventListener('click', closePolicy); policyOk.addEventListener('click', closePolicy);
-
-    // Command palette
-    const palO = $('#paletteOverlay'), pal = $('#palette'), palInput = $('#paletteInput'), palList = $('#paletteList'), palBtn = $('#openPalette');
-    function openPal(){ palO.classList.remove('hidden'); pal.classList.remove('hidden'); requestAnimationFrame(()=>pal.classList.add('show')); palInput.focus(); }
-    function closePal(){ pal.classList.remove('show'); palO.classList.add('hidden'); pal.classList.add('hidden'); }
-    palBtn.addEventListener('click', openPal);
-    palO.addEventListener('click', closePal);
-    document.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openPal(); } if(e.key==='Escape'){ closePal(); } });
-    palInput.addEventListener('input', ()=>{ const q=palInput.value.toLowerCase(); $$('#paletteList li').forEach(li=>{ li.style.display = li.textContent.toLowerCase().includes(q)?'block':'none'; }); });
-    $$('#paletteList li').forEach(li=>li.addEventListener('click', ()=>{ if(li.dataset.href) location.href=li.dataset.href; if(li.dataset.policy) openPolicy(li.dataset.policy); closePal(); }));
-
-    // 3D tilt for cards & phone
-    function attachTilt(root){
-      const item=root.querySelector('.tilt-item'); if(!item) return;
-      function move(e){
-        const r=root.getBoundingClientRect();
-        const x=(e.clientX - r.left)/r.width, y=(e.clientY - r.top)/r.height;
-        const rx=(.5-y)*10, ry=(x-.5)*12;
-        item.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) translateZ(10px)`;
-      }
-      function leave(){ item.style.transform='rotateX(0) rotateY(0) translateZ(0)' }
-      root.addEventListener('pointermove', move); root.addEventListener('pointerleave', leave);
+    async function db_list(){
+      const { data, error } = await sb.from(TABLE).select('*').order('created_at', { ascending:true });
+      if(error){ console.warn(error); toast('Грешка при зареждане'); return [] }
+      return (data||[]).map(r=>({
+        id:r.id, title:r.title, category:r.category||'other', color:r.color||null,
+        notes:r.notes||'', url:r.url||'', image:r.image||'',
+        dates:(r.dates||[]).map(String)
+      }));
     }
-    attachTilt(document.getElementById('phoneTilt'));
-    $$('.hover-tilt').forEach(attachTilt);
-
-    // Floating particles canvas (disabled if reduced motion)
-    (function particles(){
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      const c = document.getElementById('bg-canvas'); const ctx = c.getContext('2d',{alpha:true});
-      let w= c.width = innerWidth, h = c.height = innerHeight;
-      const dots = Array.from({length: 70}, ()=>({x: Math.random()*w, y: Math.random()*h, r: Math.random()*2+0.4, vx:(Math.random()-.5)*.25, vy:(Math.random()-.5)*.25}));
-      function draw(){
-        ctx.clearRect(0,0,w,h);
-        for(const d of dots){
-          d.x+=d.vx; d.y+=d.vy;
-          if(d.x<0||d.x>w) d.vx*=-1; if(d.y<0||d.y>h) d.vy*=-1;
-          ctx.beginPath(); ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
-          ctx.fillStyle='rgba(16,185,129,.55)'; ctx.fill();
-        }
-        requestAnimationFrame(draw);
+    async function db_upsert(ev){
+      const code = localStorage.getItem('tmap.adminId');
+      if(code !== ADMIN_ID) throw new Error('not admin');
+      const { data, error } = await sb.rpc('tmap_admin_upsert_event', {
+        p_code: code, p_id: ev.id || null, p_title: ev.title, p_category: ev.category,
+        p_color: ev.color, p_notes: ev.notes || null, p_url: ev.url || null, p_image: ev.image || null,
+        p_dates: ev.dates
+      });
+      if(error) throw error;
+      if(!ev.id && data) ev.id = data;
+    }
+    async function db_delete(id){
+      const code = localStorage.getItem('tmap.adminId');
+      if(code !== ADMIN_ID) throw new Error('not admin');
+      const { error } = await sb.rpc('tmap_admin_delete_event', { p_code: code, p_id: id });
+      if(error) throw error;
+    }
+    async function db_bulk_upsert(list){
+      for(const ev of list){
+        await db_upsert({
+          id: ev.id || null,
+          title: ev.title, category: ev.category || 'other',
+          color: ev.color || null, notes: ev.notes || null,
+          url: ev.url || null, image: ev.image || null,
+          dates: ev.dates || []
+        });
       }
-      draw();
-      addEventListener('resize', ()=>{ w=c.width=innerWidth; h=c.height=innerHeight; });
-    })();
+    }
 
-    // PWA install prompt
-    let deferredPrompt=null;
-    const sheet = $('#installSheet'), installTop = $('#installBtnTop'), openInstall = $('#openInstall');
-    window.addEventListener('beforeinstallprompt', (e)=>{
-      e.preventDefault(); deferredPrompt = e;
-      sheet.classList.remove('hidden'); installTop.classList.remove('hidden');
+    /* ---------- Admin gate ---------- */
+    const ADMIN_ID = '59e62f07-5fab-443f-a0cb-efd988b44b8f';
+    const adminBtn = $('#adminBtn');
+    const isAdmin = ()=> localStorage.getItem('tmap.adminId')===ADMIN_ID;
+    const setAdminMode = on => { document.body.classList.toggle('is-admin', !!on); adminBtn.textContent = on? 'Изход (админ)' : 'Вход (админ)'; };
+    adminBtn.addEventListener('click', ()=>{
+      if(isAdmin()){ localStorage.removeItem('tmap.adminId'); setAdminMode(false); toast('Излязохте от админ режим'); return }
+      const code = prompt('Въведете админ идентификатор:');
+      if(code===ADMIN_ID){ localStorage.setItem('tmap.adminId', ADMIN_ID); setAdminMode(true); toast('Добре дошли, админ!') }
+      else if(code){ toast('Невалиден идентификатор') }
     });
-    $('#installNow').addEventListener('click', async ()=>{
-      if(!deferredPrompt){ sheet.classList.add('hidden'); return }
-      deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; sheet.classList.add('hidden');
-      if(outcome==='accepted'){ confetti() }
-      deferredPrompt=null;
-    });
-    $('#installClose').addEventListener('click', ()=>sheet.classList.add('hidden'));
-    openInstall.addEventListener('click', ()=> sheet.classList.remove('hidden'));
 
-    // Minimal confetti
-    function confetti(){
-      const el=document.createElement('div'); el.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:70';
-      document.body.appendChild(el);
-      const colors=['#10b981','#3b82f6','#22c55e','#06b6d4','#f59e0b'];
-      const N=120;
-      for(let i=0;i<N;i++){
-        const s=document.createElement('i');
-        const size=Math.random()*8+4;
-        s.style.cssText=`position:absolute;left:${Math.random()*100}%;top:-10px;width:${size}px;height:${size}px;background:${colors[i%colors.length]};transform:rotate(${Math.random()*360}deg);opacity:.9;border-radius:1px`;
-        el.appendChild(s);
-        const endY=innerHeight+40;
-        s.animate([{ transform:`translateY(0) rotate(0)` },{ transform:`translateY(${endY}px) rotate(${Math.random()*720}deg)` }], { duration: 1200+Math.random()*900, easing:'cubic-bezier(.2,.6,.2,1)', fill:'forwards' })
-          .onfinish = ()=> s.remove();
-      }
-      setTimeout(()=>el.remove(), 2500);
-    }
-
-    // Photo slider from Supabase
-    (async function initPhotoSlider(){
-      const client = supabase.createClient(
-        'https://cmiylzpmpwqbacjoqtkx.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8'
-      );
-      const track=$('#pv-track'), btnPrev=$('#pv-prev'), btnNext=$('#pv-next');
-
-      let rows=[]; try{
-        const { data, error } = await client
-          .from('objects')
-          .select('id,title,image_url,created_at')
-          .not('image_url','is', null)
-          .order('created_at', { ascending:false })
-          .limit(15);
-        if(error) throw error; rows=data||[];
-      }catch(e){ console.warn('slider fetch error:', e); rows=[]; }
-
-      if(rows.length===0){
-        track.innerHTML=`<div class="shrink-0 w-full md:w-auto grow rounded-2xl border border-dashed border-emerald-400/60 bg-emerald-50 p-6 text-emerald-700">Няма снимки. <a href="https://turizam123.github.io/uzunov/dashboard.html" class="underline font-semibold" rel="noopener">Добави първия си обект</a>.</div>`;
-        return;
-      }
-
-      track.innerHTML = rows.map(r=>{
-        const url='tmap.html?focus='+encodeURIComponent(r.id);
-        const created=new Date(r.created_at);
-        const fresh=(Date.now()-created.getTime())/(1000*60*60*24)<=7;
-        const title=(r.title||'Обект').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        return `<a href="${url}" class="group relative shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 snap-start hover-tilt">
-          <img src="${r.image_url}" alt="${title}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" loading="lazy" decoding="async"/>
-          <div class="absolute inset-0 tilt-item"></div>
-          <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.65) 100%)"></div>
-          <div class="absolute bottom-0 left-0 right-0 p-4 text-white">
-            <div class="flex items-center gap-2">
-              <h3 class="line-clamp-1 font-semibold text-base">${title}</h3>
-              ${fresh?'<span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/90">нов</span>':''}
-            </div>
-            <p class="text-white/80 text-xs">Отвори в картата →</p>
-          </div>
-        </a>`;
-      }).join('');
-      $$('#pv-track .hover-tilt').forEach(attachTilt);
-
-      const getStep=()=>{ const card=track.querySelector('a'); if(!card) return 320; const gap=parseInt(getComputedStyle(track).gap||'16',10); return card.getBoundingClientRect().width+gap; };
-      btnPrev?.addEventListener('click',()=>track.scrollBy({left:-getStep(),behavior:'smooth'}));
-      btnNext?.addEventListener('click',()=>track.scrollBy({left:getStep(),behavior:'smooth'}));
-
-      let auto=null;
-      function start(){ if(matchMedia('(prefers-reduced-motion: reduce)').matches) return; stop(); auto=setInterval(()=>{ const max=track.scrollWidth-track.clientWidth-4; const step=getStep(); if(track.scrollLeft+step>=max){ track.scrollTo({left:0,behavior:'smooth'}); } else { track.scrollBy({left:step,behavior:'smooth'}); } }, 4200); }
-      function stop(){ if(auto){ clearInterval(auto); auto=null; } }
-      track.addEventListener('mouseenter', stop); track.addEventListener('mouseleave', start);
-      track.addEventListener('touchstart', stop, {passive:true}); track.addEventListener('touchend', start, {passive:true}); start();
-    })();
-  </script>
-
-  <!-- ========= Safety Coach – Compact Airy (вграден без промени по останалото) ========= -->
-  <style>
-    @keyframes scx-pop { 0%{transform:translateY(10px) scale(.98);opacity:0} 100%{transform:none;opacity:1} }
-    .scx-card{ animation:scx-pop .25s ease forwards }
-    .scx-dot{ width:6px; height:6px; border-radius:999px; background:#cbd5e1 }
-    .scx-dot.is-active{ background:linear-gradient(90deg,#10b981,#3b82f6) }
-  </style>
-
-  <div id="scx"
-       class="hidden fixed z-[70] right-4 bottom-24 sm:bottom-6 w-[92vw] max-w-[340px]">
-    <div role="dialog" aria-labelledby="scx-title" aria-modal="true"
-         class="relative scx-card rounded-2xl bg-white/80 backdrop-blur-xl ring-1 ring-black/10
-                shadow-[0_12px_30px_rgba(2,6,23,.12)] overflow-hidden">
-      <div class="pointer-events-none absolute -top-8 -left-8 h-24 w-24 rounded-full
-                  bg-gradient-to-br from-emerald-300/40 via-sky-300/30 to-transparent blur-2xl"></div>
-
-      <div class="p-3.5">
-        <div class="flex items-start gap-3">
-          <div class="h-9 w-9 rounded-xl grid place-content-center bg-emerald-600/10 ring-1 ring-emerald-600/20">
-            <svg class="h-5 w-5 text-emerald-700" viewBox="0 0 24 24" fill="none">
-              <path d="M12 22s8-7.2 8-13a8 8 0 10-16 0c0 5.8 8 13 8 13z" stroke="currentColor" stroke-width="1.5"/>
-            </svg>
-          </div>
-          <div class="min-w-0 flex-1">
-            <h3 id="scx-title" class="text-base font-semibold leading-tight">Стягаш ли се за преход?</h3>
-            <p id="scx-body" class="mt-0.5 text-xs text-slate-600">Бърз чеклист за безопасност.</p>
-          </div>
-          <button id="scx-close" class="shrink-0 rounded-lg p-1.5 hover:bg-slate-100" aria-label="Затвори">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
-
-        <div class="mt-3 flex gap-2">
-          <button id="scx-yes"
-                  class="flex-1 inline-flex justify-center items-center rounded-xl px-3 py-2 text-white text-sm font-semibold
-                         bg-gradient-to-r from-emerald-600 via-sky-600 to-emerald-500 shadow">
-            Да
-          </button>
-          <button id="scx-no"
-                  class="flex-1 inline-flex justify-center items-center rounded-xl px-3 py-2 text-sm font-semibold
-                         bg-white ring-1 ring-black/10 shadow-sm">
-            Не
-          </button>
-        </div>
-
-        <div class="mt-2 flex items-center justify-between">
-          <div id="scx-dots" class="flex gap-1.5"><i class="scx-dot is-active"></i><i class="scx-dot"></i><i class="scx-dot"></i><i class="scx-dot"></i></div>
-          <button id="scx-hide" class="text-[11px] text-slate-500 underline">Не показвай 7 дни</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-  (() => {
-    const $ = s => document.querySelector(s);
-    const coach = $('#scx');
-    const title = $('#scx-title'), body = $('#scx-body');
-    const yesBtn = $('#scx-yes'), noBtn = $('#scx-no');
-    const dotsWrap = $('#scx-dots');
-    const closeBtn=$('#scx-close'), hideBtn=$('#scx-hide');
-
-    const KEY='tmap_sc_hide_until';
-    const until = +localStorage.getItem(KEY) || 0;
-    if (Date.now() < until) return;
-
-    const END = {
-      browse:{ t:'Приятно сърфиране!', b:'Разглеждай T-MAP и трекинг маршрутите.', btns:[
-        {label:'Карта', href:'tmap.html', primary:true},
-        {label:'Трекинг', href:'https://turizam123.github.io/uzunov/docs/bgx_multi.html'}
-      ]},
-      gear:{ t:'Подготви екипировката', b:'Обувки за сезона, дъждобран, челник, щеки.', btns:[{label:'ОК', close:true}]},
-      insurance:{ t:'Планинска застраховка', b:'Препоръчвам да си направиш застраховка преди тръгване.', btns:[{label:'Разбрах', close:true}]},
-      pack:{ t:'Допълни раницата', b:'Вода, храна/сладко, аптечка, медикаменти.', btns:[{label:'ОК', close:true}]},
-      ready:{ t:'Пожелавам приятен преход!', b:'После сподели – добави обект в T-MAP.', btns:[
-        {label:'Добави обект', href:'https://turizam123.github.io/uzunov/dashboard.html', primary:true},
-        {label:'Трекинг', href: 'https://turizam123.github.io/uzunov/docs/bgx_multi.html'}
-      ], confetti:true }
+    /* ---------- State ---------- */
+    const state = {
+      cursor: new Date(),
+      selection: new Set(),
+      events: [], // ще се зареди от Supabase
+      filters: new Set(load('tmap.filters', ['hike','festival','culture','other'])),
+      colors: ['#0ea5e9','#22c55e','#f59e0b','#ef4444','#a855f7','#14b8a6','#e11d48']
     };
+    const categories = {
+      hike:{name:'Преход', color:'#22c55e'},
+      festival:{name:'Фестивал', color:'#f59e0b'},
+      culture:{name:'Култура', color:'#0ea5e9'},
+      other:{name:'Друго', color:'#a855f7'}
+    };
+    const catName = c => categories[c]?.name || 'Друго';
 
-    const steps = [
-      {id:'go',    q:'Хей, стягаш ли се за преход?', yes:'equip', no:'browse'},
-      {id:'equip', q:'Екипировката сезонна ли е?',     yes:'ins',   no:'gear'},
-      {id:'ins',   q:'Имаш ли застраховка?',       yes:'check',  no:'insurance'},
- // different id to avoid name clash with END.pack
-      {id:'pack',  q:'Вода, храна, аптечка?',   yes:'ready', no:'pack'}
-    ];
-    let i=0;
+    /* ---------- Header / Nav ---------- */
+    const title = $('#title'), prevBtn=$('#prevBtn'), nextBtn=$('#nextBtn'), todayBtn=$('#todayBtn');
+    function setCursor(date){ state.cursor = new Date(date.getFullYear(), date.getMonth(), 1); render() }
+    function changeMonth(delta){ const d=new Date(state.cursor); d.setMonth(d.getMonth()+delta); setCursor(d) }
+    prevBtn.onclick=()=>changeMonth(-1);
+    nextBtn.onclick=()=>changeMonth(1);
+    todayBtn.onclick=()=>setCursor(new Date());
 
-    const show = () => { coach.classList.remove('hidden'); render(); };
-    const hide = () => coach.classList.add('hidden');
+    /* ---------- Drawer (mobile) ---------- */
+    const menuBtn=$('#menuBtn'), drawer=$('#drawer'), drawerBackdrop=$('#drawerBackdrop'), drawerClose=$('#drawerClose');
+    function openDrawer(){ drawer.classList.add('open'); drawerBackdrop.classList.add('open'); drawer.setAttribute('aria-hidden','false'); document.body.classList.add('drawer-open'); }
+    function closeDrawer(){ drawer.classList.remove('open'); drawerBackdrop.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); document.body.classList.remove('drawer-open'); }
+    menuBtn.onclick=openDrawer; drawerClose.onclick=closeDrawer; drawerBackdrop.onclick=closeDrawer;
+    window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer() });
+    window.addEventListener('resize', ()=>{ if(window.innerWidth>=981) closeDrawer() });
 
-    function setDots(idx){
-      [...dotsWrap.children].forEach((d, n)=> d.classList.toggle('is-active', n===idx));
+    /* ---------- Legend / filters ---------- */
+    const legend = $('#legend'), legendMobile = $('#legendMobile');
+    function getUpcomingCounts(){
+      const todayIso = iso(new Date());
+      const counts = {hike:0, festival:0, culture:0, other:0};
+      state.events.forEach(ev=>{ const first=ev.dates?.[0]; if(first && first>=todayIso){ counts[ev.category||'other']=(counts[ev.category||'other']||0)+1 }});
+      return counts;
+    }
+    function renderLegend(){
+      const counts = getUpcomingCounts();
+      [legend, legendMobile].forEach(container=>{
+        if(!container) return; container.innerHTML='';
+        Object.entries(categories).forEach(([key,val])=>{
+          const chip=document.createElement('button');
+          chip.className='chip';
+          chip.setAttribute('aria-pressed', state.filters.has(key));
+          chip.title='Клик: само тази • Ctrl/⌘ или Shift: многoизбор';
+          chip.innerHTML = `<span class="sw" style="background:${val.color}"></span>${val.name}<span class="count">${counts[key] ?? 0}</span>`;
+          chip.onclick=(e)=>{
+            const multi = e.ctrlKey||e.metaKey||e.shiftKey;
+            if(multi){ state.filters.has(key)?state.filters.delete(key):state.filters.add(key) }
+            else{ state.filters = new Set([key]) }
+            save('tmap.filters', Array.from(state.filters));
+            renderLegend(); renderEventsList(); renderGridDots(); injectJsonLdFromState();
+          };
+          container.appendChild(chip);
+        });
+      });
     }
 
+    /* ---------- Calendar grid ---------- */
+    const grid = $('#grid');
+    function monthMatrix(year,month){
+      const first=new Date(year,month,1);
+      const firstDow=(first.getDay()+6)%7; // Mon=0
+      const start=new Date(year,month,1-firstDow);
+      const days=[];
+      for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); days.push(d) }
+      return days;
+    }
+    let dragging=false, dragAdd=true;
     function render(){
-      const s=steps[i];
-      title.textContent=s.q;
-      body.textContent='Бърз чеклист за безопасност.';
-      yesBtn.classList.remove('hidden'); noBtn.classList.remove('hidden');
-      const old = coach.querySelector('#scx-end'); if(old) old.remove();
-      setDots(i);
+      const d=state.cursor, monthName=d.toLocaleDateString('bg-BG',{month:'long',year:'numeric'});
+      title.textContent = monthName.charAt(0).toUpperCase()+monthName.slice(1);
+      grid.innerHTML='';
+      const days=monthMatrix(d.getFullYear(), d.getMonth());
+      days.forEach(day=>{
+        const dayIso=iso(day);
+        const cell=document.createElement('div'); cell.className='cell'; cell.dataset.date=dayIso;
+        if(day.getMonth()!==d.getMonth()) cell.classList.add('out');
+        if(dayIso===iso(new Date())) cell.classList.add('today');
+        cell.innerHTML=`<div class="num">${day.getDate()}</div><div class="badge" hidden></div><div class="marks"></div>`;
+        grid.appendChild(cell);
+      });
+      renderGridDots();
+      $$('.cell',grid).forEach(cell=>{
+        cell.addEventListener('pointerdown', ()=>{ dragging=true; dragAdd=!state.selection.has(cell.dataset.date); toggleSelect(cell.dataset.date, dragAdd); });
+        cell.addEventListener('pointerenter', ()=>{ if(dragging) toggleSelect(cell.dataset.date, dragAdd, true) });
+        cell.addEventListener('click', ()=>{ if(window.matchMedia('(max-width:980px)').matches) openDaySheet(cell.dataset.date) });
+      });
+      window.addEventListener('pointerup', ()=> dragging=false, {once:true});
+      paintSelection();
+    }
+    function visibleEvents(){ return state.events.filter(ev=> state.filters.has(ev.category)) }
+    function renderGridDots(){
+      $$('.cell',grid).forEach(cell=>{
+        const dIso=cell.dataset.date; const box=$('.marks',cell); box.innerHTML='';
+        const list = visibleEvents().filter(ev=> ev.dates.includes(dIso));
+        list.slice(0,5).forEach(ev=>{ const dot=document.createElement('span'); dot.className='dot'; dot.style.background=ev.color||categories[ev.category]?.color||'#98a2b3'; dot.title=ev.title; box.appendChild(dot) });
+        const more=list.length-5; const b=$('.badge',cell); if(more>0){ b.hidden=false; b.textContent=`+${more}` } else b.hidden=true;
+      });
     }
 
-    function renderEnd(key){
-      const e = END[key] || END.browse;
-      title.textContent=e.t; body.textContent=e.b;
-      yesBtn.classList.add('hidden'); noBtn.classList.add('hidden');
-      const wrap=document.createElement('div'); wrap.id='scx-end'; wrap.className='mt-2 flex gap-2';
-      wrap.innerHTML = e.btns.map(b =>
-        b.href
-          ? `<a href="${b.href}" class="flex-1 inline-flex justify-center items-center rounded-xl px-3 py-2 text-sm font-semibold ${b.primary?'text-white bg-gradient-to-r from-emerald-600 via-sky-600 to-emerald-500 shadow':'bg-white ring-1 ring-black/10 shadow-sm'}">${b.label}</a>`
-          : `<button data-close class="flex-1 inline-flex justify-center items-center rounded-xl px-3 py-2 text-sm font-semibold bg-white ring-1 ring-black/10 shadow-sm">${b.label}</button>`
-      ).join('');
-      yesBtn.parentElement.after(wrap);
-      wrap.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', hide, {once:true}));
-      setDots(steps.length-1);
-      if(e.confetti) confetti();
+    /* ---------- Selection ---------- */
+    const clearSelectionBtn=$('#clearSelectionBtn'), selectRangeBtn=$('#selectRangeBtn');
+    clearSelectionBtn.onclick=()=>{ state.selection.clear(); paintSelection() }
+    selectRangeBtn.onclick=()=>{ const sel=[...state.selection].sort(); if(sel.length<1){ toast('Изберете начална дата'); return } const start=parseISO(sel[0]); const end=prompt('Край (ГГГГ-ММ-ДД):', iso(start)); if(!end) return; const e=parseISO(end); if(isNaN(e)){ toast('Невалидна дата'); return } const cur=new Date(start); while(cur<=e){ state.selection.add(iso(cur)); cur.setDate(cur.getDate()+1) } paintSelection() };
+    function toggleSelect(isoDate, on, silent=false){ if(on) state.selection.add(isoDate); else state.selection.delete(isoDate); paintCell(isoDate,on); if(!silent) updateDatesHint() }
+    function paintCell(isoDate,on){ const c=$(`.cell[data-date="${isoDate}"]`,grid); if(!c) return; c.style.boxShadow = on? `0 0 0 3px var(--ring) inset` : '' }
+    function paintSelection(){ $$('.cell',grid).forEach(c=> c.style.boxShadow = state.selection.has(c.dataset.date)? `0 0 0 3px var(--ring) inset` : '') ; updateDatesHint() }
+    function compressDates(dates){
+      const ds=dates.slice().sort(); if(!ds.length) return '';
+      const ranges=[]; let start=ds[0], prev=ds[0];
+      for(let i=1;i<ds.length;i++){ const cur=ds[i]; const p=parseISO(prev); p.setDate(p.getDate()+1); if(iso(p)===cur){ prev=cur; continue } ranges.push([start,prev]); start=prev=cur }
+      ranges.push([start,prev]);
+      const fmt=s=>{ const d=parseISO(s); return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}` };
+      return ranges.map(([a,b])=> a===b? fmt(a): `${fmt(a)}–${fmt(b)}`).join(', ')
     }
 
-    yesBtn.addEventListener('click', () => {
-      const s=steps[i];
-      if (s.yes in END) return renderEnd(s.yes);
-      i=Math.min(i+1,steps.length-1); render();
-    });
-    noBtn.addEventListener('click', () => {
-      const s=steps[i];
-      if (s.no in END) return renderEnd(s.no);
-      const next = steps.findIndex(x=>x.id===s.no);
-      if(next>=0){ i=next; render(); }
-    });
+    /* ---------- Events list ---------- */
+    const eventsList=$('#eventsList'), emptyEvents=$('#emptyEvents');
+    const eventsListMobile=$('#eventsListMobile'), emptyEventsMobile=$('#emptyEventsMobile');
+    function renderEventsInto(container, emptyEl, list){
+      if(!container) return; container.innerHTML=''; emptyEl.hidden = list.length>0;
+      list.forEach(ev=>{
+        const item=document.createElement('div'); item.className='event-card';
+        const datesShort = compressDates(ev.dates);
+        item.innerHTML = `
+          <div class="thumb">
+            ${ev.image?`<img src="${ev.image}" alt="${escapeHtml(ev.title)}">`:''}
+            <div class="date-badge">${datesShort}</div>
+          </div>
+          <div class="title">${escapeHtml(ev.title)}</div>
+          <div class="meta">${catName(ev.category)}</div>
+          ${ev.notes?`<div class="desc">${escapeHtml(ev.notes)}</div>`:''}
+          <div class="actions">
+            ${ev.url?`<a class="button" href="${ev.url}" target="_blank" rel="noopener">Виж повече</a>`:''}
+            <button class="btn icon adminOnly" title="Редакция">✎</button>
+            <button class="btn icon adminOnly" title="Изтриване">🗑️</button>
+          </div>`;
+        item.addEventListener('click', e=>{ if(e.target.closest('a,button')) return; openInfoModal(ev); });
+        const [moreBtn, editBtn, delBtn] = item.querySelectorAll('a.button, button');
+        editBtn?.addEventListener('click', e=>{ e.stopPropagation(); isAdmin()? openEventModal(ev) : toast('Само админ') });
+        delBtn?.addEventListener('click', async e=>{
+          e.stopPropagation();
+          if(!isAdmin()){ toast('Само админ'); return }
+          if(confirm('Да изтрия ли това събитие?')){
+            try{ await db_delete(ev.id); await refreshEvents(); toast('Изтрито') }catch{ toast('Грешка при изтриване') }
+          }
+        });
+        container.appendChild(item);
+      });
+    }
+    function renderEventsList(){
+      const todayIso=iso(new Date());
+      const list = visibleEvents()
+        .map(ev=>({...ev, first: ev.dates[0]}))
+        .filter(ev=> ev.first >= todayIso)
+        .sort((a,b)=> a.first.localeCompare(b.first));
+      renderEventsInto(eventsList, emptyEvents, list);
+      renderEventsInto(eventsListMobile, emptyEventsMobile, list);
+    }
 
-    closeBtn.addEventListener('click', hide);
-    hideBtn.addEventListener('click', () => {
-      const sevenDays=7*24*60*60*1000;
-      localStorage.setItem(KEY, String(Date.now()+sevenDays));
-      hide();
-    });
+    /* ---------- Info modal ---------- */
+    const infoModal=$('#infoModal'), infoTitle=$('#infoTitle'), infoDates=$('#infoDates'), infoDesc=$('#infoDesc'), infoImg=$('#infoImg'), infoLink=$('#infoLink');
+    $('#infoClose').onclick=()=> infoModal.classList.remove('open');
+    infoModal.addEventListener('click', e=>{ if(e.target===infoModal) infoModal.classList.remove('open') });
+    function openInfoModal(ev){
+      infoTitle.textContent = ev.title;
+      infoDates.textContent = compressDates(ev.dates);
+      infoDesc.textContent  = ev.notes || '';
+      if(ev.image){ infoImg.src = ev.image; infoImg.style.display='block' } else { infoImg.style.display='none' }
+      if(ev.url){ infoLink.href = ev.url; infoLink.style.display='inline-flex' } else { infoLink.style.display='none' }
+      infoModal.classList.add('open');
+    }
 
-    setTimeout(show, 900);
+    /* ---------- Event modal (admin) ---------- */
+    const eventModal=$('#eventModal'), newEventBtn=$('#newEventBtn'), saveEventBtn=$('#saveEvent'), cancelEventBtn=$('#cancelEvent');
+    const evTitle=$('#evTitle'), evCategory=$('#evCategory'), evNotes=$('#evNotes'), evUrl=$('#evUrl'), evImage=$('#evImage'), colorPicker=$('#colorPicker');
+    let editing=null, selectedColor='#0ea5e9';
 
-    function confetti(){
-      const el=document.createElement('div'); el.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:80';
-      document.body.appendChild(el);
-      const colors=['#10b981','#3b82f6','#22c55e','#06b6d4','#f59e0b'];
-      for(let k=0;k<70;k++){
-        const s=document.createElement('i'); const size=Math.random()*7+3;
-        s.style.cssText=`position:absolute;left:${Math.random()*100}%;top:-10px;width:${size}px;height:${size}px;background:${colors[k%colors.length]};opacity:.9;border-radius:1px`;
-        el.appendChild(s);
-        const endY=innerHeight+40;
-        s.animate([{transform:'translateY(0) rotate(0)'},{transform:`translateY(${endY}px) rotate(${Math.random()*540}deg)`}],{duration:1100+Math.random()*800,easing:'cubic-bezier(.2,.6,.2,1)',fill:'forwards'}).onfinish=()=>s.remove();
+    function openEventModal(ev=null){
+      if(!isAdmin()){ toast('Само админ може да редактира'); return }
+      editing=ev; updateDatesHint();
+      if(ev){
+        evTitle.value=ev.title; evCategory.value=ev.category; evNotes.value=ev.notes||''; evUrl.value=ev.url||''; evImage.value=ev.image||'';
+        selectedColor=ev.color||state.colors[0]; selectColor(selectedColor);
+        state.selection = new Set(ev.dates); paintSelection();
+      } else {
+        evTitle.value=''; evCategory.value='hike'; evNotes.value=''; evUrl.value=''; evImage.value='';
+        selectedColor=state.colors[0]; selectColor(selectedColor);
+        if(state.selection.size===0){ state.selection.add(iso(new Date())); paintSelection() }
       }
-      setTimeout(()=>el.remove(), 2200);
+      eventModal.classList.add('open'); eventModal.setAttribute('aria-hidden','false');
     }
+    function closeEventModal(){ eventModal.classList.remove('open'); eventModal.setAttribute('aria-hidden','true') }
+    newEventBtn?.addEventListener('click', ()=>{
+      if(!isAdmin()){ toast('Само админ може да добавя'); return }
+      if(state.selection.size===0){ state.selection.add(iso(new Date())); paintSelection() }
+      openEventModal();
+    });
+    cancelEventBtn.onclick=closeEventModal;
+    eventModal.addEventListener('click', e=>{ if(e.target===eventModal) closeEventModal() });
+
+    function renderColorPicker(){ colorPicker.innerHTML=''; state.colors.forEach(c=>{ const b=document.createElement('button'); b.className='chip'; b.dataset.color=c; b.innerHTML=`<span class="sw" style="background:${c}"></span>${c}`; b.onclick=()=>selectColor(c); colorPicker.appendChild(b) }) }
+    function selectColor(c){ selectedColor=c; $$('[data-color]',colorPicker).forEach(x=>x.style.outline=''); const btn=$(`[data-color="${c}"]`,colorPicker); if(btn) btn.style.outline='2px solid var(--ring)' }
+
+    function updateDatesHint(){ const el=$('#eventDatesHint'); if(!el) return; const ds=[...state.selection].sort(); el.textContent = ds.length? `Избрани дати: ${compressDates(ds)}` : 'Няма избрани дати' }
+
+    saveEventBtn?.addEventListener('click', async ()=>{
+      const title=evTitle.value.trim(); if(!title){ toast('Добавете заглавие'); return }
+      const dates=[...state.selection].sort(); if(dates.length===0){ toast('Изберете поне една дата'); return }
+      const obj = editing || { id: crypto.randomUUID() };
+      Object.assign(obj, { title, category: evCategory.value, color: selectedColor, dates, notes: evNotes.value.trim(), url: evUrl.value.trim(), image: evImage.value.trim() });
+      try{
+        await db_upsert(obj);
+        closeEventModal(); await refreshEvents(); toast('Събитието е записано');
+      }catch(e){ console.warn(e); toast('Грешка при запис') }
+    });
+
+    /* ---------- Day Sheet (mobile) ---------- */
+    const daySheet=$('#daySheet'), sheetTitle=$('#sheetTitle'), sheetEvents=$('#sheetEvents'), addEventFromSheet=$('#addEventFromSheet');
+    function openDaySheet(isoDate){
+      const d=parseISO(isoDate);
+      sheetTitle.textContent = d.toLocaleDateString('bg-BG',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+      state.selection = new Set([isoDate]); paintSelection(); renderSheet(isoDate);
+      daySheet.classList.add('open');
+      addEventFromSheet.onclick = ()=> isAdmin()? openEventModal() : toast('Само админ');
+      let startY=null; daySheet.onpointerdown=e=>{ startY=e.clientY }; daySheet.onpointerup=e=>{ if(startY && e.clientY-startY>80) closeDaySheet(); startY=null };
+    }
+    function closeDaySheet(){ daySheet.classList.remove('open') }
+    daySheet.addEventListener('click', e=>{ if(e.target===daySheet) closeDaySheet() });
+    function renderSheet(isoDate){
+      const list = visibleEvents().filter(ev=> ev.dates.includes(isoDate));
+      sheetEvents.innerHTML = list.length? '' : '<div class="empty">Няма събития за този ден.</div>';
+      list.forEach(ev=>{
+        const row=document.createElement('div'); row.className='event-card';
+        row.innerHTML = `
+          <div class="thumb">
+            ${ev.image?`<img src="${ev.image}" alt="${escapeHtml(ev.title)}">`:''}
+            <div class="date-badge">${compressDates(ev.dates)}</div>
+          </div>
+          <div class="title">${escapeHtml(ev.title)}</div>
+          <div class="meta">${catName(ev.category)}</div>
+          ${ev.notes?`<div class="desc">${escapeHtml(ev.notes)}</div>`:''}
+          <div class="actions">${ev.url?`<a class="button" href="${ev.url}" target="_blank" rel="noopener">Виж повече</a>`:''}</div>`;
+        row.addEventListener('click', e=>{ if(e.target.closest('a,button')) return; openInfoModal(ev) });
+        sheetEvents.appendChild(row);
+      });
+    }
+
+    /* ---------- Export / Import ---------- */
+    function download(name,text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'})); a.download=name; document.body.appendChild(a); a.click(); a.remove() }
+    function exportJson(){ const data={events:state.events}; download('tmap-calendar.json', JSON.stringify(data,null,2)); }
+    function exportIcs(){ const ics=toICS(state.events); download('tmap-calendar.ics', ics); }
+    $('#exportJson').onclick=exportJson; $('#exportIcs').onclick=exportIcs;
+    $('#exportJson2').onclick=exportJson; $('#exportIcs2').onclick=exportIcs;
+
+    function hookImport(input){
+      if(!input) return;
+      input.addEventListener('change', async (e)=>{
+        if(!isAdmin()){ toast('Само админ може да импортира'); e.target.value=''; return }
+        const f=e.target.files[0]; if(!f) return; const text=await f.text();
+        try{
+          const obj=JSON.parse(text);
+          if(obj.events){ await db_bulk_upsert(obj.events); await refreshEvents(); toast('Импорт успешно') }
+        }catch{ toast('Грешен JSON') }
+        e.target.value='';
+      });
+    }
+    hookImport($('#importJson')); hookImport($('#importJson2'));
+
+    function toICS(events){
+      const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//T-MAP//Tour Calendar//BG'];
+      const esc=s=> String(s||'').replace(/[\\,;\n]/g,m=>({'\\':'\\\\',',':'\\,',';':'\\;','\n':'\\n'}[m]));
+      events.forEach(ev=>{
+        ev.dates.forEach(dISO=>{
+          const d=parseISO(dISO), y=d.getFullYear(), m=pad(d.getMonth()+1), da=pad(d.getDate());
+          const nextDay=new Date(d); nextDay.setDate(d.getDate()+1);
+          lines.push('BEGIN:VEVENT');
+          lines.push('UID:'+(ev.id||crypto.randomUUID())+'-'+dISO);
+          lines.push('DTSTAMP:'+y+m+da+'T090000Z');
+          lines.push('DTSTART;VALUE=DATE:'+y+m+da);
+          lines.push('DTEND;VALUE=DATE:'+nextDay.getFullYear()+pad(nextDay.getMonth()+1)+pad(nextDay.getDate()));
+          lines.push('SUMMARY:'+esc(ev.title));
+          if(ev.notes) lines.push('DESCRIPTION:'+esc(ev.notes));
+          if(ev.url) lines.push('URL:'+esc(ev.url));
+          lines.push('CATEGORIES:'+esc(catName(ev.category)));
+          lines.push('END:VEVENT');
+        });
+      });
+      lines.push('END:VCALENDAR'); return lines.join('\r\n');
+    }
+
+    /* ---------- JSON-LD ---------- */
+    function injectJsonLdFromState(){
+      const old=document.getElementById('ldjson-events'); if(old) old.remove();
+      const todayIso=iso(new Date());
+      const data = state.events
+        .map(ev=>({ title:ev.title, date:ev.dates[0], endDate: ev.dates[ev.dates.length-1], desc:ev.notes||'', link:ev.url||location.href, img:ev.image }))
+        .filter(e=> e.date >= todayIso)
+        .sort((a,b)=> a.date.localeCompare(b.date))
+        .map(ev=>({
+          "@context":"https://schema.org",
+          "@type":"Event",
+          name: ev.title, startDate: ev.date, endDate: ev.endDate || ev.date,
+          eventStatus: "https://schema.org/EventScheduled",
+          description: ev.desc, url: ev.link,
+          image: ev.img ? [ev.img] : undefined,
+          organizer: {"@type":"Organization","name":"T-MAP"},
+          location: {"@type":"VirtualLocation","url": ev.link}
+        }));
+      const s=document.createElement('script'); s.type='application/ld+json'; s.id='ldjson-events'; s.textContent=JSON.stringify(data); document.head.appendChild(s);
+    }
+
+    /* ---------- Helpers / Init ---------- */
+    function escapeHtml(s){ return String(s||'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+    async function refreshEvents(){
+      state.events = await db_list();
+      renderEventsList(); renderGridDots(); renderLegend(); injectJsonLdFromState();
+    }
+
+    function init(){
+      renderLegend();
+      setCursor(new Date());
+      setAdminMode(isAdmin());
+      refreshEvents();
+      window.addEventListener('keydown', e=>{
+        if(e.key==='ArrowLeft') changeMonth(-1);
+        else if(e.key==='ArrowRight') changeMonth(1);
+        else if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='n'){ e.preventDefault(); if(isAdmin()) openEventModal(); }
+      });
+    }
+    init();
   })();
   </script>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-(() => {
-  const CALENDAR_URL = 'tmap_calendar.html';
-  const SUPABASE_URL = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
-  const TABLE = 'tmap_calendar_events';
-
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  const pad = n => String(n).padStart(2,'0');
-  const iso = d => [d.getFullYear(), pad(d.getMonth()+1), pad(d.getDate())].join('-');
-  const fmt = s => { const [Y,M,D]=s.split('-'); return `${D}.${M}.${Y}`; };
-  const todayIso = iso(new Date());
-  const firstDate = ev => ev.dates?.[0] || null;
-  const lastDate  = ev => ev.dates?.[ev.dates.length-1] || null;
-
-  async function fetchEvents(){
-    const { data, error } = await sb.from(TABLE).select('*').order('created_at', { ascending: true });
-    if(error){ console.warn(error); return []; }
-    return (data||[]).map(r => ({
-      id: r.id, title: r.title, image: r.image || '', url: r.url || '', color: r.color || null,
-      dates: (r.dates || []).map(String)
-    }));
-  }
-
-  function groupByYear(list){
-    const map = new Map();
-    list.forEach(ev => {
-      const d = firstDate(ev); const year = d ? d.slice(0,4) : 'Без дата';
-      if(!map.has(year)) map.set(year, []); map.get(year).push(ev);
-    });
-    return map;
-  }
-
-  function buildCard(ev){
-    const a = document.createElement('a');
-    const from = firstDate(ev), to = lastDate(ev) || from;
-    const url = new URL(CALENDAR_URL, location.href);
-    if(from) url.searchParams.set('from', from);
-    if(to)   url.searchParams.set('to', to);
-    if(ev.id) url.searchParams.set('focus', ev.id);
-    a.href = url.pathname + url.search + url.hash;
-    a.className = 'card';
-    a.innerHTML = `
-      <div class="thumb">
-        ${ev.image ? `<img src="${ev.image}" alt="${ev.title}">` : ''}
-        ${from ? `<div class="date-pill">${fmt(from)}${to && to!==from ? `–${fmt(to)}` : ''}</div>` : ''}
-      </div>
-      <h3 class="title">${ev.title || 'Събитие'}</h3>
-    `;
-    return a;
-  }
-
-  function renderByYear(container, grouped){
-    container.innerHTML = '';
-    const years = Array.from(grouped.keys()).sort((a,b)=>a.localeCompare(b));
-    years.forEach(year => {
-      const wrap = document.createElement('div');
-      wrap.innerHTML = `
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="text-sm uppercase tracking-widest text-gray-500">Година ${year}</h3>
-        </div>
-        <div class="relative">
-          <div class="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-white to-transparent rounded-l-2xl"></div>
-          <div class="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white to-transparent rounded-r-2xl"></div>
-          <div class="track" data-year="${year}"></div>
-        </div>
-      `;
-      const track = wrap.querySelector('.track');
-      const list = grouped.get(year).slice().sort((a,b)=>(firstDate(a)||'').localeCompare(firstDate(b)||''));
-      list.forEach(ev => track.appendChild(buildCard(ev)));
-      container.appendChild(wrap);
-    });
-    const prev = document.getElementById('ev-prev');
-    const next = document.getElementById('ev-next');
-    function scrollBy(dx){ container.querySelectorAll('.track').forEach(t => t.scrollBy({ left: dx, behavior:'smooth' })); }
-    prev?.addEventListener('click', ()=>scrollBy(-360));
-    next?.addEventListener('click', ()=>scrollBy(+360));
-  }
-
-  async function init(){
-    const target = document.getElementById('eventsByYear');
-    if(!target) return;
-    const all = await fetchEvents();
-    const upcoming = all.filter(ev => { const d = lastDate(ev) || firstDate(ev); return d && d >= iso(new Date()); });
-    if(upcoming.length === 0){ target.innerHTML = `<p class="text-gray-600">Няма предстоящи събития.</p>`; return; }
-    renderByYear(target, groupByYear(upcoming));
-  }
-  document.addEventListener('DOMContentLoaded', init);
-})();
-</script>
-
-</body>
-</html>
