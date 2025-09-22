@@ -225,6 +225,37 @@
         </div>
       </div>
     </section>
+    <!-- === Програма от календара — скролируеми карти === -->
+    <section class="py-12 lg:py-16 reveal" id="tmap-events-slider">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex items-end justify-between mb-4">
+          <div>
+            <h2 class="text-2xl lg:text-3xl font-extrabold">Предстоящи събития</h2>
+            <p class="text-gray-600">Плъзни хоризонтално, за да разгледаш програмата.</p>
+          </div>
+          <div class="hidden md:flex items-center gap-2">
+            <button id="ev-prev" class="rounded-xl border border-black/10 bg-white px-3 py-2 shadow-sm hover:shadow-md">←</button>
+            <button id="ev-next" class="rounded-xl border border-black/10 bg-white px-3 py-2 shadow-sm hover:shadow-md">→</button>
+          </div>
+        </div>
+        <div class="relative">
+          <div class="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-white to-transparent rounded-l-2xl"></div>
+          <div class="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-white to-transparent rounded-r-2xl"></div>
+          <div id="ev-track" class="no-scrollbar snap-x snap-mandatory overflow-x-auto scroll-smooth flex gap-4 pb-2">
+            <div class="shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 animate-pulse"></div>
+            <div class="shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 animate-pulse"></div>
+            <div class="shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+      <style>
+        /* скрит хоризонтален скрол само за секцията */
+        #tmap-events-slider .no-scrollbar::-webkit-scrollbar{height:0}
+        #tmap-events-slider .no-scrollbar{scrollbar-width:none;-ms-overflow-style:none}
+      </style>
+    </section>
+
+
 
     <!-- Слайдер със снимки от картата -->
     <section class="py-12 lg:py-16 reveal" id="tmap-photo-slider">
@@ -355,6 +386,71 @@
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- === Events slider loader (календар → карти) === -->
+  <script>
+  (async function initEvents(){
+    try{
+      const CALENDAR_URL = 'tmap_calendar.html'; // смени при нужда
+      const client = supabase.createClient(
+        'https://cmiylzpmpwqbacjoqtkx.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8'
+      );
+      const track=document.getElementById('ev-track');
+      if(!track) return;
+
+      const today = new Date().toISOString().slice(0,10);
+      const { data, error } = await client
+        .from('tmap_calendar_events')
+        .select('id,title,image,dates')
+        .order('dates->0', { ascending: true });
+      if(error) throw error;
+
+      const events = (data||[])
+        .filter(ev => Array.isArray(ev.dates) && ev.dates.length>0)
+        .sort((a,b)=> (a.dates[0]||'').localeCompare(b.dates[0]||''));
+
+      const upcoming = events.filter(ev => (ev.dates[ev.dates.length-1] || ev.dates[0]) >= today);
+
+      const fmt = s => { const [Y,M,D]=(s||'').split('-'); return (D&&M&&Y)?`${D}.${M}.${Y}`:s; };
+
+      track.innerHTML = upcoming.map(ev=>{
+        const first = ev.dates[0];
+        const last  = ev.dates[ev.dates.length-1] || first;
+        const dates = first ? `${fmt(first)}${last!==first?`–${fmt(last)}`:''}` : '';
+        const href  = `${CALENDAR_URL}?from=${encodeURIComponent(first||'')}&to=${encodeURIComponent(last||'')}&focus=${encodeURIComponent(ev.id)}`;
+        const title = (ev.title||'Събитие').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const img   = ev.image ? `<img src="${ev.image}" alt="${title}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" loading="lazy" decoding="async"/>` : '';
+        return `<a href="${href}" class="group relative shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 snap-start hover-tilt">
+          ${img}
+          <div class="absolute inset-0 tilt-item"></div>
+          <div class="absolute top-2 left-2 text-[12px] font-extrabold">
+            ${dates?`<span class="px-2.5 py-1 rounded-full bg-white shadow">${dates}</span>`:''}
+          </div>
+          <div class="absolute bottom-0 left-0 right-0 p-4 text-white bg-gradient-to-t from-black/60 via-black/15 to-transparent">
+            <h3 class="line-clamp-2 font-semibold text-base drop-shadow">${title}</h3>
+          </div>
+        </a>`;
+      }).join('');
+
+      // стрелки
+      const prev=document.getElementById('ev-prev'), next=document.getElementById('ev-next');
+      const step=()=>{ const card=track.querySelector('a'); if(!card) return 320; const gap=parseInt(getComputedStyle(track).gap||'16',10); return card.getBoundingClientRect().width+gap; };
+      prev?.addEventListener('click',()=>track.scrollBy({left:-step(),behavior:'smooth'}));
+      next?.addEventListener('click',()=>track.scrollBy({left: step(),behavior:'smooth'}));
+
+      // realtime — презареждане при промени
+      try{
+        supabase.createClient(
+          'https://cmiylzpmpwqbacjoqtkx.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8'
+        ).channel('events-rt')
+          .on('postgres_changes', { event:'*', schema:'public', table:'tmap_calendar_events' }, ()=>initEvents())
+          .subscribe();
+      }catch(e){ console.warn('realtime off', e); }
+    }catch(err){ console.error('events slider error:', err); }
+  })();
+  </script>
+
 
   <script>
     // ---------- Helpers ----------
