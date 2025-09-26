@@ -77,9 +77,10 @@
       <nav class="mt-2 border-t border-slate-200/60">
         <ul class="flex flex-wrap gap-2 py-2" role="tablist">
           <li><button data-tab="home" class="tab-btn px-3 py-1.5 rounded-full text-sm bg-brand-600 text-white shadow-soft">Начало</button></li>
-          <li><button data-tab="my" class="tab-btn px-3 py-1.5 rounded-full text-sm hover:bg-slate-100">Моето обучение</button></li>
-          <li><button data-tab="results" class="tab-btn px-3 py-1.5 rounded-full text-sm hover:bg-slate-100">Резултати</button></li>
-          <li><button data-tab="students" class="tab-btn px-3 py-1.5 rounded-full text-sm hover:bg-slate-100 hidden" id="studentsTabBtn">Курсисти</button></li>
+          <!-- Показват се само след вход -->
+          <li><button data-tab="my" class="tab-btn px-3 py-1.5 rounded-full text-sm hover:bg-slate-100 hidden" id="myTabBtn">Моето обучение</button></li>
+          <li><button data-tab="results" class="tab-btn px-3 py-1.5 rounded-full text-sm hover:bg-slate-100 hidden" id="resultsTabBtn">Резултати</button></li>
+          <!-- Само за Админ -->
           <li><button data-tab="admin" class="tab-btn px-3 py-1.5 rounded-full text-sm hover:bg-slate-100 hidden" id="adminTabBtn">Админ</button></li>
         </ul>
       </nav>
@@ -223,14 +224,14 @@
           </div>
           <div class="rounded-2xl bg-white shadow-soft p-6 border border-slate-100">
             <div class="text-sm text-slate-500">Групи 3+</div>
-            <div class="text-3xl font-extrabold mt-1">-10%</div>
+            <div class="text-3xl font-extrabold mt-1">-10%</</div>
             <p class="mt-2 text-sm text-slate-600">За групови записвания</p>
           </div>
         </div>
       </section>
     </section>
 
-    <!-- Моето обучение / Профил на курсист -->
+    <!-- Моето обучение -->
     <section class="tab-pane" id="my" aria-labelledby="my-tab">
       <div class="rounded-2xl bg-white shadow-soft p-6">
         <div class="flex items-center justify-between">
@@ -246,11 +247,6 @@
               <dt class="text-slate-500">Имейл</dt><dd class="col-span-2" id="pfEmail">—</dd>
             </dl>
           </div>
-          <div class="rounded-xl border border-slate-200 p-5">
-            <h4 class="font-semibold mb-3">Минали планове/курсове</h4>
-            <ul id="pfCompleted" class="list-disc list-inside text-sm text-slate-700"></ul>
-          </div>
-
           <div class="rounded-xl border border-slate-200 p-5 md:col-span-2">
             <h4 class="font-semibold mb-3">Материали</h4>
             <ul id="myMaterials" class="mt-2 text-sm text-brand-700 list-disc list-inside"></ul>
@@ -282,92 +278,37 @@
       </div>
     </section>
 
-    <!-- Курсисти (само за Админ) -->
-    <section class="tab-pane" id="students" aria-labelledby="students-tab">
-      <div class="rounded-2xl bg-white shadow-soft p-6">
-        <h3 class="text-xl font-bold">Списък курсисти (демо, localStorage)</h3>
-        <p class="text-sm text-slate-600 mt-2">Този таб остава демо (localStorage). При нужда ще го вържем към Supabase.</p>
-        <div class="mt-3 flex gap-2">
-          <input id="stSearch" placeholder="Търси по име" class="w-full rounded-lg border-slate-200">
-          <button id="exportStudents" class="px-3 py-2 rounded-lg border hover:bg-slate-50">Експорт JSON</button>
-        </div>
-        <ul id="studentsList" class="mt-4 space-y-2 text-sm"></ul>
-      </div>
-    </section>
-
     <!-- Админ -->
     <section class="tab-pane" id="admin" aria-labelledby="admin-tab">
-      <div class="grid lg:grid-cols-2 gap-6">
-        <!-- Качване на теми / материали (Supabase) -->
-        <div class="rounded-2xl bg-white shadow-soft p-6">
-          <div class="flex items-center justify-between">
-            <h3 class="text-xl font-bold">Качване на тема (Supabase)</h3>
-            <span class="text-xs text-slate-500">таблица: <code>training_topics</code></span>
+      <div class="rounded-2xl bg-white shadow-soft p-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-bold">Качване на тема (Supabase)</h3>
+          <span class="text-xs text-slate-500">таблица: <code>training_topics</code></span>
+        </div>
+        <form id="uploadForm" class="mt-4 grid gap-3">
+          <div>
+            <label class="text-sm font-medium">Заглавие</label>
+            <input required type="text" id="topicTitle" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" placeholder="Пример: Лавинна безопасност – основи" />
           </div>
-          <form id="uploadForm" class="mt-4 grid gap-3">
-            <div>
-              <label class="text-sm font-medium">Заглавие</label>
-              <input required type="text" id="topicTitle" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" placeholder="Пример: Лавинна безопасност – основи" />
-            </div>
-            <div>
-              <label class="text-sm font-medium">Описание</label>
-              <textarea id="topicDesc" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" rows="3" placeholder="Кратко описание на съдържанието"></textarea>
-            </div>
-            <div>
-              <label class="text-sm font-medium">Сезон</label>
-              <select id="topicSeason" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500">
-                <option value="winter">Зима (Теория)</option>
-                <option value="summer">Лято (Практика)</option>
-              </select>
-            </div>
-            <button class="px-4 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700">Запази темата</button>
-          </form>
-          <div id="topicMsg" class="mt-3 text-sm"></div>
-          <hr class="my-6" />
-          <h4 class="font-semibold">Последно добавени теми</h4>
-          <ul id="topicsList" class="mt-2 text-sm space-y-2"></ul>
-          <p class="text-xs text-slate-500 mt-3">Ако липсва таблицата, създай я със: <br>
-          <code>id uuid (pk, default uuid_generate_v4()), title text, description text, season text, created_by text, created_at timestamptz default now()</code></p>
-        </div>
-
-        <!-- Управление на курсове/дати/оферти (демо/localStorage) -->
-        <div class="rounded-2xl bg-white shadow-soft p-6">
-          <h3 class="text-xl font-bold">Курсове – дати и оферти</h3>
-          <form id="courseForm" class="mt-4 grid sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-              <label class="text-sm font-medium">Курс</label>
-              <select id="courseId" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500">
-                <option value="theory-winter">Теория (зима)</option>
-                <option value="practice-summer">Практика (лято)</option>
-                <option value="intensive-weekend">Интензив – уикенд</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-sm font-medium">Дати</label>
-              <input type="text" id="courseDates" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" placeholder="напр. 15 окт – 15 ное" />
-            </div>
-            <div>
-              <label class="text-sm font-medium">Места</label>
-              <input type="number" id="courseSeats" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" placeholder="напр. 8" />
-            </div>
-            <div>
-              <label class="text-sm font-medium">Цена (лв)</label>
-              <input type="number" id="coursePrice" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" placeholder="напр. 290" />
-            </div>
-            <div>
-              <label class="text-sm font-medium">Стара цена (лв)</label>
-              <input type="number" id="courseOldPrice" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" placeholder="напр. 350" />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="text-sm font-medium">Бележка за оферта</label>
-              <input type="text" id="courseBadge" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" placeholder="напр. Ранни записвания до 1 окт – още -10%" />
-            </div>
-            <div class="sm:col-span-2">
-              <button class="px-4 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700">Обнови картата</button>
-            </div>
-          </form>
-          <p class="text-xs text-slate-500 mt-2">* Промените се пазят в <strong>localStorage</strong> (демо).</p>
-        </div>
+          <div>
+            <label class="text-sm font-medium">Описание</label>
+            <textarea id="topicDesc" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" rows="3" placeholder="Кратко описание на съдържанието"></textarea>
+          </div>
+          <div>
+            <label class="text-sm font-medium">Сезон</label>
+            <select id="topicSeason" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500">
+              <option value="winter">Зима (Теория)</option>
+              <option value="summer">Лято (Практика)</option>
+            </select>
+          </div>
+          <button class="px-4 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700">Запази темата</button>
+        </form>
+        <div id="topicMsg" class="mt-3 text-sm"></div>
+        <hr class="my-6" />
+        <h4 class="font-semibold">Последно добавени теми</h4>
+        <ul id="topicsList" class="mt-2 text-sm space-y-2"></ul>
+        <p class="text-xs text-slate-500 mt-3">Ако липсва таблицата, създай я със:<br>
+        <code>id uuid (pk, default uuid_generate_v4()), title text, description text, season text, created_by text, created_at timestamptz default now()</code></p>
       </div>
     </section>
   </main>
@@ -380,18 +321,14 @@
   <script>
     // ======= Конфигурации =======
     const ADMIN_USER_ID = '59e62f07-5fab-443f-a0cb-efd988b44b8f'; // Админ идентификатор (Supabase user.id)
+    // ВАЖНО: Google Client ID/Secret се конфигурират в Supabase → Providers → Google.
     const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: true, detectSessionInUrl: true }
     });
 
-    const LS = {
-      COURSES: 'tmap_courses_cfg',
-      MYPLAN:  'tmap_myplan',
-      RESULTS: 'tmap_results',
-      STUDENTS:'tmap_students' // демо
-    };
+    const LS = { COURSES:'tmap_courses_cfg', MYPLAN:'tmap_myplan', RESULTS:'tmap_results' };
 
     // ======= Помощни =======
     const $ = (sel, root=document) => root.querySelector(sel);
@@ -411,62 +348,48 @@
       });
     });
 
+    function showTab(key){
+      $$('.tab-pane').forEach(p=>p.classList.remove('active'));
+      $('#'+key).classList.add('active');
+      $$('.tab-btn').forEach(b=>b.classList.remove('bg-brand-600','text-white'));
+      document.querySelector(`.tab-btn[data-tab="${key}"]`)?.classList.add('bg-brand-600','text-white');
+    }
+
     // ======= Валутен превключвател =======
-    const EUR_RATE = 1.95583; // BGN per 1 EUR (фиксиран курс)
+    const EUR_RATE = 1.95583;
     let showEUR = false;
     const currencyToggle = $('#currencyToggle');
     const currencyKnob = $('#currencyKnob');
-
-    function fmtPrice(bgn){
-      if(showEUR){ return '€ ' + (bgn / EUR_RATE).toFixed(2); }
-      return Number(bgn).toFixed(2) + ' лв';
-    }
+    function fmtPrice(bgn){ return showEUR ? ('€ ' + (bgn/EUR_RATE).toFixed(2)) : (Number(bgn).toFixed(2)+' лв'); }
     function refreshPrices(){
-      $$('[data-price-bgn]').forEach(el=>{
-        const bgn = parseFloat(el.getAttribute('data-price-bgn'));
-        el.textContent = fmtPrice(bgn);
-      });
-      $$('[data-old-bgn]').forEach(el=>{
-        const bgn = parseFloat(el.getAttribute('data-old-bgn'));
-        if(!isNaN(bgn)) el.textContent = fmtPrice(bgn);
-      });
+      $$('[data-price-bgn]').forEach(el=>{ const bgn = parseFloat(el.getAttribute('data-price-bgn')); el.textContent = fmtPrice(bgn); });
+      $$('[data-old-bgn]').forEach(el=>{ const bgn = parseFloat(el.getAttribute('data-old-bgn')); if(!isNaN(bgn)) el.textContent = fmtPrice(bgn); });
     }
-    currencyToggle.addEventListener('click', ()=>{
-      showEUR = !showEUR;
-      currencyKnob.style.transform = showEUR ? 'translateX(22px)' : 'translateX(4px)';
-      refreshPrices();
-    });
+    currencyToggle.addEventListener('click', ()=>{ showEUR=!showEUR; currencyKnob.style.transform = showEUR ? 'translateX(22px)' : 'translateX(4px)'; refreshPrices(); });
 
-    // ======= Инициализация на курсове (демо/localStorage) =======
+    // ======= Курсове (демо/localStorage) =======
     const defaultCourses = {
       'theory-winter':     { dates:'15 окт – 15 ное', seats:8,  price:290, old:350, badge:'Ранни записвания до 1 окт – още -10%' },
       'practice-summer':   { dates:'10 юни – 10 юли', seats:12, price:420, old:490, badge:'Комбо с Теория: общо -15%' },
       'intensive-weekend': { dates:'23–24 ное · 30 ное–1 дек · 7–8 дек', seats:5, price:360, old:null, badge:'Бонус запис от лекциите' }
     };
     const courses = Object.assign({}, defaultCourses, readLS(LS.COURSES, {}));
-
     function renderCourseCards(){
       $$('#courseCards .course-card').forEach(card=>{
         const id = card.dataset.courseId;
         const cfg = courses[id]; if(!cfg) return;
         card.querySelector('[data-dates]').textContent = cfg.dates;
-        const seatsEl = card.querySelector('[data-seats]');
-        seatsEl.textContent = `${cfg.seats} свободни`;
-        const priceEl = card.querySelector('[data-price-bgn]');
-        priceEl.setAttribute('data-price-bgn', cfg.price);
+        card.querySelector('[data-seats]').textContent = `${cfg.seats} свободни`;
+        const priceEl = card.querySelector('[data-price-bgn]'); priceEl.setAttribute('data-price-bgn', cfg.price);
         const oldEl = card.querySelector('[data-old-bgn]');
-        if(oldEl){
-          if(cfg.old){ oldEl.setAttribute('data-old-bgn', cfg.old); oldEl.classList.remove('hidden'); }
-          else { oldEl.classList.add('hidden'); }
-        }
-        const badgeEl = card.querySelector('[data-badge]');
-        badgeEl.textContent = cfg.badge || '';
+        if(oldEl){ if(cfg.old){ oldEl.setAttribute('data-old-bgn', cfg.old); oldEl.classList.remove('hidden'); } else { oldEl.classList.add('hidden'); } }
+        card.querySelector('[data-badge]').textContent = cfg.badge || '';
       });
       refreshPrices();
     }
     renderCourseCards();
 
-    // ======= „Моето обучение“ (демо) =======
+    // ======= Моето обучение (демо) =======
     $('#addToMyPlanBtns').addEventListener('click', ()=>{
       const selected = $$('input[data-select-course]:checked').map(ch=>ch.closest('.course-card').dataset.courseId);
       const current = new Set(readLS(LS.MYPLAN, []));
@@ -476,35 +399,22 @@
       toast('Добавено към „Моето обучение“');
       showTab('my');
     });
-    function showTab(key){
-      $$('.tab-pane').forEach(p=>p.classList.remove('active'));
-      $('#'+key).classList.add('active');
-      $$('.tab-btn').forEach(b=>b.classList.remove('bg-brand-600','text-white'));
-      document.querySelector(`.tab-btn[data-tab="${key}"]`)?.classList.add('bg-brand-600','text-white');
-    }
 
     function labelForCourse(id){
-      return id==='theory-winter' ? 'Теория (зима)'
-        : id==='practice-summer' ? 'Практика (лято)'
-        : id==='intensive-weekend' ? 'Интензив – уикенд'
-        : id;
+      return id==='theory-winter' ? 'Теория (зима)' : id==='practice-summer' ? 'Практика (лято)' : id==='intensive-weekend' ? 'Интензив – уикенд' : id;
     }
-    function courseSeason(id){
-      return (id==='theory-winter') ? 'winter' : 'summer'; // Интензив -> summer по подразбиране
-    }
+    function courseSeason(id){ return (id==='theory-winter') ? 'winter' : 'summer'; }
 
     function renderMyPlan(){
       const plan = readLS(LS.MYPLAN, []);
       const map = {
-        'theory-winter':   { title:'Теория (зима)', color:'from-sky-50', icon:'📚' },
-        'practice-summer': { title:'Практика (лято)', color:'from-emerald-50', icon:'🏕️' },
-        'intensive-weekend': { title:'Интензив – уикенд', color:'from-purple-50', icon:'⚡' }
+        'theory-winter':   { title:'Теория (зима)', icon:'📚' },
+        'practice-summer': { title:'Практика (лято)', icon:'🏕️' },
+        'intensive-weekend': { title:'Интензив – уикенд', icon:'⚡' }
       };
-      const wrap = $('#myPlan');
-      wrap.innerHTML = '';
+      const wrap = $('#myPlan'); wrap.innerHTML = '';
       plan.forEach(id=>{
-        const m = map[id]; if(!m) return;
-        const cfg = courses[id] || {};
+        const m = map[id]; if(!m) return; const cfg = courses[id] || {};
         const card = document.createElement('div');
         card.className = 'rounded-2xl bg-white shadow-soft border border-slate-100 p-5';
         card.innerHTML = `
@@ -516,20 +426,12 @@
           <p class="text-sm text-slate-600 mt-1">Дати: ${cfg.dates || '-'}</p>
           <div class="mt-3 h-2 w-full bg-slate-100 rounded-full overflow-hidden">
             <div class="h-full bg-brand-500 rounded-full" style="width:${Math.floor(Math.random()*60+20)}%"></div>
-          </div>
-        `;
+          </div>`;
         wrap.appendChild(card);
       });
       $$('button[data-remove]').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          const id = btn.dataset.remove;
-          const plan = readLS(LS.MYPLAN, []).filter(x=>x!==id);
-          writeLS(LS.MYPLAN, plan);
-          renderMyPlan();
-          toast('Премахнато');
-        });
+        btn.addEventListener('click', ()=>{ const id = btn.dataset.remove; const plan = readLS(LS.MYPLAN, []).filter(x=>x!==id); writeLS(LS.MYPLAN, plan); renderMyPlan(); toast('Премахнато'); });
       });
-      // след обновяване на плана – презареди материали
       loadMyMaterialsFromSupabase();
     }
     renderMyPlan();
@@ -542,70 +444,64 @@
     ];
     if(!readLS(LS.RESULTS, null)) writeLS(LS.RESULTS, defaultResults);
     function renderResults(){
-      const rows = readLS(LS.RESULTS, []);
-      const body = $('#resultsBody');
-      body.innerHTML = '';
+      const rows = readLS(LS.RESULTS, []), body = $('#resultsBody'); body.innerHTML = '';
       const fmt = (d)=> new Date(d + 'T00:00:00').toLocaleDateString('bg-BG');
       rows.forEach(r=>{
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="py-2 pr-4">${fmt(r.date)}</td>
-          <td class="py-2 pr-4">${labelForCourse(r.course)}</td>
-          <td class="py-2 pr-4">${r.type}</td>
-          <td class="py-2 pr-4">${r.score}</td>
-        `;
+        tr.innerHTML = `<td class="py-2 pr-4">${fmt(r.date)}</td><td class="py-2 pr-4">${labelForCourse(r.course)}</td><td class="py-2 pr-4">${r.type}</td><td class="py-2 pr-4">${r.score}</td>`;
         body.appendChild(tr);
       });
     }
     renderResults();
 
     // ======= AUTH (Supabase Google OAuth) =======
-    const userEmailEl = $('#userEmail');
-    const userAvatarEl = $('#userAvatar');
-    const adminBadge = $('#adminBadge');
-    const adminTabBtn = $('#adminTabBtn');
-    const studentsTabBtn = $('#studentsTabBtn');
-    const btnSignIn = $('#btnSignIn');
-    const btnSignOut = $('#btnSignOut');
+    const userEmailEl   = $('#userEmail');
+    const userAvatarEl  = $('#userAvatar');
+    const adminBadge    = $('#adminBadge');
+    const btnSignIn     = $('#btnSignIn');
+    const btnSignOut    = $('#btnSignOut');
+    const myTabBtn      = $('#myTabBtn');
+    const resultsTabBtn = $('#resultsTabBtn');
+    const adminTabBtn   = $('#adminTabBtn');
 
     async function updateAuthUI(){
       const { data: { user } } = await supabaseClient.auth.getUser();
 
       if(user){
-        // show UI
+        // Показване след вход
         btnSignIn.classList.add('hidden');
         btnSignOut.classList.remove('hidden');
+        myTabBtn.classList.remove('hidden');
+        resultsTabBtn.classList.remove('hidden');
+
         userEmailEl.textContent = user.email || '—';
         userAvatarEl.src = user.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(user.email||'T')}`;
         userAvatarEl.classList.remove('hidden');
 
-        // profile section basic
         $('#pfName').textContent = user.user_metadata?.full_name || (user.email?.split('@')[0]) || '—';
         $('#pfEmail').textContent = user.email || '—';
         $('#studentProfile').classList.remove('hidden');
 
-        // admin?
         const isAdmin = (user.id === ADMIN_USER_ID);
         if(isAdmin){
           adminBadge.classList.remove('hidden');
           adminTabBtn.classList.remove('hidden');
-          studentsTabBtn.classList.remove('hidden');
         }else{
           adminBadge.classList.add('hidden');
           adminTabBtn.classList.add('hidden');
-          studentsTabBtn.classList.add('hidden');
-          // ако активният таб е админ – върни към Начало
           if($('#admin').classList.contains('active')) showTab('home');
         }
       }else{
-        // logged out
+        // Без вход – показваме само „Начало“
         btnSignIn.classList.remove('hidden');
         btnSignOut.classList.add('hidden');
         userEmailEl.textContent = 'Гост';
         userAvatarEl.classList.add('hidden');
         adminBadge.classList.add('hidden');
+        myTabBtn.classList.add('hidden');
+        resultsTabBtn.classList.add('hidden');
         adminTabBtn.classList.add('hidden');
-        studentsTabBtn.classList.add('hidden');
+        if(!$('#home').classList.contains('active')) showTab('home');
         $('#studentProfile').classList.add('hidden');
       }
     }
@@ -613,10 +509,15 @@
     btnSignIn.addEventListener('click', async ()=>{
       const { error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.href }
+        options: {
+          redirectTo: window.location.href,
+          // По избор: изискай профил/имейл ако искаш разширени полета
+          scopes: 'openid email profile'
+        }
       });
       if(error){ alert('Грешка при вход: ' + (error.message || 'неизвестна')); }
     });
+
     btnSignOut.addEventListener('click', async ()=>{
       await supabaseClient.auth.signOut();
       await updateAuthUI();
@@ -627,8 +528,8 @@
     supabaseClient.auth.onAuthStateChange((_ev,_sess)=>updateAuthUI());
 
     // ======= Админ: Теми (Supabase: training_topics) =======
-    const topicForm = $('#uploadForm');
-    const topicMsg = $('#topicMsg');
+    const topicForm  = $('#uploadForm');
+    const topicMsg   = $('#topicMsg');
     const topicsList = $('#topicsList');
 
     topicForm?.addEventListener('submit', async (e)=>{
@@ -641,17 +542,8 @@
       const { data: { user } } = await supabaseClient.auth.getUser();
       if(!user){ topicMsg.className='mt-3 text-sm text-rose-700'; topicMsg.textContent = 'Нужен е вход с Google.'; return; }
 
-      const payload = {
-        title, description, season,
-        created_by: user.email || user.id,
-        created_at: new Date().toISOString()
-      };
-
-      const { data, error } = await supabaseClient
-        .from('training_topics')
-        .insert(payload)
-        .select()
-        .single();
+      const payload = { title, description, season, created_by: user.email || user.id, created_at: new Date().toISOString() };
+      const { data, error } = await supabaseClient.from('training_topics').insert(payload).select().single();
 
       if(error){
         topicMsg.className='mt-3 text-sm text-rose-700';
@@ -667,50 +559,35 @@
 
     function prependTopicItem(row){
       const li = document.createElement('li');
-      li.className = 'p-3 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-start justify-between gap-3';
+      li.className = 'p-3 rounded-lg border border-slate-200 hover:bg-slate-50';
       li.innerHTML = `
-        <div>
-          <div class="font-medium">${escapeHtml(row.title)}</div>
-          <div class="text-xs text-slate-500">${row.season==='winter'?'Зима (Теория)':'Лято (Практика)'} · ${new Date(row.created_at||row.createdAt||Date.now()).toLocaleString('bg-BG')}</div>
-          ${row.description? `<p class="text-sm text-slate-600 mt-1">${escapeHtml(row.description)}</p>`:''}
-          <div class="text-xs text-slate-400 mt-1">Добавена от: ${escapeHtml(row.created_by||'админ')}</div>
-        </div>
-      `;
+        <div class="font-medium">${escapeHtml(row.title)}</div>
+        <div class="text-xs text-slate-500">${row.season==='winter'?'Зима (Теория)':'Лято (Практика)'} · ${new Date(row.created_at||Date.now()).toLocaleString('bg-BG')}</div>
+        ${row.description? `<p class="text-sm text-slate-600 mt-1">${escapeHtml(row.description)}</p>`:''}
+        <div class="text-xs text-slate-400 mt-1">Добавена от: ${escapeHtml(row.created_by||'админ')}</div>`;
       topicsList.prepend(li);
     }
     function escapeHtml(str){ return (str||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m])); }
 
     async function loadRecentTopics(){
-      const { data, error } = await supabaseClient
-        .from('training_topics')
-        .select('*')
-        .order('created_at', { ascending:false })
-        .limit(10);
+      const { data, error } = await supabaseClient.from('training_topics').select('*').order('created_at', { ascending:false }).limit(10);
       topicsList.innerHTML = '';
-      if(error){
-        topicsList.innerHTML = '<li class="text-slate-500">Неуспешно зареждане. Увери се, че съществува таблица training_topics.</li>';
-        return;
-      }
-      if(!data || data.length===0){
-        topicsList.innerHTML = '<li class="text-slate-500">Няма качени теми.</li>';
-        return;
-      }
+      if(error){ topicsList.innerHTML = '<li class="text-slate-500">Неуспешно зареждане. Увери се, че съществува таблица training_topics.</li>'; return; }
+      if(!data || data.length===0){ topicsList.innerHTML = '<li class="text-slate-500">Няма качени теми.</li>'; return; }
       data.forEach(prependTopicItem);
     }
     loadRecentTopics();
 
-    // ======= Материали за моите курсове (от Supabase по season) =======
+    // ======= Материали според моите курсове (по season) =======
     async function loadMyMaterialsFromSupabase(){
       const my = new Set(readLS(LS.MYPLAN, []));
-      if(my.size===0){ $('#myMaterials').innerHTML = '<li>—</li>'; return; }
-      const seasons = new Set([...my].map(courseSeason));
-      // ако имаме и двете – вземи всичко
-      let query = supabaseClient.from('training_topics').select('*').order('created_at', {ascending:false}).limit(50);
-      if(seasons.size===1){
-        query = supabaseClient.from('training_topics').select('*').eq('season', [...seasons][0]).order('created_at', {ascending:false}).limit(50);
-      }
-      const { data, error } = await query;
       const list = $('#myMaterials');
+      if(my.size===0){ if(list) list.innerHTML='<li>—</li>'; return; }
+      const seasons = new Set([...my].map(courseSeason));
+      let q = supabaseClient.from('training_topics').select('*').order('created_at', {ascending:false}).limit(50);
+      if(seasons.size===1){ q = supabaseClient.from('training_topics').select('*').eq('season', [...seasons][0]).order('created_at',{ascending:false}).limit(50); }
+      const { data, error } = await q;
+      if(!list) return;
       list.innerHTML = '';
       if(error){ list.innerHTML = '<li class="text-rose-600">Грешка при зареждане на материали.</li>'; return; }
       if(!data || data.length===0){ list.innerHTML = '<li>—</li>'; return; }
@@ -721,63 +598,18 @@
       });
     }
 
-    // ======= Students tab (демо/localStorage) =======
-    function renderStudents(){
-      const list = $('#studentsList'); if(!list) return;
-      const q = ($('#stSearch')?.value||'').toLowerCase();
-      const arr = readLS(LS.STUDENTS, []);
-      list.innerHTML = '';
-      arr.filter(s=> !q || s.name.toLowerCase().includes(q)).forEach(s=>{
-        const li = document.createElement('li');
-        li.className = 'p-3 rounded-lg border border-slate-200 hover:bg-slate-50';
-        li.innerHTML = `
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <div class="font-medium">${s.name}</div>
-              <div class="text-xs text-slate-500">Имейл: ${s.email || '—'}</div>
-            </div>
-            <div class="flex items-center gap-2">
-              <button class="text-xs px-2 py-1 rounded-md border border-red-200 text-red-600" data-del="${s.id}">Изтрий</button>
-            </div>
-          </div>`;
-        list.appendChild(li);
-      });
-      $$('button[data-del]')?.forEach(b=> b.addEventListener('click', ()=>{
-        const id = b.dataset.del;
-        const arr = readLS(LS.STUDENTS, []).filter(x=>x.id!==id);
-        writeLS(LS.STUDENTS, arr);
-        renderStudents();
-        toast('Профилът е изтрит');
-      }));
-    }
-    renderStudents();
-    $('#stSearch')?.addEventListener('input', renderStudents);
-    $('#exportStudents')?.addEventListener('click', ()=>{
-      const data = readLS(LS.STUDENTS, []);
-      const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download='tmap_students.json'; a.click(); URL.revokeObjectURL(url);
-    });
-
-    // ======= Профил секция – базово попълване при вход =======
-    function populateStudentProfileBasics(){
-      supabaseClient.auth.getUser().then(({data:{user}})=>{
-        if(!user) return;
-        $('#pfCompleted').innerHTML = '<li>—</li>';
-      });
-    }
-
     // ======= Админ: Курсове (демо/localStorage) =======
     $('#courseForm')?.addEventListener('submit', (e)=>{
       e.preventDefault();
       const id = $('#courseId').value;
-      courses[id] = {
+      const updated = {
         dates: $('#courseDates').value || defaultCourses[id].dates,
         seats: parseInt($('#courseSeats').value || defaultCourses[id].seats, 10),
         price: parseInt($('#coursePrice').value || defaultCourses[id].price, 10),
         old:   $('#courseOldPrice').value ? parseInt($('#courseOldPrice').value, 10) : null,
         badge: $('#courseBadge').value || defaultCourses[id].badge
       };
+      Object.assign(courses[id], updated);
       writeLS(LS.COURSES, courses);
       renderCourseCards();
       renderMyPlan();
@@ -786,10 +618,7 @@
     });
 
     // ======= Навигация/инициализация =======
-    window.addEventListener('storage', (e)=>{
-      if(e.key===LS.MYPLAN) loadMyMaterialsFromSupabase();
-    });
-    populateStudentProfileBasics();
+    window.addEventListener('storage', (e)=>{ if(e.key===LS.MYPLAN) loadMyMaterialsFromSupabase(); });
     loadMyMaterialsFromSupabase();
   </script>
 </body>
