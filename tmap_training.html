@@ -3,16 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>T‑MAP Обучителна платформа</title>
+  <title>T‑MAP Academy — Обучителна платформа</title>
   <meta name="theme-color" content="#0ea5e9" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { --tmap: #0ea5e9; }
     html, body { height: 100%; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
-    /* Прост CSS (без @apply), работи с CDN Tailwind */
-    .card { background: rgba(255,255,255,0.85); backdrop-filter: saturate(140%) blur(8px); border:1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 10px 30px rgba(2,6,23,.06); }
+    .card { background: rgba(255,255,255,0.88); backdrop-filter: saturate(140%) blur(8px); border:1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 10px 30px rgba(2,6,23,.06); }
     .btn { display:inline-flex; align-items:center; justify-content:center; border-radius:12px; padding:10px 16px; font-weight:600; transition: transform .05s ease, box-shadow .2s ease; }
     .btn:active { transform: scale(.98); }
     .btn-primary { background:#0369a1; color:#fff; box-shadow:0 8px 20px rgba(2,132,199,.25); }
@@ -20,39 +18,46 @@
     .btn-ghost { background:#fff; color:#0f172a; border:1px solid #e2e8f0; }
     .btn-ghost:hover { background:#f8fafc; }
     .chip { display:inline-flex; align-items:center; border-radius:999px; border:1px solid #cbd5e1; padding:2px 10px; font-size:12px; font-weight:600; background:#fff; color:#334155; }
-    .hero-wrap { position:relative; overflow:hidden; border-radius:20px; }
-    .hero-bg { position:absolute; inset:0; background-position:center; background-size:cover; transform:scale(1.02); }
-    .hero-overlay { position:absolute; inset:0; background:linear-gradient(180deg, rgba(2,6,23,.55) 0%, rgba(2,6,23,.35) 40%, rgba(2,6,23,.55) 100%); }
-    .hero-content { position:relative; z-index:1; color:#fff; padding:56px 24px; }
-  .tab-btn{padding:10px 14px;border-radius:10px;font-weight:600;color:#334155} .tab-btn.active{background:#0ea5e9;color:#fff;box-shadow:0 6px 16px rgba(14,165,233,.22)}
+    .tab-btn{padding:10px 14px;border-radius:10px;font-weight:600;color:#334155}
+    .tab-btn.active{background:#0ea5e9;color:#fff;box-shadow:0 6px 16px rgba(14,165,233,.22)}
+    .hero-wrap{ position:relative; overflow:hidden; border-radius:20px; }
+    .hero-bg{ position:absolute; inset:0; background-position:center; background-size:cover; transform:scale(1.02); }
+    .hero-overlay{ position:absolute; inset:0; background:linear-gradient(180deg, rgba(2,6,23,.55) 0%, rgba(2,6,23,.35) 40%, rgba(2,6,23,.55) 100%); }
+    .hero-content{ position:relative; z-index:1; color:#fff; padding:56px 24px; }
   </style>
   <!-- Supabase JS v2 -->
   <script type="module" src="https://esm.sh/@supabase/supabase-js@2"></script>
+  <!-- Markdown renderer -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body class="min-h-full bg-gradient-to-br from-sky-50 via-white to-emerald-50 text-slate-800">
   <!-- HEADER -->
-  <header class="sticky top-0 z-20 backdrop-blur bg-white/70 border-b border-slate-200">
+  <header class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
       <a href="#" class="h-9 w-9 rounded-xl bg-sky-600 text-white grid place-items-center font-black">T</a>
-      <div class="flex-1">
-        <h1 class="text-lg font-bold">T‑MAP • Обучителна платформа</h1>
+      <div class="flex-1 leading-tight">
+        <h1 class="text-lg font-bold">T‑MAP Academy • Обучителна платформа</h1>
         <p class="text-xs text-slate-600">Оцеляване • Бивак • Преходи • Маркировка • Алпинизъм • Природа</p>
       </div>
       <div id="userArea" class="flex items-center gap-3"></div>
     </div>
+    <!-- Tabs (след вход) -->
     <nav id="tabs" class="hidden border-t border-slate-200 bg-white/70 backdrop-blur">
-    <div class="max-w-6xl mx-auto px-4">
-      <ul class="flex items-center gap-1 py-2">
-        <li><button data-tab="home" class="tab-btn active">Начало</button></li>
-        <li><button data-tab="catalog" class="tab-btn">Каталог</button></li>
-      </ul>
-    </div>
-  </nav>
-</header>
+      <div class="max-w-6xl mx-auto px-4">
+        <ul class="flex items-center gap-1 py-2">
+          <li><button data-tab="home" class="tab-btn active">Начало</button></li>
+          <li><button data-tab="catalog" class="tab-btn">Каталог</button></li>
+          <li><button data-tab="learning" class="tab-btn">Моето обучение</button></li>
+          <li><button data-tab="results" class="tab-btn">Резултати</button></li>
+          <li id="adminTab" class="hidden"><button data-tab="admin" class="tab-btn">Админ</button></li>
+        </ul>
+      </div>
+    </nav>
+  </header>
 
   <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
-    <!-- AUTH/HERO -->
-    <section id="hero" class="hero-wrap hidden">
+    <!-- HERO (за гости) -->
+    <section id="hero" class="hero-wrap">
       <div class="hero-bg" style="background-image:url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1920&auto=format&fit=crop');"></div>
       <div class="hero-overlay"></div>
       <div class="hero-content">
@@ -64,12 +69,7 @@
               <p class="mt-3 text-white/90 text-lg">Курсове по оцеляване, бивакуване, зимна теория, летни практики и маркировка на пътеки — в един модул.</p>
               <div class="mt-6 flex flex-wrap gap-3">
                 <button id="btnGoogle" class="btn btn-primary">Вход с Google</button>
-                <a href="#upcoming" class="btn btn-ghost">Предстоящи дати</a>
-              </div>
-              <div class="mt-6 grid grid-cols-3 gap-3 text-sm text-white/90">
-                <div class="card p-3 bg-white/10 border-white/10"><div class="font-bold">Зимна теория</div><div>онлайн модули</div></div>
-                <div class="card p-3 bg-white/10 border-white/10"><div class="font-bold">Летни практики</div><div>уикенд излизания</div></div>
-                <div class="card p-3 bg-white/10 border-white/10"><div class="font-bold">Сертификат</div><div>след изпит</div></div>
+                <a href="#homePane" class="btn btn-ghost">Предстоящи дати</a>
               </div>
               <p class="mt-3 text-xs text-white/80">С влизането приемаш <a class="underline" target="_blank" href="https://turistibg.weebly.com/1055105610401042104810511040.html">Общите условия</a>.</p>
             </div>
@@ -79,19 +79,11 @@
                   <div class="text-slate-500 text-sm">12–13 окт 2025</div>
                   <h4 class="font-semibold">Преходи в планината — Рила</h4>
                   <p class="text-slate-600 text-sm mt-1">Ориентиране и безопасност.</p>
-                  <div class="mt-3 flex items-center justify-between text-sm">
-                    <span>Места: <b>12/20</b></span>
-                    <button class="btn btn-ghost text-xs" onclick="document.getElementById('btnGoogle').click()">Запиши се</button>
-                  </div>
                 </div>
                 <div class="card p-4 bg-white/80">
                   <div class="text-slate-500 text-sm">26–27 окт 2025</div>
                   <h4 class="font-semibold">Оцеляване — основи (онлайн)</h4>
                   <p class="text-slate-600 text-sm mt-1">Зимна подготовка и рискове.</p>
-                  <div class="mt-3 flex items-center justify-between text-sm">
-                    <span>Места: <b>8/25</b></span>
-                    <button class="btn btn-ghost text-xs" onclick="document.getElementById('btnGoogle').click()">Запиши се</button>
-                  </div>
                 </div>
                 <div class="col-span-2 card p-4 bg-gradient-to-r from-sky-600/90 to-emerald-500/90 text-white">
                   <div class="flex items-center justify-between">
@@ -118,113 +110,92 @@
       </div>
     </section>
 
-    <!-- Под героя: компактни секции за мобилни -->
+    <!-- HOME pane (след вход) -->
     <section id="homePane" class="hidden space-y-8">
-      <section id="upcoming" class="mt-8 lg:mt-10">
-      <div class="max-w-6xl mx-auto px-0">
+      <section id="upcoming">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-xl font-bold">Предстоящи курсове</h3>
           <span class="chip">демо</span>
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <article class="card p-4">
-            <div class="flex items-center justify-between"><div class="text-sm text-slate-500">12–13 окт 2025</div><span class="chip">Практика</span></div>
-            <h4 class="font-semibold mt-1">Преходи — Рила</h4>
-            <p class="text-sm text-slate-600 mt-1">Маршрути и безопасност.</p>
-          </article>
-          <article class="card p-4">
-            <div class="flex items-center justify-between"><div class="text-sm text-slate-500">26–27 окт 2025</div><span class="chip">Теория</span></div>
-            <h4 class="font-semibold mt-1">Оцеляване — основи</h4>
-            <p class="text-sm text-slate-600 mt-1">Зимна подготовка.</p>
-          </article>
-          <article class="card p-4">
-            <div class="flex items-center justify-between"><div class="text-sm text-slate-500">09–10 ное 2025</div><span class="chip">Практика</span></div>
-            <h4 class="font-semibold mt-1">Маркировка на пътеки</h4>
-            <p class="text-sm text-slate-600 mt-1">Стандарти и безопасност.</p>
-          </article>
-          <article class="card p-4">
-            <div class="flex items-center justify-between"><div class="text-sm text-slate-500">23–24 ное 2025</div><span class="chip">Теория</span></div>
-            <h4 class="font-semibold mt-1">Въведение в алпинизма</h4>
-            <p class="text-sm text-slate-600 mt-1">Възли и тактика.</p>
-          </article>
+          <article class="card p-4"><div class="flex items-center justify-between"><div class="text-sm text-slate-500">12–13 окт 2025</div><span class="chip">Практика</span></div><h4 class="font-semibold mt-1">Преходи — Рила</h4><p class="text-sm text-slate-600 mt-1">Маршрути и безопасност.</p></article>
+          <article class="card p-4"><div class="flex items-center justify-between"><div class="text-sm text-slate-500">26–27 окт 2025</div><span class="chip">Теория</span></div><h4 class="font-semibold mt-1">Оцеляване — основи</h4><p class="text-sm text-slate-600 mt-1">Зимна подготовка.</p></article>
+          <article class="card p-4"><div class="flex items-center justify-between"><div class="text-sm text-slate-500">09–10 ное 2025</div><span class="chip">Практика</span></div><h4 class="font-semibold mt-1">Маркировка на пътеки</h4><p class="text-sm text-slate-600 mt-1">Стандарти и безопасност.</p></article>
+          <article class="card p-4"><div class="flex items-center justify-between"><div class="text-sm text-slate-500">23–24 ное 2025</div><span class="chip">Теория</span></div><h4 class="font-semibold mt-1">Въведение в алпинизма</h4><p class="text-sm text-slate-600 mt-1">Възли и тактика.</p></article>
         </div>
-      </div>
-    </section>
-      <section id="offers" class="mt-8">
-      <div class="max-w-6xl mx-auto">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-xl font-bold">Оферти и намаления</h3>
-          <span class="chip">сезонни</span>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <article class="card overflow-hidden">
-            <div class="p-5">
-              <div class="flex items-center justify-between">
-                <h4 class="font-semibold">Програма „Теория — Зима“</h4>
-                <span class="inline-flex items-center rounded-full bg-rose-100 text-rose-700 text-xs px-2 py-0.5">-20%</span>
-              </div>
-              <p class="mt-1 text-sm text-slate-600">3 онлайн модула: подготовка, лавинна безопасност и зимна навигация.</p>
-              <div class="mt-3 flex items-center justify-between text-sm">
-                <div><span class="line-through text-slate-400 mr-2">250 лв</span><span class="font-bold">200 лв</span></div>
-                <button class="btn btn-primary text-sm" onclick="document.getElementById('btnGoogle').click()">Вземи офертата</button>
-              </div>
-            </div>
-          </article>
-          <article class="card overflow-hidden">
-            <div class="p-5">
-              <div class="flex items-center justify-between">
-                <h4 class="font-semibold">Програма „Практика — Лято“</h4>
-                <span class="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5">-15%</span>
-              </div>
-              <p class="mt-1 text-sm text-slate-600">2 уикенд излизания: бивакуване, маршрути и екипна работа.</p>
-              <div class="mt-3 flex items-center justify-between text-sm">
-                <div><span class="line-through text-slate-400 mr-2">360 лв</span><span class="font-bold">306 лв</span></div>
-                <button class="btn btn-primary text-sm" onclick="document.getElementById('btnGoogle').click()">Вземи офертата</button>
-              </div>
-            </div>
-          </article>
+      </section>
+      <section id="offers">
+        <div class="flex items-center justify-between mb-3"><h3 class="text-xl font-bold">Оферти и намаления</h3><span class="chip">сезонни</span></div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <article class="card overflow-hidden"><div class="p-5"><div class="flex items-center justify-between"><h4 class="font-semibold">Програма „Теория — Зима“</h4><span class="inline-flex items-center rounded-full bg-rose-100 text-rose-700 text-xs px-2 py-0.5">-20%</span></div><p class="mt-1 text-sm text-slate-600">3 онлайн модула: подготовка, лавини, навигация.</p><div class="mt-3 flex items-center justify-between text-sm"><div><span class="line-through text-slate-400 mr-2">250 лв</span><span class="font-bold">200 лв</span></div><button class="btn btn-primary text-sm" id="ctaOfferWinter">Вземи офертата</button></div></div></article>
+          <article class="card overflow-hidden"><div class="p-5"><div class="flex items-center justify-between"><h4 class="font-semibold">Програма „Практика — Лято“</h4><span class="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5">-15%</span></div><p class="mt-1 text-sm text-slate-600">2 уикенд излизания: бивак, маршрути, екипна работа.</p><div class="mt-3 flex items-center justify-between text-sm"><div><span class="line-through text-slate-400 mr-2">360 лв</span><span class="font-bold">306 лв</span></div><button class="btn btn-primary text-sm" id="ctaOfferSummer">Вземи офертата</button></div></div></article>
         </div>
         <p class="text-xs text-slate-500 mt-2">* Демонстрационни дати/цени — ще се зареждат от база.</p>
-      </div>
-    </section>
+      </section>
     </section>
 
-    <!-- DASHBOARD -->
-    <section id="dashboard" class="hidden space-y-6" data-pane="catalog">
-      <div class="grid md:grid-cols-3 gap-6">
-        <div class="md:col-span-2 card p-5 space-y-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-xl font-bold">Каталог курсове</h2>
-            <div class="flex flex-wrap gap-2">
-              <select id="filterCategory" class="border rounded-xl px-3 py-2 text-sm">
-                <option value="">Всички категории</option>
-              </select>
-              <input id="searchCourse" placeholder="Търси курс…" class="border rounded-xl px-3 py-2 text-sm" />
-            </div>
+    <!-- CATALOG pane -->
+    <section id="catalogPane" class="hidden space-y-6">
+      <div class="card p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-xl font-bold">Каталог курсове</h2>
+          <div class="flex flex-wrap gap-2">
+            <select id="filterCategory" class="border rounded-xl px-3 py-2 text-sm"><option value="">Всички категории</option></select>
+            <input id="searchCourse" placeholder="Търси курс…" class="border rounded-xl px-3 py-2 text-sm w-64" />
           </div>
-          <div id="courseList" class="grid sm:grid-cols-2 gap-4"></div>
-          <div id="emptyCourses" class="hidden text-sm text-slate-500">Няма налични курсове.</div>
         </div>
-        <aside class="card p-5 space-y-4">
-          <h3 class="font-bold">Моето обучение</h3>
-          <ul id="myEnrollments" class="space-y-3 text-sm"></ul>
-          <hr/>
-          <h3 class="font-bold">Резултати</h3>
-          <ul id="myResults" class="space-y-3 text-sm"></ul>
-        </aside>
+        <div id="courseList" class="grid sm:grid-cols-2 gap-4"></div>
+        <div id="emptyCourses" class="hidden text-sm text-slate-500">Няма налични курсове.</div>
       </div>
+    </section>
 
-      <div id="quizView" class="card p-5 hidden">
-        <div class="flex items-center justify-between gap-3">
-          <h3 id="quizTitle" class="text-lg font-bold">Тест</h3>
-          <button id="btnExitQuiz" class="btn btn-ghost">Назад</button>
+    <!-- LEARNING pane -->
+    <section id="learningPane" class="hidden grid md:grid-cols-3 gap-6">
+      <aside class="md:col-span-2 card p-5">
+        <h3 class="font-bold mb-2">Моето обучение</h3>
+        <ul id="myEnrollments" class="space-y-3 text-sm"></ul>
+      </aside>
+      <aside class="card p-5">
+        <h3 class="font-bold mb-2">Резултати</h3>
+        <ul id="myResults" class="space-y-3 text-sm"></ul>
+      </aside>
+    </section>
+
+    <!-- RESULTS pane -->
+    <section id="resultsPane" class="hidden card p-5">
+      <h3 class="font-bold mb-2">Резултати</h3>
+      <ul id="myResultsDup" class="space-y-3 text-sm"></ul>
+    </section>
+
+    <!-- ADMIN pane -->
+    <section id="adminPane" class="hidden card p-5">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold">Админ: Курсове & Плащания</h2>
+        <span class="chip" id="adminBadge">Администратор</span>
+      </div>
+      <div class="grid md:grid-cols-2 gap-6 mt-4">
+        <div>
+          <h3 class="font-semibold mb-2">Нови плащания</h3>
+          <ul id="adminPayments" class="space-y-2 text-sm"></ul>
         </div>
-        <div id="quizMeta" class="text-sm text-slate-600"></div>
-        <ol id="quizQuestions" class="mt-4 space-y-4 list-decimal list-inside"></ol>
-        <div class="mt-4 flex items-center gap-3">
-          <button id="btnSubmitQuiz" class="btn btn-primary">Предай тест</button>
-          <div id="quizMsg" class="text-sm text-slate-600"></div>
+        <div>
+          <h3 class="font-semibold mb-2">Записани потребители</h3>
+          <ul id="adminEnrollments" class="space-y-2 text-sm"></ul>
         </div>
+      </div>
+    </section>
+
+    <!-- QUIZ panel (inline) -->
+    <section id="quizView" class="card p-5 hidden">
+      <div class="flex items-center justify-between gap-3">
+        <h3 id="quizTitle" class="text-lg font-bold">Тест</h3>
+        <button id="btnExitQuiz" class="btn btn-ghost">Назад</button>
+      </div>
+      <div id="quizMeta" class="text-sm text-slate-600"></div>
+      <ol id="quizQuestions" class="mt-4 space-y-4 list-decimal list-inside"></ol>
+      <div class="mt-4 flex items-center gap-3">
+        <button id="btnSubmitQuiz" class="btn btn-primary">Предай тест</button>
+        <div id="quizMsg" class="text-sm text-slate-600"></div>
       </div>
     </section>
   </main>
@@ -232,6 +203,46 @@
   <footer class="py-10 text-center text-xs text-slate-500">
     © <span id="year"></span> Туристически свят • T‑MAP
   </footer>
+
+  <!-- Lessons Modal -->
+  <div id="lessonsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-40">
+    <div class="absolute inset-0" id="lessonsModalBg"></div>
+    <div class="absolute left-1/2 top-10 -translate-x-1/2 w-[min(100%-24px,980px)]">
+      <div class="card overflow-hidden">
+        <div class="p-4 flex items-center justify-between">
+          <h3 class="text-lg font-bold">Уроци по курса</h3>
+          <button id="closeLessons" class="btn btn-ghost">Затвори</button>
+        </div>
+        <div class="grid md:grid-cols-3 gap-0 border-t border-slate-200">
+          <aside class="md:col-span-1 p-4 border-r border-slate-200">
+            <ul id="lessonList" class="space-y-2 text-sm"></ul>
+            <div id="lessonEmpty" class="text-sm text-slate-500">Няма уроци.</div>
+            <div id="lessonAdminBox" class="mt-4 hidden">
+              <button id="btnNewLesson" class="btn btn-primary w-full">+ Нов урок</button>
+            </div>
+          </aside>
+          <div class="md:col-span-2 p-4">
+            <article id="lessonView" class="max-w-none prose prose-slate">
+              <p class="text-slate-600 text-sm">Изберете урок отляво…</p>
+            </article>
+
+            <!-- Admin editor -->
+            <div id="lessonEditor" class="hidden mt-4">
+              <div class="grid gap-3">
+                <input id="le_title" class="border rounded-xl px-3 py-2" placeholder="Заглавие на урока" />
+                <div class="grid grid-cols-3 gap-3">
+                  <input id="le_order" type="number" class="border rounded-xl px-3 py-2" placeholder="Поредност (число)" />
+                  <label class="flex items-center gap-2 text-sm"><input id="le_published" type="checkbox" class="scale-110"> Публикуван</label>
+                  <button id="le_save" class="btn btn-primary">Запази урок</button>
+                </div>
+                <textarea id="le_md" rows="10" class="border rounded-xl px-3 py-2 font-mono text-sm" placeholder="# Заглавие\nСъдържание в Markdown…"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Toasts -->
   <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 hidden z-50">
@@ -246,95 +257,87 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Админ имейли
+    const ADMIN_EMAILS = ['uzunov.ange@gmail.com'];
+
     // === UI refs ===
     const yearEl = document.getElementById('year');
-    const hero = document.getElementById('hero');
-    const dashboard = document.getElementById('dashboard');
-    const userArea = document.getElementById('userArea');
-    const tabs = document.getElementById('tabs');
-    const homePane = document.getElementById('homePane');
-    const courseList = document.getElementById('courseList');
-    const emptyCourses = document.getElementById('emptyCourses');
-    const filterCategory = document.getElementById('filterCategory');
-    const searchCourse = document.getElementById('searchCourse');
-    const myEnrollments = document.getElementById('myEnrollments');
-    const myResults = document.getElementById('myResults');
-    const quizView = document.getElementById('quizView');
-    const quizTitle = document.getElementById('quizTitle');
-    const quizMeta = document.getElementById('quizMeta');
-    const quizQuestions = document.getElementById('quizQuestions');
-    const quizMsg = document.getElementById('quizMsg');
-
     yearEl.textContent = new Date().getFullYear();
 
-    // === Toast helper ===
+    const tabs = document.getElementById('tabs');
+    const adminTab = document.getElementById('adminTab');
+    const userArea = document.getElementById('userArea');
+
+    const hero = document.getElementById('hero');
+    const homePane = document.getElementById('homePane');
+    const catalogPane = document.getElementById('catalogPane');
+    const learningPane = document.getElementById('learningPane');
+    const resultsPane = document.getElementById('resultsPane');
+    const adminPane = document.getElementById('adminPane');
+
     const toastBox = document.getElementById('toast');
-    function toast(msg) {
-      toastBox.firstElementChild.textContent = msg;
-      toastBox.classList.remove('hidden');
-      setTimeout(() => toastBox.classList.add('hidden'), 2400);
-    }
+    function toast(msg){ toastBox.firstElementChild.textContent = msg; toastBox.classList.remove('hidden'); setTimeout(()=>toastBox.classList.add('hidden'), 2400); }
+
+    // Global guard for runtime errors (за да няма бял екран без обяснение)
+    window.addEventListener('error', (e) => { console.error(e.error || e.message); alert('Възникна грешка в страницата. Виж конзолата (F12) за детайли.'); });
 
     // === Auth (само Google) ===
-    document.getElementById('btnGoogle').addEventListener('click', async () => {
+    const btnGoogle = document.getElementById('btnGoogle');
+    btnGoogle?.addEventListener('click', async () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: window.location.href,
-          queryParams: { prompt: 'consent', access_type: 'offline' }
-        }
+        options: { redirectTo: window.location.href, queryParams: { prompt: 'consent', access_type: 'offline' } }
       });
       if (error) toast('Грешка при вход: ' + error.message);
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      render(session?.user || null);
-    });
+    supabase.auth.onAuthStateChange((_event, session) => { render(session?.user || null); });
 
-    async function ensureProfile(user) {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .upsert({ id: user.id, email: user.email, full_name: user.user_metadata?.full_name || null, avatar_url: user.user_metadata?.avatar_url || null }, { onConflict: 'id' })
-          .select('*')
-          .single();
-        if (error) console.warn('profiles upsert:', error.message);
-        return data;
-      } catch (e) { console.warn(e); }
-      return null;
+    async function ensureProfile(user){
+      if(!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, email: user.email, full_name: user.user_metadata?.full_name || null, avatar_url: user.user_metadata?.avatar_url || null }, { onConflict: 'id' })
+        .select('*')
+        .maybeSingle();
+      if (error) console.warn('profiles upsert:', error.message);
+      return data;
     }
 
-    async function render(user) {
+    async function render(user){
       userArea.innerHTML = '';
-      if (!user) {
+      const showTab = (name) => {
+        homePane.classList.toggle('hidden', name !== 'home');
+        catalogPane.classList.toggle('hidden', name !== 'catalog');
+        learningPane.classList.toggle('hidden', name !== 'learning');
+        resultsPane.classList.toggle('hidden', name !== 'results');
+        adminPane.classList.toggle('hidden', name !== 'admin');
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+      };
+
+      if (!user){
         tabs.classList.add('hidden');
         hero.classList.remove('hidden');
-        homePane.classList.remove('hidden');
-        dashboard.classList.add('hidden');
+        showTab('home'); // показваме homePane за превю
         const btn = document.createElement('button');
-        btn.className = 'btn btn-primary';
-        btn.textContent = 'Вход';
-        btn.onclick = () => document.getElementById('btnGoogle').click();
+        btn.className = 'btn btn-primary'; btn.textContent = 'Вход'; btn.onclick = ()=>btnGoogle.click();
         userArea.append(btn);
         return;
       }
 
       await ensureProfile(user);
 
-      // header chip
-      const chip = document.createElement('div');
-      chip.className = 'chip';
-      chip.innerHTML = `${user.user_metadata?.avatar_url ? `<img src="${user.user_metadata.avatar_url}" class="w-5 h-5 rounded-full mr-2"/>` : ''}<span class="mr-2">${user.email}</span>`;
-      const out = document.createElement('button');
-      out.className = 'btn btn-ghost';
-      out.textContent = 'Изход';
-      out.onclick = async () => { await supabase.auth.signOut(); window.location.reload(); };
-      userArea.append(chip, out);
+      const isAdmin = ADMIN_EMAILS.includes(user.email);
+      const chip = document.createElement('div'); chip.className='chip';
+      chip.innerHTML = `${user.user_metadata?.avatar_url ? `<img src="${user.user_metadata.avatar_url}" class="w-5 h-5 rounded-full mr-2"/>` : ''}<span class="mr-2">${user.email}</span>${isAdmin ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[11px] font-bold">Админ</span>' : ''}`;
+      const outBtn = document.createElement('button'); outBtn.className='btn btn-ghost'; outBtn.textContent='Изход'; outBtn.onclick=async()=>{ await supabase.auth.signOut(); window.location.reload(); };
+      userArea.append(chip, outBtn);
 
       hero.classList.add('hidden');
       tabs.classList.remove('hidden');
-      homePane.classList.remove('hidden');
-      dashboard.classList.add('hidden');
+      adminTab.classList.toggle('hidden', !isAdmin);
+
+      showTab('home');
 
       await Promise.all([
         loadCourses(),
@@ -343,137 +346,137 @@
       ]);
     }
 
-    // === Каталог курсове ===
+    // Tabs events
+    document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click', async ()=>{
+      const name = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b===btn));
+      homePane.classList.toggle('hidden', name !== 'home');
+      catalogPane.classList.toggle('hidden', name !== 'catalog');
+      learningPane.classList.toggle('hidden', name !== 'learning');
+      resultsPane.classList.toggle('hidden', name !== 'results');
+      adminPane.classList.toggle('hidden', name !== 'admin');
+      if (name === 'catalog' && !document.getElementById('courseList').children.length) await loadCourses();
+      if (name === 'results') document.getElementById('myResultsDup').innerHTML = document.getElementById('myResults').innerHTML;
+      if (name === 'admin') await loadAdmin();
+    }));
+
+    // === Курс каталог ===
     let allCourses = [];
 
-    async function loadCourses() {
+    async function loadCourses(){
       const { data, error } = await supabase
         .from('courses')
         .select('id, title, category, level, price_bgn, duration_min, short_description, cover_url, published')
         .eq('published', true)
         .order('created_at', { ascending: false });
-      if (error) { console.warn('courses:', error.message); allCourses = []; }
+      if (error) { console.warn('courses:', error.message); allCourses=[]; }
       else allCourses = data || [];
 
-      const cats = Array.from(new Set(allCourses.map(c => c.category).filter(Boolean)));
-      filterCategory.innerHTML = '<option value="">Всички категории</option>' + cats.map(c => `<option>${c}</option>`).join('');
-      renderCourseCards();
+      const filterCategory = document.getElementById('filterCategory');
+      const searchCourse = document.getElementById('searchCourse');
+      const courseList = document.getElementById('courseList');
+      const emptyCourses = document.getElementById('emptyCourses');
+
+      const cats = Array.from(new Set(allCourses.map(c=>c.category).filter(Boolean)));
+      filterCategory.innerHTML = '<option value="">Всички категории</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+
+      const renderCards = () => {
+        const q = (searchCourse.value||'').toLowerCase();
+        const cat = filterCategory.value||'';
+        const list = allCourses.filter(c=>(!cat || c.category===cat) && (!q || c.title.toLowerCase().includes(q)));
+        courseList.innerHTML='';
+        if (!list.length){ emptyCourses.classList.remove('hidden'); return; }
+        emptyCourses.classList.add('hidden');
+        list.forEach(c=>courseList.appendChild(courseCard(c)));
+      };
+      filterCategory.onchange = renderCards;
+      searchCourse.oninput = renderCards;
+      renderCards();
     }
 
-    function renderCourseCards() {
-      const q = (searchCourse.value || '').toLowerCase();
-      const cat = filterCategory.value || '';
-      const list = allCourses.filter(c => (!cat || c.category === cat) && (!q || c.title.toLowerCase().includes(q)));
-      courseList.innerHTML = '';
-      if (!list.length) { emptyCourses.classList.remove('hidden'); return; }
-      emptyCourses.classList.add('hidden');
-      list.forEach(c => courseList.appendChild(courseCard(c)));
-    }
-
-    filterCategory.addEventListener('change', renderCourseCards);
-    searchCourse.addEventListener('input', renderCourseCards);
-
-    function courseCard(c) {
-      const el = document.createElement('article');
-      el.className = 'card overflow-hidden';
+    function courseCard(c){
+      const el = document.createElement('article'); el.className='card overflow-hidden';
       el.innerHTML = `
         <div class="aspect-[16/9] bg-slate-100" style="background-image:url('${c.cover_url || ''}'); background-size:cover; background-position:center"></div>
         <div class="p-4 space-y-2">
           <div class="flex items-center justify-between">
             <h3 class="font-semibold">${c.title}</h3>
-            ${c.category ? `<span class=\"chip\">${c.category}</span>` : ''}
+            ${c.category ? `<span class="chip">${c.category}</span>` : ''}
           </div>
           <p class="text-sm text-slate-600">${c.short_description || ''}</p>
           <div class="flex flex-wrap items-center gap-3 text-sm text-slate-700">
             ${c.level ? `<span>Ниво: <b>${c.level}</b></span>` : ''}
             ${c.duration_min ? `<span>⏱️ ${c.duration_min} мин</span>` : ''}
-            ${typeof c.price_bgn === 'number' && c.price_bgn > 0 ? `<span>💳 ${Number(c.price_bgn).toFixed(2)} лв</span>` : '<span class="text-emerald-700">Безплатен</span>'}
+            ${typeof c.price_bgn === 'number' && Number(c.price_bgn)>0 ? `<span>💳 ${Number(c.price_bgn).toFixed(2)} лв</span>` : '<span class="text-emerald-700">Безплатен</span>'}
           </div>
           <div class="flex gap-2 pt-1">
-            <button class="btn btn-primary" data-course="${c.id}">Запиши се</button>
-            <button class="btn btn-ghost" data-preview="${c.id}">Преглед</button>
+            <button class="btn btn-primary" data-enroll>Запиши се</button>
+            <button class="btn btn-ghost" data-lessons>Уроци</button>
           </div>
         </div>`;
-
-      el.querySelector('[data-course]')?.addEventListener('click', () => enrollInCourse(c));
-      el.querySelector('[data-preview]')?.addEventListener('click', () => openPreview(c));
+      el.querySelector('[data-enroll]').onclick = ()=>enrollInCourse(c);
+      el.querySelector('[data-lessons]').onclick = ()=>openLessons(c.id);
       return el;
     }
 
-    function openPreview(c) {
-      alert(`${c.title}\n\nОписание:\n${c.short_description || 'Няма описание.'}`);
-    }
-
-    // === Записване в курс ===
-    async function enrollInCourse(course) {
+    async function enrollInCourse(course){
       const { data: session } = await supabase.auth.getSession();
-      const user = session?.session?.user;
-      if (!user) { toast('Моля, влез първо.'); return; }
-
-      if (!course.price_bgn || Number(course.price_bgn) === 0) {
+      const user = session?.session?.user; if(!user){ toast('Моля, влез първо.'); return; }
+      if (!course.price_bgn || Number(course.price_bgn) === 0){
         const { error } = await supabase.from('enrollments').insert({ user_id: user.id, course_id: course.id, status: 'active' });
         if (error) return toast('Грешка: ' + error.message);
-        await loadEnrollments(user.id);
-        toast('Успешно записване!');
-        return;
+        await loadEnrollments(user.id); toast('Успешно записване!'); return;
       }
-
-      // Платен курс — placeholder (Stripe по-късно)
       toast('Платен курс — плащанията ще бъдат активирани скоро.');
     }
 
     // === Мои записвания ===
-    async function loadEnrollments(userId) {
+    async function loadEnrollments(userId){
+      const myEnrollments = document.getElementById('myEnrollments');
       const { data, error } = await supabase
         .from('enrollments')
         .select('id, status, course:courses(id,title)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
-      if (error) { console.warn('enrollments:', error.message); return; }
-      myEnrollments.innerHTML = '';
-      (data || []).forEach(en => {
-        const li = document.createElement('li');
-        li.className = 'flex items-center justify-between gap-3';
+      if (error){ console.warn('enrollments:', error.message); return; }
+      myEnrollments.innerHTML='';
+      (data||[]).forEach(en=>{
+        const li = document.createElement('li'); li.className='flex items-center justify-between gap-3';
         li.innerHTML = `
           <span>${en.course?.title || 'Курс'} — <b>${en.status}</b></span>
           <div class="flex gap-2">
-            <button class="btn btn-ghost text-xs" data-learn="${en.course?.id}">Уроци</button>
-            <button class="btn btn-primary text-xs" data-quiz="${en.course?.id}">Изпит</button>
+            <button class="btn btn-ghost text-xs" data-learn>Уроци</button>
+            <button class="btn btn-primary text-xs" data-quiz>Изпит</button>
           </div>`;
-        li.querySelector('[data-quiz]')?.addEventListener('click', () => startQuizForCourse(en.course?.id));
-        li.querySelector('[data-learn]')?.addEventListener('click', () => openLessons(en.course?.id));
+        li.querySelector('[data-quiz]').onclick = ()=>startQuizForCourse(en.course?.id);
+        li.querySelector('[data-learn]').onclick = ()=>openLessons(en.course?.id);
         myEnrollments.appendChild(li);
       });
-      if (!(data || []).length) myEnrollments.innerHTML = '<li class="text-slate-500">Нямате активни записвания.</li>';
-    }
-
-    function openLessons(courseId) {
-      alert('Страницата с уроци ще бъде добавена. Course ID: ' + courseId);
+      if (!(data||[]).length) myEnrollments.innerHTML = '<li class="text-slate-500">Нямате активни записвания.</li>';
     }
 
     // === Резултати ===
-    async function loadResults(userId) {
+    async function loadResults(userId){
+      const myResults = document.getElementById('myResults');
       const { data, error } = await supabase
         .from('quiz_attempts')
         .select('id, score_pct, passed, quiz:quizzes(title), created_at')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (error) { console.warn('attempts:', error.message); return; }
-      myResults.innerHTML = '';
-      (data || []).forEach(a => {
+        .order('created_at', { ascending: false }).limit(20);
+      if (error){ console.warn('attempts:', error.message); return; }
+      myResults.innerHTML='';
+      (data||[]).forEach(a=>{
         const li = document.createElement('li');
         li.innerHTML = `<b>${a.quiz?.title || 'Тест'}</b> — ${a.score_pct?.toFixed?.(0) ?? 0}% ${a.passed ? '✅' : '❌'} <span class="text-slate-500">(${new Date(a.created_at).toLocaleString()})</span>`;
         myResults.appendChild(li);
       });
-      if (!(data || []).length) myResults.innerHTML = '<li class="text-slate-500">Все още нямате резултати.</li>';
+      if (!(data||[]).length) myResults.innerHTML = '<li class="text-slate-500">Все още нямате резултати.</li>';
     }
 
     // === Тестове ===
-    let currentQuiz = null;
-    let currentAnswers = {};
+    let currentQuiz = null; let currentAnswers = {};
 
-    async function startQuizForCourse(courseId) {
+    async function startQuizForCourse(courseId){
       const { data: quiz, error } = await supabase
         .from('quizzes')
         .select('id, title, time_limit_min, pass_pct')
@@ -481,100 +484,134 @@
         .eq('published', true)
         .order('created_at', { ascending: true })
         .maybeSingle();
-      if (error || !quiz) { toast('Няма наличен тест за този курс.'); return; }
-      currentQuiz = quiz;
-
+      if (error || !quiz){ toast('Няма наличен тест за този курс.'); return; }
+      currentQuiz = quiz; currentAnswers = {};
       const { data: questions, error: qErr } = await supabase
         .from('quiz_questions')
         .select('id, question, options:quiz_options(id, text, is_correct)')
         .eq('quiz_id', quiz.id)
         .order('order_idx', { ascending: true });
-      if (qErr) { toast('Грешка при зареждане на въпроси.'); return; }
+      if (qErr){ toast('Грешка при зареждане на въпроси.'); return; }
 
-      quizTitle.textContent = quiz.title;
-      quizMeta.textContent = `Време: ${quiz.time_limit_min || '—'} мин • Успешен праг: ${quiz.pass_pct ?? 70}%`;
-      quizQuestions.innerHTML = '';
-      currentAnswers = {};
-      (questions || []).forEach((q) => {
-        const li = document.createElement('li');
-        li.className = 'space-y-2';
-        li.innerHTML = `<div class=\"font-medium\">${q.question}</div>`;
-        const opts = document.createElement('div');
-        opts.className = 'space-y-1';
-        q.options.forEach(op => {
-          const id = `q${q.id}_${op.id}`;
-          const row = document.createElement('label');
-          row.className = 'flex items-center gap-2';
-          row.innerHTML = `<input type=\"radio\" name=\"q_${q.id}\" id=\"${id}\" class=\"scale-110\"> <span>${op.text}</span>`;
-          row.querySelector('input').addEventListener('change', () => { currentAnswers[q.id] = op.id; });
+      document.getElementById('quizTitle').textContent = quiz.title;
+      document.getElementById('quizMeta').textContent = `Време: ${quiz.time_limit_min || '—'} мин • Успешен праг: ${quiz.pass_pct ?? 70}%`;
+      const quizQuestions = document.getElementById('quizQuestions'); quizQuestions.innerHTML='';
+      (questions||[]).forEach(q=>{
+        const li = document.createElement('li'); li.className='space-y-2';
+        li.innerHTML = `<div class="font-medium">${q.question}</div>`;
+        const opts = document.createElement('div'); opts.className='space-y-1';
+        q.options.forEach(op=>{
+          const row = document.createElement('label'); row.className='flex items-center gap-2';
+          row.innerHTML = `<input type="radio" name="q_${q.id}" class="scale-110"> <span>${op.text}</span>`;
+          row.querySelector('input').addEventListener('change', ()=>{ currentAnswers[q.id] = op.id; });
           opts.appendChild(row);
         });
-        li.appendChild(opts);
-        quizQuestions.appendChild(li);
+        li.appendChild(opts); quizQuestions.appendChild(li);
       });
 
-      quizView.classList.remove('hidden');
-      window.scrollTo({ top: quizView.offsetTop - 20, behavior: 'smooth' });
+      document.getElementById('quizView').classList.remove('hidden');
+      window.scrollTo({ top: document.getElementById('quizView').offsetTop - 20, behavior: 'smooth' });
     }
 
-    document.getElementById('btnExitQuiz').addEventListener('click', () => {
-      quizView.classList.add('hidden');
-      quizQuestions.innerHTML = '';
+    document.getElementById('btnExitQuiz').addEventListener('click', ()=>{
+      document.getElementById('quizView').classList.add('hidden');
+      document.getElementById('quizQuestions').innerHTML='';
     });
 
     document.getElementById('btnSubmitQuiz').addEventListener('click', submitQuiz);
 
-    async function submitQuiz() {
+    async function submitQuiz(){
       if (!currentQuiz) return;
       const { data: questions } = await supabase
         .from('quiz_questions')
         .select('id, options:quiz_options(id, is_correct)')
         .eq('quiz_id', currentQuiz.id);
-      const total = (questions || []).length;
-      if (!total) return;
-
-      let correct = 0;
-      (questions || []).forEach(q => {
-        const chosen = currentAnswers[q.id];
-        const right = q.options.find(o => o.is_correct);
-        if (chosen && right && chosen === right.id) correct++;
-      });
-
-      const pct = Math.round((correct / total) * 100);
-      const passed = pct >= (currentQuiz.pass_pct ?? 70);
-
-      const { data: session } = await supabase.auth.getSession();
-      const userId = session?.session?.user?.id;
-      if (!userId) return toast('Сесията е изтекла.');
-
+      const total = (questions||[]).length; if (!total) return;
+      let correct=0; (questions||[]).forEach(q=>{ const chosen=currentAnswers[q.id]; const right=q.options.find(o=>o.is_correct); if (chosen && right && chosen===right.id) correct++; });
+      const pct = Math.round((correct/total)*100); const passed = pct >= (currentQuiz.pass_pct ?? 70);
+      const { data: session } = await supabase.auth.getSession(); const userId = session?.session?.user?.id; if(!userId){ toast('Сесията е изтекла.'); return; }
       const { error } = await supabase.from('quiz_attempts').insert({ user_id: userId, quiz_id: currentQuiz.id, score_pct: pct, passed });
-      if (error) { toast('Грешка при запис на резултат.'); return; }
-
-      quizMsg.textContent = `Резултат: ${pct}% ${passed ? '— Поздравления! ✅' : '— Опитайте отново. ❌'}`;
+      if (error){ toast('Грешка при запис на резултат.'); return; }
+      document.getElementById('quizMsg').textContent = `Резултат: ${pct}% ${passed ? '— Поздравления! ✅' : '— Опитайте отново. ❌'}`;
       await loadResults(userId);
     }
 
-    // === Tabs ===
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', async () => {
-      const name = btn.dataset.tab;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b===btn));
-      if (name === 'home') {
-        homePane.classList.remove('hidden');
-        dashboard.classList.add('hidden');
-      } else {
-        homePane.classList.add('hidden');
-        dashboard.classList.remove('hidden');
-        if (!document.getElementById('courseList').children.length) {
-          await loadCourses();
-        }
+    // === Уроци ===
+    async function openLessons(courseId){
+      const modal = document.getElementById('lessonsModal');
+      const listEl = document.getElementById('lessonList');
+      const emptyEl = document.getElementById('lessonEmpty');
+      const viewEl = document.getElementById('lessonView');
+      const adminBox = document.getElementById('lessonAdminBox');
+      const editor = document.getElementById('lessonEditor');
+      const isAdmin = ADMIN_EMAILS.includes((await supabase.auth.getUser()).data?.user?.email || '');
+
+      adminBox.classList.toggle('hidden', !isAdmin);
+      editor.classList.add('hidden');
+
+      listEl.innerHTML = 'Зареждане…';
+      const { data: lessons, error } = await supabase
+        .from('lessons')
+        .select('id, course_id, title, content_md, order_idx, published')
+        .eq('course_id', courseId)
+        .order('order_idx', { ascending: true });
+      if (error){ listEl.innerHTML=''; emptyEl.textContent='Грешка при зареждане.'; emptyEl.classList.remove('hidden'); }
+      else {
+        listEl.innerHTML='';
+        (lessons||[]).forEach(ls=>{
+          const li = document.createElement('li');
+          li.innerHTML = `<button class="w-full text-left hover:underline">${ls.title}</button>`;
+          li.querySelector('button').addEventListener('click', ()=>{ viewEl.innerHTML = marked.parse(ls.content_md || ''); });
+          listEl.appendChild(li);
+        });
+        emptyEl.classList.toggle('hidden', (lessons||[]).length>0);
+        if ((lessons||[])[0]) viewEl.innerHTML = marked.parse(lessons[0].content_md || '');
       }
-    }));
+
+      const newBtn = document.getElementById('btnNewLesson');
+      if (newBtn) newBtn.onclick = () => {
+        if (!isAdmin) return;
+        editor.classList.remove('hidden');
+        document.getElementById('le_title').value='';
+        document.getElementById('le_order').value = (listEl.children.length+1).toString();
+        document.getElementById('le_published').checked = true;
+        document.getElementById('le_md').value = '# Нов урок\nСъдържание...';
+        document.getElementById('le_save').onclick = async ()=>{
+          const title = document.getElementById('le_title').value.trim();
+          const order_idx = Number(document.getElementById('le_order').value||0);
+          const published = document.getElementById('le_published').checked;
+          const content_md = document.getElementById('le_md').value;
+          if (!title) return toast('Въведи заглавие');
+          const { error: insErr } = await supabase.from('lessons').insert({ course_id: courseId, title, content_md, order_idx, published });
+          if (insErr) return toast('Грешка при запис: ' + insErr.message);
+          toast('Урокът е записан'); openLessons(courseId);
+        };
+      };
+
+      modal.classList.remove('hidden');
+    }
+
+    document.getElementById('lessonsModalBg')?.addEventListener('click', ()=>document.getElementById('lessonsModal').classList.add('hidden'));
+    document.getElementById('closeLessons')?.addEventListener('click', ()=>document.getElementById('lessonsModal').classList.add('hidden'));
+
+    // === Админ ===
+    async function loadAdmin(){
+      const paymentsEl = document.getElementById('adminPayments');
+      const enrollsEl = document.getElementById('adminEnrollments');
+      paymentsEl.innerHTML = 'Зареждане…'; enrollsEl.innerHTML = 'Зареждане…';
+      const [pay, enr] = await Promise.all([
+        supabase.from('payments').select('id, amount_bgn, status, user_email, course:courses(title)').order('created_at', { ascending: false }).limit(10),
+        supabase.from('enrollments').select('id, status, user:profiles(email), course:courses(title)').order('created_at', { ascending: false }).limit(10)
+      ]);
+      const payments = pay.data || []; const enrolls = enr.data || [];
+      paymentsEl.innerHTML = payments.length ? '' : '<li class="text-slate-500">Няма плащания.</li>';
+      payments.forEach(p=>{ const li=document.createElement('li'); li.innerHTML=`${p.user_email || ''} → <b>${p.course?.title || 'Курс'}</b> — ${p.amount_bgn?.toFixed?.(2) ?? '—'} лв — <b>${p.status}</b>`; paymentsEl.appendChild(li); });
+      enrollsEl.innerHTML = enrolls.length ? '' : '<li class="text-slate-500">Няма записвания.</li>';
+      enrolls.forEach(e=>{ const li=document.createElement('li'); li.innerHTML=`${e.user?.email || ''} → <b>${e.course?.title || 'Курс'}</b> — <b>${e.status}</b>`; enrollsEl.appendChild(li); });
+    }
 
     // === Init ===
-    (async () => {
-      const { data } = await supabase.auth.getUser();
-      render(data?.user || null);
-    })();
+    (async ()=>{ const { data } = await supabase.auth.getUser(); render(data?.user || null); })();
   </script>
 </body>
 </html>
