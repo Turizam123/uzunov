@@ -224,7 +224,7 @@
           </div>
           <div class="rounded-2xl bg-white shadow-soft p-6 border border-slate-100">
             <div class="text-sm text-slate-500">Групи 3+</div>
-            <div class="text-3xl font-extrabold mt-1">-10%</</div>
+            <div class="text-3xl font-extrabold mt-1">-10%</div>
             <p class="mt-2 text-sm text-slate-600">За групови записвания</p>
           </div>
         </div>
@@ -320,8 +320,11 @@
 
   <script>
     // ======= Конфигурации =======
-    const ADMIN_USER_ID = '59e62f07-5fab-443f-a0cb-efd988b44b8f'; // Админ идентификатор (Supabase user.id)
-    // ВАЖНО: Google Client ID/Secret се конфигурират в Supabase → Providers → Google.
+    const ADMIN_EMAIL = 'uzunov.ange@gmail.com'; // Админ по имейл
+    // По желание остави и резервна проверка по user.id:
+    // const ADMIN_USER_ID = '59e62f07-5fab-443f-a0cb-efd988b44b8f';
+
+    // ВАЖНО: Google Client ID/Secret се конфигурират в Supabase → Providers → Google (не във фронтенда).
     const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -482,7 +485,8 @@
         $('#pfEmail').textContent = user.email || '—';
         $('#studentProfile').classList.remove('hidden');
 
-        const isAdmin = (user.id === ADMIN_USER_ID);
+        // Админ по имейл (и по желание по user.id)
+        const isAdmin = (user.email === ADMIN_EMAIL); // || (user.id === ADMIN_USER_ID);
         if(isAdmin){
           adminBadge.classList.remove('hidden');
           adminTabBtn.classList.remove('hidden');
@@ -492,7 +496,7 @@
           if($('#admin').classList.contains('active')) showTab('home');
         }
       }else{
-        // Без вход – показваме само „Начало“
+        // Без вход – само „Начало“
         btnSignIn.classList.remove('hidden');
         btnSignOut.classList.add('hidden');
         userEmailEl.textContent = 'Гост';
@@ -511,7 +515,6 @@
         provider: 'google',
         options: {
           redirectTo: window.location.href,
-          // По избор: изискай профил/имейл ако искаш разширени полета
           scopes: 'openid email profile'
         }
       });
