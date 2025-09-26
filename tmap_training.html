@@ -24,6 +24,7 @@
     .hero-bg { position:absolute; inset:0; background-position:center; background-size:cover; transform:scale(1.02); }
     .hero-overlay { position:absolute; inset:0; background:linear-gradient(180deg, rgba(2,6,23,.55) 0%, rgba(2,6,23,.35) 40%, rgba(2,6,23,.55) 100%); }
     .hero-content { position:relative; z-index:1; color:#fff; padding:56px 24px; }
+  .tab-btn{padding:10px 14px;border-radius:10px;font-weight:600;color:#334155} .tab-btn.active{background:#0ea5e9;color:#fff;box-shadow:0 6px 16px rgba(14,165,233,.22)}
   </style>
   <!-- Supabase JS v2 -->
   <script type="module" src="https://esm.sh/@supabase/supabase-js@2"></script>
@@ -39,7 +40,15 @@
       </div>
       <div id="userArea" class="flex items-center gap-3"></div>
     </div>
-  </header>
+    <nav id="tabs" class="hidden border-t border-slate-200 bg-white/70 backdrop-blur">
+    <div class="max-w-6xl mx-auto px-4">
+      <ul class="flex items-center gap-1 py-2">
+        <li><button data-tab="home" class="tab-btn active">Начало</button></li>
+        <li><button data-tab="catalog" class="tab-btn">Каталог</button></li>
+      </ul>
+    </div>
+  </nav>
+</header>
 
   <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
     <!-- AUTH/HERO -->
@@ -110,7 +119,8 @@
     </section>
 
     <!-- Под героя: компактни секции за мобилни -->
-    <section id="upcoming" class="mt-8 lg:mt-10">
+    <section id="homePane" class="hidden space-y-8">
+      <section id="upcoming" class="mt-8 lg:mt-10">
       <div class="max-w-6xl mx-auto px-0">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-xl font-bold">Предстоящи курсове</h3>
@@ -140,8 +150,7 @@
         </div>
       </div>
     </section>
-
-    <section id="offers" class="mt-8">
+      <section id="offers" class="mt-8">
       <div class="max-w-6xl mx-auto">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-xl font-bold">Оферти и намаления</h3>
@@ -178,9 +187,10 @@
         <p class="text-xs text-slate-500 mt-2">* Демонстрационни дати/цени — ще се зареждат от база.</p>
       </div>
     </section>
+    </section>
 
     <!-- DASHBOARD -->
-    <section id="dashboard" class="hidden space-y-6">
+    <section id="dashboard" class="hidden space-y-6" data-pane="catalog">
       <div class="grid md:grid-cols-3 gap-6">
         <div class="md:col-span-2 card p-5 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
@@ -241,6 +251,8 @@
     const hero = document.getElementById('hero');
     const dashboard = document.getElementById('dashboard');
     const userArea = document.getElementById('userArea');
+    const tabs = document.getElementById('tabs');
+    const homePane = document.getElementById('homePane');
     const courseList = document.getElementById('courseList');
     const emptyCourses = document.getElementById('emptyCourses');
     const filterCategory = document.getElementById('filterCategory');
@@ -295,7 +307,9 @@
     async function render(user) {
       userArea.innerHTML = '';
       if (!user) {
+        tabs.classList.add('hidden');
         hero.classList.remove('hidden');
+        homePane.classList.remove('hidden');
         dashboard.classList.add('hidden');
         const btn = document.createElement('button');
         btn.className = 'btn btn-primary';
@@ -318,7 +332,9 @@
       userArea.append(chip, out);
 
       hero.classList.add('hidden');
-      dashboard.classList.remove('hidden');
+      tabs.classList.remove('hidden');
+      homePane.classList.remove('hidden');
+      dashboard.classList.add('hidden');
 
       await Promise.all([
         loadCourses(),
@@ -537,6 +553,22 @@
       quizMsg.textContent = `Резултат: ${pct}% ${passed ? '— Поздравления! ✅' : '— Опитайте отново. ❌'}`;
       await loadResults(userId);
     }
+
+    // === Tabs ===
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', async () => {
+      const name = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b===btn));
+      if (name === 'home') {
+        homePane.classList.remove('hidden');
+        dashboard.classList.add('hidden');
+      } else {
+        homePane.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+        if (!document.getElementById('courseList').children.length) {
+          await loadCourses();
+        }
+      }
+    }));
 
     // === Init ===
     (async () => {
