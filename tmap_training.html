@@ -6,8 +6,6 @@
   <meta name="theme-color" content="#16a34a">
   <title>Заявка – Програма за Планински водачи</title>
   <meta name="description" content="Подай заявка за обучение за планински водачи: онлайн теория, теренни модули, оцеляване и първа помощ, бивакуване, алпинизъм, въжета и Виа Ферата, организиране на преходи." />
-
-  <!-- Fonts & Tailwind (CDN) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -306,17 +304,25 @@
           </div>
 
           <!-- FORM -->
-          <form id="applyForm" action="https://formsubmit.co/uzunov.angel@abv.bg" method="POST" enctype="multipart/form-data" class="card" novalidate>
+          <form id="applyForm" action="https://formsubmit.co/uzunov.ange@gmail.com" method="POST" enctype="multipart/form-data" class="card" novalidate>
             <div class="card-head">
               <h4 class="card-title">Заявка</h4>
             </div>
             <div class="card-body">
+              <!-- FormSubmit meta -->
               <input type="hidden" name="_subject" value="Нова заявка – Програма за Планински водачи">
               <input type="hidden" name="_captcha" value="false">
               <input type="hidden" name="_template" value="table">
+              <input type="hidden" name="_next" value="https://turistibg.weebly.com/1055105610401042104810511040.html" />
+
+              <!-- Автоматичен отговор до кандидата -->
+              <input type="hidden" name="_autoresponse" value="Благодарим за заявката! При одобрение ще се свържем за насрочване на входен изпит. За включване в изпита се заплаща такса кандидатстване 370 лв. / 189.18 EUR.">
+
+              <!-- Данни за избраните модули -->
               <input type="hidden" name="Избрани модули" id="chosenModulesField" value="">
               <input type="hidden" name="Валута" id="currencyField" value="BGN">
               <input type="hidden" name="Такса кандидатстване" id="appFeeField" value="370 BGN">
+              <input type="hidden" name="Процедура" value="При одобрение ще се свържем за насрочване на входен изпит. За включване в изпита се заплаща такса кандидатстване 370 лв. / 189.18 EUR.">
 
               <label class="block mb-3">
                 <span class="text-sm font-medium">Име и фамилия <span class="text-red-600">*</span></span>
@@ -366,6 +372,18 @@
                 </div>
               </div>
 
+              <!-- Информация за таксата + задължителна отметка -->
+              <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                <p class="text-sm">
+                  При одобрение ще се свържем за насрочване на входен изпит. За включване в изпита се заплаща
+                  <strong>такса кандидатстване 370 лв. / 189.18 EUR</strong>.
+                </p>
+              </div>
+              <div class="mt-3 text-sm flex items-start gap-2">
+                <input type="checkbox" required class="mt-1 accent-green-600">
+                <span>Потвърждавам, че приемам заплащането на таксата кандидатстване 370 лв. / 189.18 EUR при включване във входния изпит.</span>
+              </div>
+
               <label class="block mt-4">
                 <span class="text-sm font-medium">Допълнителни бележки</span>
                 <textarea name="Бележки" rows="3" class="mt-1 w-full rounded-xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Специфични нужди, дати, въпроси..."></textarea>
@@ -379,7 +397,6 @@
             <div class="card-foot">
               <button type="submit" class="btn btn-primary w-full">Изпрати заявката</button>
             </div>
-            <input type="hidden" name="_next" value="https://turistibg.weebly.com/1055105610401042104810511040.html" />
           </form>
         </div>
       </aside>
@@ -401,7 +418,6 @@
     const EUR_RATE = 1.95583;
     const APPLICATION_FEE_BGN = 370; // такса кандидатстване
     let currency = localStorage.getItem('currency') || 'BGN';
-
     const fmt = (bgn) => currency === 'BGN' ? `${bgn.toFixed(0)} BGN` : `${(bgn / EUR_RATE).toFixed(2)} EUR`;
 
     function updatePrices(){
@@ -466,7 +482,7 @@
     // module change
     document.querySelectorAll('.module').forEach(cb => cb.addEventListener('change', updateSummary));
 
-    // form guard: at least one module + required season choice
+    // submit guard: at least one module + required season choice
     document.getElementById('applyForm').addEventListener('submit', (e) => {
       const any = document.querySelector('.module:checked');
       const seasonPicked = document.querySelector('.required-season:checked');
