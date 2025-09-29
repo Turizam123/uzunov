@@ -1,628 +1,499 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="bg">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Онлайн обучение T-MAP</title>
-  <meta name="description" content="Обучителна платформа T-MAP – Теория (зима) и Практика (лято)"> 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🗺️</text></svg>"> 
-  <!-- Tailwind CSS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#16a34a">
+  <title>Заявка – Програма за Планински водачи</title>
+  <meta name="description" content="Подай заявка за обучение за планински водачи: онлайн теория, теренни модули, оцеляване и първа помощ, бивакуване, алпинизъм, въжета и Виа Ферата, организиране на преходи." />
+
+  <!-- Fonts & Tailwind (CDN) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#eef7ff', 100: '#d9edff', 200: '#b9dbff', 300: '#8fc2ff', 400: '#65a7ff',
-              500: '#3a8aff', 600: '#256ee6', 700: '#1e56b4', 800: '#1a4690', 900: '#183b78'
-            },
-            accent: {
-              50:'#fff7ed',100:'#ffedd5',200:'#fed7aa',300:'#fdba74',400:'#fb923c',500:'#f97316',600:'#ea580c',700:'#c2410c',800:'#9a3412',900:'#7c2d12'
-            }
-          },
-          boxShadow: { soft: '0 10px 25px rgba(0,0,0,0.06)' }
-        }
-      }
-    }
-  </script>
   <style>
-    .tab-pane { display: none; }
-    .tab-pane.active { display: block; }
-    * { scrollbar-width: thin; scrollbar-color: #3a8aff #eef7ff; }
-    *::-webkit-scrollbar { height: 8px; width: 8px; }
-    *::-webkit-scrollbar-track { background: #eef7ff; }
-    *::-webkit-scrollbar-thumb { background-color: #3a8aff; border-radius: 6px; }
-    dialog::backdrop { background: rgba(0,0,0,.4); }
+    :root{ --brand:#16a34a; --brand-2:#22c55e; --ring:#16a34a; }
+    html,body{font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;}
+    .card{ position:relative; border-radius:1rem; border:1px solid rgb(226 232 240); background:#fff; box-shadow:0 6px 16px rgba(0,0,0,.06); transition:all .2s; overflow:hidden; }
+    .card:hover{ box-shadow:0 20px 40px rgba(0,0,0,.08); transform:translateY(-2px); }
+    .card-head{ display:flex; align-items:flex-start; justify-content:space-between; padding:1.25rem; background:linear-gradient(90deg,#f0fdf4,#dcfce7); }
+    .card-title{ font-size:1.125rem; font-weight:800; letter-spacing:-.01em; color:#0f172a; }
+    .card-body{ padding:1.25rem; font-size:.925rem; color:#334155; }
+    .card-foot{ padding:1.25rem; padding-top:.75rem; display:flex; align-items:center; justify-content:space-between; }
+    .chip{ display:inline-flex; align-items:center; border-radius:999px; border:1px solid rgb(226 232 240); padding:.125rem .625rem; font-size:.69rem; font-weight:700; }
+    .chip-green{ border-color:#bbf7d0; color:#166534; background:#f0fdf4; }
+    .chip-red{ border-color:#fecaca; color:#991b1b; background:#fef2f2; }
+    .chip-amber{ border-color:#fde68a; color:#92400e; background:#fffbeb; }
+    .chip-blue{ border-color:#bfdbfe; color:#1d4ed8; background:#eff6ff; }
+    .chip-purple{ border-color:#e9d5ff; color:#6b21a8; background:#faf5ff; }
+    .price-xl{ font-size:1.375rem; font-weight:800; }
+    .muted{ font-size:.8rem; color:#64748b; }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; border-radius:.875rem; padding:.5rem 1rem; font-weight:700; border:1px solid rgb(226 232 240); background:#fff; color:#334155; transition:all .15s; }
+    .btn:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
+    .btn-primary{ background:linear-gradient(135deg,var(--brand),var(--brand-2)); color:#fff; border-color:transparent; }
+    .btn-primary:active{ transform:translateY(1px); }
+    .tap-area{ gap:.5rem; padding:.375rem .5rem; border-radius:.75rem; }
+    .safe-bottom{ padding-bottom:max(env(safe-area-inset-bottom),1rem); }
+    @media (prefers-reduced-motion: reduce){
+      *{ transition:none !important; animation-duration:.001ms !important; animation-iteration-count:1 !important; }
+    }
   </style>
-  <!-- Supabase JS v2 -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
-<body class="bg-gradient-to-b from-brand-50 to-white text-slate-800">
-  <!-- Top bar -->
-  <header class="sticky top-0 z-40 backdrop-blur border-b border-slate-200/60 bg-white/70">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex h-16 items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 grid place-items-center rounded-xl bg-brand-600 text-white shadow-soft">🗺️</div>
-          <div>
-            <h1 class="font-bold leading-none">Онлайн обучение <span class="text-brand-700">T-MAP</span></h1>
-            <p class="text-xs text-slate-500 -mt-1">Теория (зима) · Практика (лято)</p>
-          </div>
-        </div>
-
-        <!-- Right side: Currency + User -->
-        <div class="flex items-center gap-4">
-          <!-- Currency toggle -->
-          <div class="flex items-center gap-2 select-none">
-            <span class="text-xs font-medium text-slate-600">BGN</span>
-            <button id="currencyToggle" class="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-200">
-              <span id="currencyKnob" class="inline-block h-5 w-5 transform rounded-full bg-white translate-x-1 transition"></span>
-            </button>
-            <span class="text-xs font-medium text-slate-600">EUR</span>
-          </div>
-
-          <!-- User box -->
-          <div class="flex items-center gap-3">
-            <img id="userAvatar" class="hidden h-8 w-8 rounded-full ring-2 ring-white object-cover" alt="avatar" />
-            <span id="userEmail" class="text-sm text-slate-600 hidden sm:inline">Гост</span>
-            <span id="adminBadge" class="hidden text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">Админ</span>
-            <button id="btnSignIn" class="text-xs sm:text-sm px-3 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition">Вход с Google</button>
-            <button id="btnSignOut" class="hidden text-xs px-3 py-2 rounded-lg border hover:bg-slate-50">Изход</button>
-          </div>
+<body class="bg-slate-50 text-slate-800">
+  <!-- HERO -->
+  <header class="relative">
+    <div class="absolute inset-0 -z-10 pointer-events-none opacity-25 select-none" aria-hidden="true">
+      <svg viewBox="0 0 1440 320" class="w-full h-full" preserveAspectRatio="none">
+        <path fill="#16a34a" d="M0,224L48,229.3C96,235,192,245,288,229.3C384,213,480,171,576,170.7C672,171,768,213,864,229.3C960,245,1056,235,1152,197.3C1248,160,1344,96,1392,64L1440,32L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"></path>
+      </svg>
+    </div>
+    <div class="max-w-7xl mx-auto px-4 pt-10 pb-6 sm:pt-12 sm:pb-8">
+      <div class="text-center">
+        <span class="chip chip-green">Обучителен център „Туристически свят“</span>
+        <h1 class="mt-3 text-3xl sm:text-5xl font-extrabold tracking-tight">Заявка за включване – <span class="text-green-700">Планински водачи</span></h1>
+        <p class="mt-3 text-slate-600 max-w-3xl mx-auto">Избери онлайн и теренни модули. Задължителни: „Онлайн теория“, „Оцеляване & Медицински ситуации“, <strong>+ избор</strong> „Лято“ или „Зима“, и „Организиране на мероприятия“.</p>
+        <div class="mt-6 inline-flex items-center gap-2 rounded-full border bg-white px-2 py-2 shadow-sm" role="group" aria-label="Превключване на валута">
+          <span class="text-xs uppercase tracking-wider text-slate-500 pl-2">Валута</span>
+          <button id="btnBGN" class="btn px-3 py-1 rounded-full bg-green-600 text-white" aria-pressed="true" type="button">BGN</button>
+          <button id="btnEUR" class="btn px-3 py-1 rounded-full text-green-700 hover:bg-green-50" aria-pressed="false" type="button">EUR</button>
+          <span class="text-[11px] text-slate-400 pr-2" aria-hidden="true">1 EUR = 1.95583 BGN</span>
         </div>
       </div>
-
-      <!-- Tabs -->
-      <nav class="mt-2 border-t border-slate-200/60">
-        <ul class="flex flex-wrap gap-2 py-2" role="tablist">
-          <li><button data-tab="home" class="tab-btn px-3 py-1.5 rounded-full text-sm bg-brand-600 text-white shadow-soft">Начало</button></li>
-          <!-- Показват се само след вход -->
-          <li><button data-tab="my" class="tab-btn px-3 py-1.5 rounded-full text-sm hover:bg-slate-100 hidden" id="myTabBtn">Моето обучение</button></li>
-          <li><button data-tab="results" class="tab-btn px-3 py-1.5 rounded-full text-sm hover:bg-slate-100 hidden" id="resultsTabBtn">Резултати</button></li>
-          <!-- Само за Админ -->
-          <li><button data-tab="admin" class="tab-btn px-3 py-1.5 rounded-full text-sm hover:bg-slate-100 hidden" id="adminTabBtn">Админ</button></li>
-        </ul>
-      </nav>
     </div>
   </header>
 
-  <!-- Content -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Hero -->
-    <section class="tab-pane active" id="home" aria-labelledby="home-tab">
-      <div class="grid lg:grid-cols-3 gap-6 items-stretch">
-        <div class="lg:col-span-2">
-          <div class="relative overflow-hidden rounded-2xl bg-white shadow-soft p-8">
-            <div class="absolute -right-24 -top-24 w-72 h-72 rounded-full bg-brand-100 blur-3xl"></div>
-            <div class="relative">
-              <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Добре дошли в обучителния център <span class="text-brand-700">T-MAP</span></h2>
-              <p class="mt-3 text-slate-600">Подгответе се за сезоните с нашите програми: 
-                <span class="font-semibold">Теория (зима)</span> и <span class="font-semibold">Практика (лято)</span>. Гъвкави графици, реални умения, подкрепа от инструктори.</p>
-              <div class="mt-6 flex flex-wrap gap-3">
-                <a href="#courses" class="px-4 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700">Виж курсовете</a>
-                <a href="#offers" class="px-4 py-2 rounded-lg bg-accent-500 text-white hover:bg-accent-600">Оферти и намаления</a>
+  <main class="max-w-7xl mx-auto px-4 pb-28 lg:pb-24">
+    <div class="grid lg:grid-cols-3 gap-6 lg:gap-8">
+      <!-- LEFT: PROGRAMS -->
+      <section class="lg:col-span-2">
+        <h2 class="text-2xl font-bold">Модули</h2>
+        <div class="mt-5 grid sm:grid-cols-2 gap-5" id="modulesGrid">
+
+          <!-- ONLINE THEORY (mandatory) -->
+          <article class="card">
+            <div class="card-head">
+              <h3 class="card-title">ОНЛАЙН ОБУЧЕНИЕ – ТЕОРИЯ</h3>
+              <div class="flex gap-1">
+                <span class="chip chip-green">онлайн</span>
+                <span class="chip chip-red">задължителен</span>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Quick info card -->
-        <div class="rounded-2xl bg-white shadow-soft p-6">
-          <h3 class="font-semibold text-lg">Бърза информация</h3>
-          <ul class="mt-3 space-y-2 text-sm text-slate-600">
-            <li>⏱️ Продължителност: 4–6 седмици</li>
-            <li>🧭 Формат: Онлайн + теренни занятия</li>
-            <li>🎯 Ниво: Начинаещи и напреднали</li>
-            <li>📜 Сертификат след завършване</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Courses section -->
-      <section id="courses" class="mt-10">
-        <div class="flex items-end justify-between gap-4">
-          <h3 class="text-xl font-bold">Предстоящи курсове</h3>
-          <button id="addToMyPlanBtns" class="text-sm px-3 py-2 rounded-lg border border-brand-200 hover:bg-brand-50">Запиши избраните</button>
-        </div>
-        <div class="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-6" id="courseCards">
-          <!-- Карта: Теория (зима) -->
-          <article class="course-card group rounded-2xl bg-white shadow-soft overflow-hidden border border-slate-100" data-course-id="theory-winter">
-            <div class="p-5">
-              <div class="flex items-center justify-between">
-                <h4 class="font-semibold text-lg">Теория (зима)</h4>
-                <span class="text-xs px-2 py-1 rounded-full bg-sky-100 text-sky-700">онлайн</span>
-              </div>
-              <p class="mt-2 text-sm text-slate-600">Навигация, безопасност в планината, лавинна превенция, екипировка.</p>
-              <ul class="mt-3 text-sm text-slate-600 space-y-1">
-                <li>📅 Дати: <span data-dates>15 окт – 15 ное</span></li>
-                <li>🕒 Вечерни занятия: вт/чт 19:00</li>
-                <li>👥 Места: <span class="font-medium" data-seats>8 свободни</span></li>
-              </ul>
-              <div class="mt-4 flex items-center justify-between">
-                <div>
-                  <span class="text-xl font-extrabold" data-price-bgn="290">290 лв</span>
-                  <span class="ml-2 line-through text-slate-400 text-sm" data-old-bgn="350">350 лв</span>
-                </div>
-                <label class="inline-flex items-center gap-2 text-sm">
-                  <input type="checkbox" class="size-4" data-select-course>
-                  Избор
-                </label>
-              </div>
+            <div class="card-body">
+              <p>Интензивна теоретична подготовка: <strong>6 дни × 4 часа</strong>. Теоретичен изпит след всеки модул.</p>
             </div>
-            <div class="bg-gradient-to-r from-brand-50 to-white p-4 text-xs text-slate-600" data-badge>🎁 Ранни записвания до 1 октомври: още <span class="font-semibold">-10%</span></div>
+            <div class="card-foot">
+              <div>
+                <div class="price-xl"><span class="price" data-bgn="180">180 BGN</span></div>
+                <div class="muted">еднократно</div>
+              </div>
+              <label class="inline-flex items-center tap-area cursor-pointer select-none">
+                <input type="checkbox" class="module cb mandatory accent-green-600 scale-125" data-name="ОНЛАЙН ОБУЧЕНИЕ – ТЕОРИЯ" data-bgn="180" checked disabled>
+                <span class="text-sm font-medium">Включен</span>
+              </label>
+            </div>
           </article>
 
-          <!-- Карта: Практика (лято) -->
-          <article class="course-card group rounded-2xl bg-white shadow-soft overflow-hidden border border-slate-100" data-course-id="practice-summer">
-            <div class="p-5">
-              <div class="flex items-center justify-between">
-                <h4 class="font-semibold text-lg">Практика (лято)</h4>
-                <span class="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">на терен</span>
-              </div>
-              <p class="mt-2 text-sm text-slate-600">Маршрути, работа с GPS/GPX, бивакуване, първа помощ на терен.</p>
-              <ul class="mt-3 text-sm text-slate-600 space-y-1">
-                <li>📅 Дати: <span data-dates>10 юни – 10 юли</span></li>
-                <li>📍 Локации: Рила · Пирин · Стара планина</li>
-                <li>👥 Места: <span class="font-medium" data-seats>12 свободни</span></li>
-              </ul>
-              <div class="mt-4 flex items-center justify-between">
-                <div>
-                  <span class="text-xl font-extrabold" data-price-bgn="420">420 лв</span>
-                  <span class="ml-2 line-through text-slate-400 text-sm" data-old-bgn="490">490 лв</span>
-                </div>
-                <label class="inline-flex items-center gap-2 text-sm">
-                  <input type="checkbox" class="size-4" data-select-course>
-                  Избор
-                </label>
+          <!-- SURVIVAL & MEDICAL (mandatory) -->
+          <article class="card">
+            <div class="card-head">
+              <h3 class="card-title">ОЦЕЛЯВАНЕ / МЕДИЦИНСКИ СИТУАЦИИ</h3>
+              <div class="flex gap-1">
+                <span class="chip chip-amber">терен</span>
+                <span class="chip chip-blue">онлайн</span>
+                <span class="chip chip-red">задължителен</span>
               </div>
             </div>
-            <div class="bg-gradient-to-r from-emerald-50 to-white p-4 text-xs text-slate-600" data-badge>🌞 Комбо с Теория: общо <span class="font-semibold">-15%</span></div>
+            <div class="card-body">
+              <ul class="list-disc pl-5 space-y-1">
+                <li><strong>Теория:</strong> 2 дни × 4 часа онлайн</li>
+                <li><strong>Практика:</strong> изпит на терен – извеждане на контузен; оказване на първа помощ</li>
+                <li>Оценка на риска, евакуация, бивак</li>
+              </ul>
+            </div>
+            <div class="card-foot">
+              <div>
+                <div class="price-xl"><span class="price" data-bgn="320">320 BGN</span></div>
+                <div class="muted">комбиниран модул</div>
+              </div>
+              <label class="inline-flex items-center tap-area cursor-pointer select-none">
+                <input type="checkbox" class="module cb mandatory need-insurance accent-green-600 scale-125" data-name="ОЦЕЛЯВАНЕ / МЕДИЦИНСКИ СИТУАЦИИ" data-bgn="320" checked disabled>
+                <span class="text-sm font-medium">Включен</span>
+              </label>
+            </div>
           </article>
 
-          <!-- Карта: Интензив -->
-          <article class="course-card group rounded-2xl bg-white shadow-soft overflow-hidden border border-slate-100" data-course-id="intensive-weekend">
-            <div class="p-5">
-              <div class="flex items-center justify-between">
-                <h4 class="font-semibold text-lg">Интензив – уикенд</h4>
-                <span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">смесено</span>
-              </div>
-              <p class="mt-2 text-sm text-slate-600">2 уикенда теория + 1 уикенд практика. За заети хора.</p>
-              <ul class="mt-3 text-sm text-slate-600 space-y-1">
-                <li>📅 Дати: <span data-dates>23–24 ное · 30 ное–1 дек · 7–8 дек</span></li>
-                <li>🕒 Часове: 10:00–16:00</li>
-                <li>👥 Места: <span class="font-medium" data-seats>5 свободни</span></li>
-              </ul>
-              <div class="mt-4 flex items-center justify-between">
-                <div>
-                  <span class="text-xl font-extrabold" data-price-bgn="360">360 лв</span>
-                </div>
-                <label class="inline-flex items-center gap-2 text-sm">
-                  <input type="checkbox" class="size-4" data-select-course>
-                  Избор
-                </label>
+          <!-- TERRAIN – SUMMER (required choice: season) -->
+          <article class="card">
+            <div class="card-head">
+              <h3 class="card-title">НА ТЕРЕН – ЛЯТО</h3>
+              <div class="flex gap-1">
+                <span class="chip chip-amber">терен</span>
+                <span class="chip chip-red">избери</span>
               </div>
             </div>
-            <div class="bg-gradient-to-r from-purple-50 to-white p-4 text-xs text-slate-600" data-badge>⚡ Специално заети: бонус запис от лекциите</div>
+            <div class="card-body">Реална среда: ориентиране, карта/компас, водене на група.</div>
+            <div class="card-foot">
+              <div>
+                <div class="price-xl"><span class="price" data-bgn="290">290 BGN</span></div>
+                <div class="muted">двудневен модул</div>
+              </div>
+              <label class="inline-flex items-center tap-area cursor-pointer select-none">
+                <input type="checkbox" class="module cb need-insurance required-season accent-green-600 scale-125" data-group="season" data-name="НА ТЕРЕН – ЛЯТО" data-bgn="290">
+                <span class="text-sm font-medium">Избирам</span>
+              </label>
+            </div>
           </article>
+
+          <!-- TERRAIN – WINTER (required choice: season) -->
+          <article class="card">
+            <div class="card-head">
+              <h3 class="card-title">НА ТЕРЕН – ЗИМА</h3>
+              <div class="flex gap-1">
+                <span class="chip chip-amber">терен</span>
+                <span class="chip chip-red">избери</span>
+              </div>
+            </div>
+            <div class="card-body">Лавинна безопасност, зимна екипировка и техники за придвижване.</div>
+            <div class="card-foot">
+              <div>
+                <div class="price-xl"><span class="price" data-bgn="340">340 BGN</span></div>
+                <div class="muted">двудневен модул</div>
+              </div>
+              <label class="inline-flex items-center tap-area cursor-pointer select-none">
+                <input type="checkbox" class="module cb need-insurance required-season accent-green-600 scale-125" data-group="season" data-name="НА ТЕРЕН – ЗИМА" data-bgn="340">
+                <span class="text-sm font-medium">Избирам</span>
+              </label>
+            </div>
+          </article>
+
+          <!-- BIVOUACKING -->
+          <article class="card">
+            <div class="card-head">
+              <h3 class="card-title">БИВАКУВАНЕ</h3>
+              <span class="chip chip-amber">терен</span>
+            </div>
+            <div class="card-body">Изграждане на бивак, избор на място, Leave No Trace, нощни рискове.</div>
+            <div class="card-foot">
+              <div>
+                <div class="price-xl"><span class="price" data-bgn="200">200 BGN</span></div>
+                <div class="muted">еднодневен/нощен модул</div>
+              </div>
+              <label class="inline-flex items-center tap-area cursor-pointer select-none">
+                <input type="checkbox" class="module cb need-insurance accent-green-600 scale-125" data-name="БИВАКУВАНЕ" data-bgn="200">
+                <span class="text-sm font-medium">Избирам</span>
+              </label>
+            </div>
+          </article>
+
+          <!-- ONLINE – GEAR & PROTECTION (mandatory) -->
+          <article class="card">
+            <div class="card-head">
+              <h3 class="card-title">ЕКИПИРОВКА, БЕЗОПАСНОСТ / ОПАЗВАНЕ НА ПРИРОДАТА</h3>
+              <div class="flex gap-1">
+                <span class="chip chip-green">онлайн</span>
+                <span class="chip chip-red">задължителен</span>
+              </div>
+            </div>
+            <div class="card-body">Сезонна екипировка и оборудване за преходи, защита от диви животни, опазване на природата. 1 ден теория (4 часа) + изпит.</div>
+            <div class="card-foot">
+              <div>
+                <div class="price-xl"><span class="price" data-bgn="150">150 BGN</span></div>
+                <div class="muted">онлайн модул</div>
+              </div>
+              <label class="inline-flex items-center tap-area cursor-pointer select-none">
+                <input type="checkbox" class="module cb mandatory accent-green-600 scale-125"
+                       data-name="ЕКИПИРОВКА, БЕЗОПАСНОСТ / ОПАЗВАНЕ НА ПРИРОДАТА"
+                       data-bgn="150" checked disabled>
+                <span class="text-sm font-medium">Включен</span>
+              </label>
+            </div>
+          </article>
+
+          <!-- ALPINISM THEORY -->
+          <article class="card">
+            <div class="card-head">
+              <h3 class="card-title">АЛПИНИЗЪМ – ТЕОРИЯ</h3>
+              <span class="chip chip-blue">теория</span>
+            </div>
+            <div class="card-body">Теоретични основи, възли, техники, планиране и безопасност.</div>
+            <div class="card-foot">
+              <div>
+                <div class="price-xl"><span class="price" data-bgn="260">260 BGN</span></div>
+                <div class="muted">еднодневен модул (4 ч)</div>
+              </div>
+              <label class="inline-flex items-center tap-area cursor-pointer select-none">
+                <input type="checkbox" class="module cb accent-green-600 scale-125" data-name="АЛПИНИЗЪМ – ТЕОРИЯ" data-bgn="260">
+                <span class="text-sm font-medium">Избирам</span>
+              </label>
+            </div>
+          </article>
+
+          <!-- ROPES & VIA FERRATA THEORY -->
+          <article class="card">
+            <div class="card-head">
+              <h3 class="card-title">ВЪЖЕТА / ВИА ФЕРАТА – ТЕОРИЯ</h3>
+              <span class="chip chip-blue">теория</span>
+            </div>
+            <div class="card-body">Работа с осигурителни въжета и осигуряване на Виа Ферата (теория).</div>
+            <div class="card-foot">
+              <div>
+                <div class="price-xl"><span class="price" data-bgn="160">160 BGN</span></div>
+                <div class="muted">полудневен модул</div>
+              </div>
+              <label class="inline-flex items-center tap-area cursor-pointer select-none">
+                <input type="checkbox" class="module cb accent-green-600 scale-125" data-name="ВЪЖЕТА / ВИА ФЕРАТА – ТЕОРИЯ" data-bgn="160">
+                <span class="text-sm font-medium">Избирам</span>
+              </label>
+            </div>
+          </article>
+
+          <!-- ORGANISING EVENTS (mandatory) -->
+          <article class="card">
+            <div class="card-head">
+              <h3 class="card-title">ОРГАНИЗИРАНЕ НА МЕРОПРИЯТИЯ</h3>
+              <div class="flex gap-1">
+                <span class="chip chip-green">онлайн</span>
+                <span class="chip chip-blue">теория</span>
+                <span class="chip chip-red">задължителен</span>
+              </div>
+            </div>
+            <div class="card-body">
+              Онлайн + теория и практика: 1 ден, 4 часа обучение. Отчитане и провеждане на преходи – планиране, документиране, логистика.
+            </div>
+            <div class="card-foot">
+              <div>
+                <div class="price-xl"><span class="price" data-bgn="300">300 BGN</span></div>
+                <div class="muted">еднодневен модул (4 ч)</div>
+              </div>
+              <label class="inline-flex items-center tap-area cursor-pointer select-none">
+                <input type="checkbox" class="module cb mandatory accent-green-600 scale-125"
+                       data-name="ОРГАНИЗИРАНЕ НА МЕРОПРИЯТИЯ"
+                       data-bgn="300" checked disabled>
+                <span class="text-sm font-medium">Включен</span>
+              </label>
+            </div>
+          </article>
+
         </div>
       </section>
 
-      <!-- Offers -->
-      <section id="offers" class="mt-10">
-        <h3 class="text-xl font-bold">Оферти и намаления</h3>
-        <div class="mt-4 grid md:grid-cols-3 gap-6">
-          <div class="rounded-2xl bg-white shadow-soft p-6 border border-slate-100">
-            <div class="text-sm text-slate-500">Ранно записване</div>
-            <div class="text-3xl font-extrabold mt-1">-10%</div>
-            <p class="mt-2 text-sm text-slate-600">За запис до 1 октомври</p>
+      <!-- RIGHT: SUMMARY + FORM -->
+      <aside>
+        <div class="lg:sticky lg:top-6 space-y-6">
+          <!-- SUMMARY -->
+          <div class="card">
+            <div class="card-head">
+              <h4 class="card-title">Обобщение</h4>
+              <span class="chip">BGN/EUR</span>
+            </div>
+            <div class="card-body">
+              <ul id="summaryList" class="space-y-2 text-sm"></ul>
+              <div class="mt-3 border-t pt-3 flex items-center justify-between">
+                <span class="muted">Междинна сума</span>
+                <span id="subtotal" class="font-bold">0 BGN</span>
+              </div>
+              <div class="mt-1 flex items-center justify-between">
+                <span class="muted">Такса кандидатстване</span>
+                <span id="fee">0</span>
+              </div>
+              <div class="mt-3 border-t pt-3 flex items-center justify-between">
+                <span class="text-sm font-semibold">Крайна цена</span>
+                <span id="grandTotal" class="text-2xl font-extrabold">0 BGN</span>
+              </div>
+              <p class="muted mt-2">Цените се показват в избраната валута. Курс: 1 EUR = 1.95583 BGN.</p>
+            </div>
           </div>
-          <div class="rounded-2xl bg-white shadow-soft p-6 border border-slate-100">
-            <div class="text-sm text-slate-500">Комбо пакет</div>
-            <div class="text-3xl font-extrabold mt-1">-15%</div>
-            <p class="mt-2 text-sm text-slate-600">Теория + Практика</p>
-          </div>
-          <div class="rounded-2xl bg-white shadow-soft p-6 border border-slate-100">
-            <div class="text-sm text-slate-500">Групи 3+</div>
-            <div class="text-3xl font-extrabold mt-1">-10%</div>
-            <p class="mt-2 text-sm text-slate-600">За групови записвания</p>
-          </div>
-        </div>
-      </section>
-    </section>
 
-    <!-- Моето обучение -->
-    <section class="tab-pane" id="my" aria-labelledby="my-tab">
-      <div class="rounded-2xl bg-white shadow-soft p-6">
-        <div class="flex items-center justify-between">
-          <h3 class="text-xl font-bold">Моето обучение</h3>
-        </div>
-        <p class="mt-2 text-slate-600 text-sm">Тук виждате избраните курсове и материали.</p>
+          <!-- FORM -->
+          <form id="applyForm" action="https://formsubmit.co/uzunov.angel@abv.bg" method="POST" enctype="multipart/form-data" class="card" novalidate>
+            <div class="card-head">
+              <h4 class="card-title">Заявка</h4>
+            </div>
+            <div class="card-body">
+              <input type="hidden" name="_subject" value="Нова заявка – Програма за Планински водачи">
+              <input type="hidden" name="_captcha" value="false">
+              <input type="hidden" name="_template" value="table">
+              <input type="hidden" name="Избрани модули" id="chosenModulesField" value="">
+              <input type="hidden" name="Валута" id="currencyField" value="BGN">
+              <input type="hidden" name="Такса кандидатстване" id="appFeeField" value="370 BGN">
 
-        <div id="studentProfile" class="mt-4 grid md:grid-cols-2 gap-6 hidden">
-          <div class="rounded-xl border border-slate-200 p-5">
-            <h4 class="font-semibold mb-3">Профил</h4>
-            <dl class="grid grid-cols-3 gap-2 text-sm">
-              <dt class="text-slate-500">Име</dt><dd class="col-span-2" id="pfName">—</dd>
-              <dt class="text-slate-500">Имейл</dt><dd class="col-span-2" id="pfEmail">—</dd>
-            </dl>
-          </div>
-          <div class="rounded-xl border border-slate-200 p-5 md:col-span-2">
-            <h4 class="font-semibold mb-3">Материали</h4>
-            <ul id="myMaterials" class="mt-2 text-sm text-brand-700 list-disc list-inside"></ul>
-          </div>
-        </div>
+              <label class="block mb-3">
+                <span class="text-sm font-medium">Име и фамилия <span class="text-red-600">*</span></span>
+                <input required name="Име" type="text" autocomplete="name" class="mt-1 w-full rounded-xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="напр. Иван Петров" />
+              </label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label class="block">
+                  <span class="text-sm font-medium">Имейл <span class="text-red-600">*</span></span>
+                  <input required name="Имейл" type="email" inputmode="email" autocomplete="email" class="mt-1 w-full rounded-xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="name@example.com" />
+                </label>
+                <label class="block">
+                  <span class="text-sm font-medium">Телефон <span class="text-red-600">*</span></span>
+                  <input required name="Телефон" type="tel" inputmode="tel" autocomplete="tel" class="mt-1 w-full rounded-xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="+359 ..." />
+                </label>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <label class="block">
+                  <span class="text-sm font-medium">Опит в планината</span>
+                  <select name="Опит" class="mt-1 w-full rounded-xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option>Начинаещ</option>
+                    <option>Средно напреднал</option>
+                    <option>Напреднал</option>
+                  </select>
+                </label>
+                <label class="block">
+                  <span class="text-sm font-medium">Тип заявка</span>
+                  <select name="Тип заявка" class="mt-1 w-full rounded-xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option>Лично</option>
+                    <option>От организатор</option>
+                  </select>
+                </label>
+              </div>
 
-        <div id="myPlan" class="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-      </div>
-    </section>
+              <!-- Insurance (conditional) -->
+              <div id="insuranceWrap" class="hidden mt-4 rounded-xl border p-4 bg-green-50">
+                <p class="text-sm font-semibold text-green-800">Застраховка за планина</p>
+                <p class="text-sm text-green-700 mt-1">За модулите „на терен“ е необходима валидна застраховка.</p>
+                <div class="mt-3 grid sm:grid-cols-2 gap-4">
+                  <label class="inline-flex items-center gap-2 select-none">
+                    <input type="checkbox" id="hasInsurance" class="accent-green-600">
+                    <span class="text-sm">Имам валидна застраховка</span>
+                  </label>
+                  <label class="block">
+                    <span class="text-sm">Качване на полица (PDF/JPG, по избор)</span>
+                    <input name="Застраховка файл" type="file" accept=".pdf,.jpg,.jpeg,.png" class="mt-1 w-full rounded-xl border px-3 py-2" />
+                  </label>
+                </div>
+              </div>
 
-    <!-- Резултати -->
-    <section class="tab-pane" id="results" aria-labelledby="results-tab">
-      <div class="rounded-2xl bg-white shadow-soft p-6">
-        <h3 class="text-xl font-bold">Резултати</h3>
-        <p class="mt-2 text-slate-600 text-sm">Вашите изпити и присъствия (демо).</p>
-        <div class="overflow-x-auto mt-4">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr class="text-left text-slate-500">
-                <th class="py-2 pr-4">Дата</th>
-                <th class="py-2 pr-4">Курс</th>
-                <th class="py-2 pr-4">Тип</th>
-                <th class="py-2 pr-4">Резултат</th>
-              </tr>
-            </thead>
-            <tbody id="resultsBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+              <label class="block mt-4">
+                <span class="text-sm font-medium">Допълнителни бележки</span>
+                <textarea name="Бележки" rows="3" class="mt-1 w-full rounded-xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Специфични нужди, дати, въпроси..."></textarea>
+              </label>
 
-    <!-- Админ -->
-    <section class="tab-pane" id="admin" aria-labelledby="admin-tab">
-      <div class="rounded-2xl bg-white shadow-soft p-6">
-        <div class="flex items-center justify-between">
-          <h3 class="text-xl font-bold">Качване на тема (Supabase)</h3>
-          <span class="text-xs text-slate-500">таблица: <code>training_topics</code></span>
+              <div class="mt-5 text-xs text-slate-600 flex items-start gap-2">
+                <input type="checkbox" required class="mt-1 accent-green-600">
+                <span>С изпращането приемам <a href="https://turistibg.weebly.com/1055105610401042104810511040.html" target="_blank" rel="noopener" class="underline decoration-dotted text-green-700">Общите условия</a>.</span>
+              </div>
+            </div>
+            <div class="card-foot">
+              <button type="submit" class="btn btn-primary w-full">Изпрати заявката</button>
+            </div>
+            <input type="hidden" name="_next" value="https://turistibg.weebly.com/1055105610401042104810511040.html" />
+          </form>
         </div>
-        <form id="uploadForm" class="mt-4 grid gap-3">
-          <div>
-            <label class="text-sm font-medium">Заглавие</label>
-            <input required type="text" id="topicTitle" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" placeholder="Пример: Лавинна безопасност – основи" />
-          </div>
-          <div>
-            <label class="text-sm font-medium">Описание</label>
-            <textarea id="topicDesc" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500" rows="3" placeholder="Кратко описание на съдържанието"></textarea>
-          </div>
-          <div>
-            <label class="text-sm font-medium">Сезон</label>
-            <select id="topicSeason" class="mt-1 w-full rounded-lg border-slate-200 focus:border-brand-500 focus:ring-brand-500">
-              <option value="winter">Зима (Теория)</option>
-              <option value="summer">Лято (Практика)</option>
-            </select>
-          </div>
-          <button class="px-4 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700">Запази темата</button>
-        </form>
-        <div id="topicMsg" class="mt-3 text-sm"></div>
-        <hr class="my-6" />
-        <h4 class="font-semibold">Последно добавени теми</h4>
-        <ul id="topicsList" class="mt-2 text-sm space-y-2"></ul>
-        <p class="text-xs text-slate-500 mt-3">Ако липсва таблицата, създай я със:<br>
-        <code>id uuid (pk, default uuid_generate_v4()), title text, description text, season text, created_by text, created_at timestamptz default now()</code></p>
-      </div>
-    </section>
+      </aside>
+    </div>
   </main>
 
-  <!-- Toast -->
-  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 hidden">
-    <div class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm shadow-lg">Запазено ✅</div>
+  <!-- Sticky mobile summary -->
+  <div class="lg:hidden fixed bottom-0 inset-x-0 px-4 z-40 pb-4 safe-bottom">
+    <div class="bg-white/90 backdrop-blur rounded-2xl shadow-lg border flex items-center justify-between px-4 py-3">
+      <div>
+        <div class="text-xs text-slate-500">Крайна цена</div>
+        <div id="mobileTotal" class="text-xl font-extrabold">0 BGN</div>
+      </div>
+      <a href="#applyForm" class="btn btn-primary">Попълни заявка</a>
+    </div>
   </div>
 
   <script>
-    // ======= Конфигурации =======
-    const ADMIN_EMAIL = 'uzunov.ange@gmail.com'; // Админ по имейл
-    // По желание остави и резервна проверка по user.id:
-    // const ADMIN_USER_ID = '59e62f07-5fab-443f-a0cb-efd988b44b8f';
-
-    // ВАЖНО: Google Client ID/Secret се конфигурират в Supabase → Providers → Google (не във фронтенда).
-    const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, detectSessionInUrl: true }
-    });
-
-    const LS = { COURSES:'tmap_courses_cfg', MYPLAN:'tmap_myplan', RESULTS:'tmap_results' };
-
-    // ======= Помощни =======
-    const $ = (sel, root=document) => root.querySelector(sel);
-    const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
-    const readLS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
-    const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-    const toast = (msg='Запазено ✅') => { const t=$('#toast'); t.firstElementChild.textContent = msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 1800); };
-
-    // ======= Табове =======
-    $$('.tab-btn').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const tab = btn.dataset.tab;
-        $$('.tab-btn').forEach(b=>b.classList.remove('bg-brand-600','text-white'));
-        btn.classList.add('bg-brand-600','text-white');
-        $$('.tab-pane').forEach(p=>p.classList.remove('active'));
-        $('#'+tab).classList.add('active');
-      });
-    });
-
-    function showTab(key){
-      $$('.tab-pane').forEach(p=>p.classList.remove('active'));
-      $('#'+key).classList.add('active');
-      $$('.tab-btn').forEach(b=>b.classList.remove('bg-brand-600','text-white'));
-      document.querySelector(`.tab-btn[data-tab="${key}"]`)?.classList.add('bg-brand-600','text-white');
-    }
-
-    // ======= Валутен превключвател =======
     const EUR_RATE = 1.95583;
-    let showEUR = false;
-    const currencyToggle = $('#currencyToggle');
-    const currencyKnob = $('#currencyKnob');
-    function fmtPrice(bgn){ return showEUR ? ('€ ' + (bgn/EUR_RATE).toFixed(2)) : (Number(bgn).toFixed(2)+' лв'); }
-    function refreshPrices(){
-      $$('[data-price-bgn]').forEach(el=>{ const bgn = parseFloat(el.getAttribute('data-price-bgn')); el.textContent = fmtPrice(bgn); });
-      $$('[data-old-bgn]').forEach(el=>{ const bgn = parseFloat(el.getAttribute('data-old-bgn')); if(!isNaN(bgn)) el.textContent = fmtPrice(bgn); });
-    }
-    currencyToggle.addEventListener('click', ()=>{ showEUR=!showEUR; currencyKnob.style.transform = showEUR ? 'translateX(22px)' : 'translateX(4px)'; refreshPrices(); });
+    const APPLICATION_FEE_BGN = 370; // такса кандидатстване
+    let currency = localStorage.getItem('currency') || 'BGN';
 
-    // ======= Курсове (демо/localStorage) =======
-    const defaultCourses = {
-      'theory-winter':     { dates:'15 окт – 15 ное', seats:8,  price:290, old:350, badge:'Ранни записвания до 1 окт – още -10%' },
-      'practice-summer':   { dates:'10 юни – 10 юли', seats:12, price:420, old:490, badge:'Комбо с Теория: общо -15%' },
-      'intensive-weekend': { dates:'23–24 ное · 30 ное–1 дек · 7–8 дек', seats:5, price:360, old:null, badge:'Бонус запис от лекциите' }
-    };
-    const courses = Object.assign({}, defaultCourses, readLS(LS.COURSES, {}));
-    function renderCourseCards(){
-      $$('#courseCards .course-card').forEach(card=>{
-        const id = card.dataset.courseId;
-        const cfg = courses[id]; if(!cfg) return;
-        card.querySelector('[data-dates]').textContent = cfg.dates;
-        card.querySelector('[data-seats]').textContent = `${cfg.seats} свободни`;
-        const priceEl = card.querySelector('[data-price-bgn]'); priceEl.setAttribute('data-price-bgn', cfg.price);
-        const oldEl = card.querySelector('[data-old-bgn]');
-        if(oldEl){ if(cfg.old){ oldEl.setAttribute('data-old-bgn', cfg.old); oldEl.classList.remove('hidden'); } else { oldEl.classList.add('hidden'); } }
-        card.querySelector('[data-badge]').textContent = cfg.badge || '';
+    const fmt = (bgn) => currency === 'BGN' ? `${bgn.toFixed(0)} BGN` : `${(bgn / EUR_RATE).toFixed(2)} EUR`;
+
+    function updatePrices(){
+      document.querySelectorAll('.price').forEach(el => {
+        const bgn = parseFloat(el.dataset.bgn);
+        el.textContent = fmt(bgn);
       });
-      refreshPrices();
-    }
-    renderCourseCards();
-
-    // ======= Моето обучение (демо) =======
-    $('#addToMyPlanBtns').addEventListener('click', ()=>{
-      const selected = $$('input[data-select-course]:checked').map(ch=>ch.closest('.course-card').dataset.courseId);
-      const current = new Set(readLS(LS.MYPLAN, []));
-      selected.forEach(id=>current.add(id));
-      writeLS(LS.MYPLAN, [...current]);
-      renderMyPlan();
-      toast('Добавено към „Моето обучение“');
-      showTab('my');
-    });
-
-    function labelForCourse(id){
-      return id==='theory-winter' ? 'Теория (зима)' : id==='practice-summer' ? 'Практика (лято)' : id==='intensive-weekend' ? 'Интензив – уикенд' : id;
-    }
-    function courseSeason(id){ return (id==='theory-winter') ? 'winter' : 'summer'; }
-
-    function renderMyPlan(){
-      const plan = readLS(LS.MYPLAN, []);
-      const map = {
-        'theory-winter':   { title:'Теория (зима)', icon:'📚' },
-        'practice-summer': { title:'Практика (лято)', icon:'🏕️' },
-        'intensive-weekend': { title:'Интензив – уикенд', icon:'⚡' }
-      };
-      const wrap = $('#myPlan'); wrap.innerHTML = '';
-      plan.forEach(id=>{
-        const m = map[id]; if(!m) return; const cfg = courses[id] || {};
-        const card = document.createElement('div');
-        card.className = 'rounded-2xl bg-white shadow-soft border border-slate-100 p-5';
-        card.innerHTML = `
-          <div class="flex items-center justify-between">
-            <div class="text-2xl">${m.icon}</div>
-            <button class="text-xs px-2 py-1 rounded-md border hover:bg-slate-50" data-remove="${id}">Премахни</button>
-          </div>
-          <h4 class="mt-2 font-semibold">${m.title}</h4>
-          <p class="text-sm text-slate-600 mt-1">Дати: ${cfg.dates || '-'}</p>
-          <div class="mt-3 h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div class="h-full bg-brand-500 rounded-full" style="width:${Math.floor(Math.random()*60+20)}%"></div>
-          </div>`;
-        wrap.appendChild(card);
-      });
-      $$('button[data-remove]').forEach(btn=>{
-        btn.addEventListener('click', ()=>{ const id = btn.dataset.remove; const plan = readLS(LS.MYPLAN, []).filter(x=>x!==id); writeLS(LS.MYPLAN, plan); renderMyPlan(); toast('Премахнато'); });
-      });
-      loadMyMaterialsFromSupabase();
-    }
-    renderMyPlan();
-
-    // ======= Резултати (демо) =======
-    const defaultResults = [
-      { date:'2025-07-02', course:'theory-winter', type:'Тест', score:'92%' },
-      { date:'2025-07-09', course:'theory-winter', type:'Присъствие', score:'OK' },
-      { date:'2025-08-18', course:'practice-summer', type:'Полево изпитване', score:'Зачетено' }
-    ];
-    if(!readLS(LS.RESULTS, null)) writeLS(LS.RESULTS, defaultResults);
-    function renderResults(){
-      const rows = readLS(LS.RESULTS, []), body = $('#resultsBody'); body.innerHTML = '';
-      const fmt = (d)=> new Date(d + 'T00:00:00').toLocaleDateString('bg-BG');
-      rows.forEach(r=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="py-2 pr-4">${fmt(r.date)}</td><td class="py-2 pr-4">${labelForCourse(r.course)}</td><td class="py-2 pr-4">${r.type}</td><td class="py-2 pr-4">${r.score}</td>`;
-        body.appendChild(tr);
-      });
-    }
-    renderResults();
-
-    // ======= AUTH (Supabase Google OAuth) =======
-    const userEmailEl   = $('#userEmail');
-    const userAvatarEl  = $('#userAvatar');
-    const adminBadge    = $('#adminBadge');
-    const btnSignIn     = $('#btnSignIn');
-    const btnSignOut    = $('#btnSignOut');
-    const myTabBtn      = $('#myTabBtn');
-    const resultsTabBtn = $('#resultsTabBtn');
-    const adminTabBtn   = $('#adminTabBtn');
-
-    async function updateAuthUI(){
-      const { data: { user } } = await supabaseClient.auth.getUser();
-
-      if(user){
-        // Показване след вход
-        btnSignIn.classList.add('hidden');
-        btnSignOut.classList.remove('hidden');
-        myTabBtn.classList.remove('hidden');
-        resultsTabBtn.classList.remove('hidden');
-
-        userEmailEl.textContent = user.email || '—';
-        userAvatarEl.src = user.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(user.email||'T')}`;
-        userAvatarEl.classList.remove('hidden');
-
-        $('#pfName').textContent = user.user_metadata?.full_name || (user.email?.split('@')[0]) || '—';
-        $('#pfEmail').textContent = user.email || '—';
-        $('#studentProfile').classList.remove('hidden');
-
-        // Админ по имейл (и по желание по user.id)
-        const isAdmin = (user.email === ADMIN_EMAIL); // || (user.id === ADMIN_USER_ID);
-        if(isAdmin){
-          adminBadge.classList.remove('hidden');
-          adminTabBtn.classList.remove('hidden');
-        }else{
-          adminBadge.classList.add('hidden');
-          adminTabBtn.classList.add('hidden');
-          if($('#admin').classList.contains('active')) showTab('home');
-        }
-      }else{
-        // Без вход – само „Начало“
-        btnSignIn.classList.remove('hidden');
-        btnSignOut.classList.add('hidden');
-        userEmailEl.textContent = 'Гост';
-        userAvatarEl.classList.add('hidden');
-        adminBadge.classList.add('hidden');
-        myTabBtn.classList.add('hidden');
-        resultsTabBtn.classList.add('hidden');
-        adminTabBtn.classList.add('hidden');
-        if(!$('#home').classList.contains('active')) showTab('home');
-        $('#studentProfile').classList.add('hidden');
-      }
+      updateSummary();
     }
 
-    btnSignIn.addEventListener('click', async ()=>{
-      const { error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.href,
-          scopes: 'openid email profile'
-        }
-      });
-      if(error){ alert('Грешка при вход: ' + (error.message || 'неизвестна')); }
-    });
-
-    btnSignOut.addEventListener('click', async ()=>{
-      await supabaseClient.auth.signOut();
-      await updateAuthUI();
-      toast('Излязохте');
-    });
-
-    updateAuthUI();
-    supabaseClient.auth.onAuthStateChange((_ev,_sess)=>updateAuthUI());
-
-    // ======= Админ: Теми (Supabase: training_topics) =======
-    const topicForm  = $('#uploadForm');
-    const topicMsg   = $('#topicMsg');
-    const topicsList = $('#topicsList');
-
-    topicForm?.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      topicMsg.textContent = '';
-      const title = $('#topicTitle').value.trim();
-      const description = $('#topicDesc').value.trim();
-      const season = $('#topicSeason').value;
-
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if(!user){ topicMsg.className='mt-3 text-sm text-rose-700'; topicMsg.textContent = 'Нужен е вход с Google.'; return; }
-
-      const payload = { title, description, season, created_by: user.email || user.id, created_at: new Date().toISOString() };
-      const { data, error } = await supabaseClient.from('training_topics').insert(payload).select().single();
-
-      if(error){
-        topicMsg.className='mt-3 text-sm text-rose-700';
-        topicMsg.textContent = 'Грешка при запис: ' + error.message +
-          ' • Създай таблица training_topics със schema: id uuid (pk, default uuid_generate_v4()), title text, description text, season text, created_by text, created_at timestamptz default now().';
-        return;
-      }
-      topicMsg.className='mt-3 text-sm text-emerald-700';
-      topicMsg.textContent = 'Темата е записана успешно.';
-      topicForm.reset();
-      prependTopicItem(data);
-    });
-
-    function prependTopicItem(row){
-      const li = document.createElement('li');
-      li.className = 'p-3 rounded-lg border border-slate-200 hover:bg-slate-50';
-      li.innerHTML = `
-        <div class="font-medium">${escapeHtml(row.title)}</div>
-        <div class="text-xs text-slate-500">${row.season==='winter'?'Зима (Теория)':'Лято (Практика)'} · ${new Date(row.created_at||Date.now()).toLocaleString('bg-BG')}</div>
-        ${row.description? `<p class="text-sm text-slate-600 mt-1">${escapeHtml(row.description)}</p>`:''}
-        <div class="text-xs text-slate-400 mt-1">Добавена от: ${escapeHtml(row.created_by||'админ')}</div>`;
-      topicsList.prepend(li);
-    }
-    function escapeHtml(str){ return (str||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m])); }
-
-    async function loadRecentTopics(){
-      const { data, error } = await supabaseClient.from('training_topics').select('*').order('created_at', { ascending:false }).limit(10);
-      topicsList.innerHTML = '';
-      if(error){ topicsList.innerHTML = '<li class="text-slate-500">Неуспешно зареждане. Увери се, че съществува таблица training_topics.</li>'; return; }
-      if(!data || data.length===0){ topicsList.innerHTML = '<li class="text-slate-500">Няма качени теми.</li>'; return; }
-      data.forEach(prependTopicItem);
-    }
-    loadRecentTopics();
-
-    // ======= Материали според моите курсове (по season) =======
-    async function loadMyMaterialsFromSupabase(){
-      const my = new Set(readLS(LS.MYPLAN, []));
-      const list = $('#myMaterials');
-      if(my.size===0){ if(list) list.innerHTML='<li>—</li>'; return; }
-      const seasons = new Set([...my].map(courseSeason));
-      let q = supabaseClient.from('training_topics').select('*').order('created_at', {ascending:false}).limit(50);
-      if(seasons.size===1){ q = supabaseClient.from('training_topics').select('*').eq('season', [...seasons][0]).order('created_at',{ascending:false}).limit(50); }
-      const { data, error } = await q;
-      if(!list) return;
+    function updateSummary(){
+      const checked = [...document.querySelectorAll('.module:checked')];
+      const list = document.getElementById('summaryList');
       list.innerHTML = '';
-      if(error){ list.innerHTML = '<li class="text-rose-600">Грешка при зареждане на материали.</li>'; return; }
-      if(!data || data.length===0){ list.innerHTML = '<li>—</li>'; return; }
-      data.forEach(t=>{
+      let subtotal = 0; let terrain = false;
+      checked.forEach(cb => {
+        const name = cb.dataset.name; const bgn = parseFloat(cb.dataset.bgn);
+        subtotal += bgn; if(cb.classList.contains('need-insurance')) terrain = true;
         const li = document.createElement('li');
-        li.innerHTML = `📎 <span class="font-medium">${escapeHtml(t.title)}</span> <span class="text-slate-500">(${t.season==='winter'?'Теория (зима)':'Практика (лято)'})</span>`;
+        li.className = 'flex items-center justify-between';
+        li.innerHTML = `<span>${name}</span><span class='font-semibold'>${fmt(bgn)}</span>`;
         list.appendChild(li);
       });
+      const feeBGN = APPLICATION_FEE_BGN;
+      const feeRow = document.createElement('li');
+      feeRow.className = 'flex items-center justify-between border-t pt-2 mt-2';
+      feeRow.innerHTML = `<span>Такса кандидатстване</span><span class='font-semibold'>${fmt(feeBGN)}</span>`;
+      list.appendChild(feeRow);
+
+      const total = subtotal + feeBGN;
+      document.getElementById('subtotal').textContent = fmt(subtotal);
+      document.getElementById('fee').textContent = fmt(feeBGN);
+      document.getElementById('grandTotal').textContent = fmt(total);
+      document.getElementById('mobileTotal').textContent = fmt(total);
+      document.getElementById('insuranceWrap').classList.toggle('hidden', !terrain);
+
+      const chosen = checked.map(cb => `${cb.dataset.name} (${fmt(parseFloat(cb.dataset.bgn))})`);
+      document.getElementById('chosenModulesField').value = chosen.join(', ');
+      document.getElementById('appFeeField').value = fmt(feeBGN);
+
+      localStorage.setItem('selectedModules', JSON.stringify(checked.map(cb => cb.dataset.name)));
     }
 
-    // ======= Админ: Курсове (демо/localStorage) =======
-    $('#courseForm')?.addEventListener('submit', (e)=>{
-      e.preventDefault();
-      const id = $('#courseId').value;
-      const updated = {
-        dates: $('#courseDates').value || defaultCourses[id].dates,
-        seats: parseInt($('#courseSeats').value || defaultCourses[id].seats, 10),
-        price: parseInt($('#coursePrice').value || defaultCourses[id].price, 10),
-        old:   $('#courseOldPrice').value ? parseInt($('#courseOldPrice').value, 10) : null,
-        badge: $('#courseBadge').value || defaultCourses[id].badge
-      };
-      Object.assign(courses[id], updated);
-      writeLS(LS.COURSES, courses);
-      renderCourseCards();
-      renderMyPlan();
-      toast('Картата е обновена');
-      e.target.reset();
+    // currency toggle
+    const btnBGN = document.getElementById('btnBGN');
+    const btnEUR = document.getElementById('btnEUR');
+    function setCurrency(cur){
+      currency = cur; localStorage.setItem('currency', cur);
+      document.getElementById('currencyField').value = cur;
+      const isBGN = cur === 'BGN';
+      btnBGN.setAttribute('aria-pressed', isBGN);
+      btnEUR.setAttribute('aria-pressed', !isBGN);
+      btnBGN.classList.toggle('bg-green-600', isBGN);
+      btnBGN.classList.toggle('text-white', isBGN);
+      btnEUR.classList.toggle('bg-green-600', !isBGN);
+      btnEUR.classList.toggle('text-white', !isBGN); // FIX
+      updatePrices();
+    }
+    btnBGN.addEventListener('click', () => setCurrency('BGN'));
+    btnEUR.addEventListener('click', () => setCurrency('EUR'));
+
+    // module change
+    document.querySelectorAll('.module').forEach(cb => cb.addEventListener('change', updateSummary));
+
+    // form guard: at least one module + required season choice
+    document.getElementById('applyForm').addEventListener('submit', (e) => {
+      const any = document.querySelector('.module:checked');
+      const seasonPicked = document.querySelector('.required-season:checked');
+      if(!any){
+        e.preventDefault(); alert('Моля, избери поне един модул.');
+        return;
+      }
+      if(!seasonPicked){
+        e.preventDefault();
+        alert('Изборът на поне един сезонен модул е задължителен: „НА ТЕРЕН – ЛЯТО“ или „НА ТЕРЕН – ЗИМА“.');
+        return;
+      }
     });
 
-    // ======= Навигация/инициализация =======
-    window.addEventListener('storage', (e)=>{ if(e.key===LS.MYPLAN) loadMyMaterialsFromSupabase(); });
-    loadMyMaterialsFromSupabase();
+    // Restore on load
+    window.addEventListener('DOMContentLoaded', () => {
+      setCurrency(currency);
+      try{
+        const stored = JSON.parse(localStorage.getItem('selectedModules')||'[]');
+        if(Array.isArray(stored) && stored.length){
+          document.querySelectorAll('.module:not(.mandatory)').forEach(cb => {
+            cb.checked = stored.includes(cb.dataset.name);
+          });
+        }
+      }catch(err){}
+      updatePrices();
+    });
   </script>
 </body>
 </html>
