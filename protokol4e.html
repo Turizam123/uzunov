@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <title>Генератор на протоколи (.docx) — разширена форма</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Libraries for .docx generation -->
+  <!-- Save to file -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- DOCX UMD (излага window.docx) -->
+  <script src="https://unpkg.com/docx@8.7.2/build/index.umd.js" crossorigin="anonymous"></script>
   <style>
     :root { --bg:#0b1324; --panel:#121a2e; --muted:#8ca2c0; --accent:#4ea8de; --ring:#1f3b57; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; }
     html,body{margin:0;padding:0;background:linear-gradient(180deg,#0b1324,#0a0f1e);color:#e6efff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
@@ -113,11 +114,6 @@ function monthToBG(isoMonth){
   return `${m}.${y}г.`; // ММ.ГГГГг.
 }
 
-function nonEmptyLines(text){
-  return text.split('\n').map(s=>s.trim()).filter(Boolean);
-}
-
-// EGN → birthdate (YYYY-MM-DD) with century rules
 function birthdateFromEGN(egn){
   if(!/^\d{10}$/.test(egn)) return null;
   let yy = parseInt(egn.slice(0,2),10);
@@ -287,7 +283,7 @@ function personCard(data={}){
   if(data.disType) disType.value=data.disType;
   const disPct = document.createElement('input');
   disPct.type='text'; disPct.placeholder='напр. 85'; disPct.inputMode='text'; disPct.maxLength=20;
-  disPct.pattern='[A-Za-zА-Яа-я0-9\\s./%-]*'; // букви и цифри + често ползвани символи
+  // без pattern – за да няма грешка и да допуска букви+цифри
   disPct.setAttribute('list','percentsList');
   disPct.className='p-disPercent';
   if(data.disPercent!=null) disPct.value=data.disPercent;
@@ -508,7 +504,7 @@ async function generateDoc(){
 
   const notesPara = data.notes ? new Paragraph({ children:[ new TextRun({ text:`\nБележки: ${data.notes}` }) ] }) : null;
 
-  const doc = new Document({
+  const doc = new window.docx.Document({
     sections: [{
       properties: {},
       children: [
@@ -525,7 +521,7 @@ async function generateDoc(){
     }]
   });
 
-  const blob = await Packer.toBlob(doc);
+  const blob = await window.docx.Packer.toBlob(doc);
   const filename = dateEl.value ? `Протокол_${dateEl.value}.docx` : 'Протокол.docx';
   saveAs(blob, filename);
 }
@@ -541,7 +537,18 @@ loadDraftBtn.addEventListener('click', loadDraft);
 
 dateEl.addEventListener('input', ()=>{ updateFilename(); });
 
-document.getElementById('generateBtn').addEventListener('click', async () => { try { await generateDoc(); } catch(e){ console.error(e); alert('Грешка при генерирането. Моля проверете попълнените полета.'); } });
+document.getElementById('generateBtn').addEventListener('click', async () => {
+  try {
+    if (!window.docx) {
+      alert('Библиотеката за DOCX не е заредена. Презаредете страницата с Ctrl+F5.');
+      return;
+    }
+    await generateDoc();
+  } catch(e){
+    console.error(e);
+    alert('Грешка при генерирането. Моля проверете попълнените полета.');
+  }
+});
 
 // Default date = today
 (function initToday(){
