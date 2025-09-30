@@ -355,11 +355,11 @@ function collectData(){
     obj.inNum = inputs[2].value.trim();                 // entry num
     obj.inDate = inputs[3].value;                       // entry date ISO
     obj.pensioner = inputs[4].checked;                  // pensioner chk
-    obj.pensionerType = inputs[6].value;                // pensioner type select (index depends on layout)
-    obj.disType = inputs[7].value;                      // TNR/VSU select
+    obj.pensionerType = inputs[5].value;                // pensioner type select (index depends on layout)
+    obj.disType = inputs[6].value;                      // TNR/VSU select
     obj.disPercent = inputs[8].value.trim();            // %
     obj.diagnosis = inputs[9].value.trim();             // diagnosis
-    obj.untilMonth = inputs[10].value;                  // month YYYY-MM
+    obj.untilMonth = inputs[9].value;                  // month YYYY-MM
     // Derived
     obj.birthISO = birthdateFromEGN(obj.egn);
     obj.age = obj.birthISO ? calcAgeOnDate(obj.birthISO, dateEl.value || new Date().toISOString().slice(0,10)) : null;
@@ -500,7 +500,7 @@ loadDraftBtn.addEventListener('click', loadDraft);
 
 dateEl.addEventListener('input', ()=>{ updateFilename(); });
 
-document.getElementById('generateBtn').addEventListener('click', generateDoc);
+document.getElementById('generateBtn').addEventListener('click', async () => { try { await generateDoc(); } catch(e){ console.error(e); alert('Грешка при генерирането. Моля проверете попълнените полета.'); } });
 
 // Default date = today
 (function initToday(){
