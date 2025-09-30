@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <title>Генератор на протоколи (.docx) — разширена форма</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Libraries for .docx generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+    :root { --bg:#0b1324; --panel:#121a2e; --muted:#8ca2c0; --accent:#4ea8de; --ring:#1f3b57; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; }
+    html,body{margin:0;padding:0;background:linear-gradient(180deg,#0b1324,#0a0f1e);color:#e6efff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+    .wrap{max-width:1100px;margin:32px auto;padding:0 16px}
+    .card{background:rgba(18,26,46,.85);border:1px solid #1c2b46;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:18px}
+    h1{font-size:24px;margin:0 0 8px}
+    h2{font-size:18px;margin:10px 0 6px}
+    label{font-weight:600;font-size:14px;margin-bottom:6px;display:block;color:#cfe3ff}
+    input[type="date"],input[type="text"],input[type="number"],input[type="month"],textarea,select{
+      width:100%;border:1px solid #1e3354;background:#0e162a;color:#e6efff;border-radius:12px;padding:10px 12px;outline:none;
+    }
+    textarea{min-height:100px;resize:vertical}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:960px){.grid-2{grid-template-columns:1fr 1fr;gap:16px}.grid-3{grid-template-columns:1fr 1fr 1fr;gap:16px}}
+    .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .btn{appearance:none;border:1px solid var(--accent);background:linear-gradient(180deg,#3c85b8,#2f6b94);color:white;padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer}
+    .btn.secondary{border-color:#304e78;background:linear-gradient(180deg,#202c44,#1a243b)}
+    .btn.danger{border-color:#7a2430;background:linear-gradient(180deg,#6e1e2a,#4b141d)}
+    .badge{background:#0b1b30;border:1px solid #1c3357;color:#cfe3ff;padding:6px 10px;border-radius:999px;font-size:13px}
+    .small{font-size:12px;color:#9fb3cf}
+    .sep{height:1px;background:#15243f;margin:10px 0 8px;border-radius:1px}
+    .person{background:#0f1a31;border:1px solid #1b2b4a;border-radius:14px;padding:12px;position:relative}
+    .person h3{margin:0 0 8px;font-size:16px}
+    .remove{position:absolute;right:10px;top:10px}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    .hint{font-size:12px;color:#9fb3cf;margin-top:4px}
+    details{background:#0d172c;border:1px solid #1a2b4a;border-radius:12px;padding:8px}
+    summary{cursor:pointer;font-weight:700;color:#d5e6ff}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Генератор на протоколи (.docx)</h1>
+      <div class="grid grid-3">
+        <div>
+          <label for="date">Дата на заседанието</label>
+          <input id="date" type="date" />
+          <div class="hint">Формат в документа: <span class="mono">ДД.ММ.ГГГГг.</span></div>
+        </div>
+        <div>
+          <label for="municipality">Община</label>
+          <input id="municipality" type="text" placeholder="напр. Община Самоков" />
+        </div>
+        <div class="row" style="align-items:flex-end">
+          <div class="badge">Общ брой лица: <strong id="total">0</strong></div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <h2>Състав на комисията</h2>
+      <div id="commissionList" class="grid"></div>
+      <div class="row">
+        <button class="btn secondary" id="addMember">+ Добави член</button>
+      </div>
+      <div class="hint">Пример: „Емилия Димитрова Велчева – Председател“</div>
+
+      <div class="sep"></div>
+
+      <h2>Лица за разглеждане</h2>
+      <div id="persons"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="addPerson">+ Добави лице</button>
+      </div>
+
+      <div class="sep"></div>
+
+      <details>
+        <summary>Допълнителни бележки (по избор)</summary>
+        <textarea id="notes" placeholder="Други уточнения..."></textarea>
+      </details>
+
+      <div class="sep"></div>
+
+      <div class="row">
+        <button class="btn" id="generateBtn">Генерирай протокол (.docx)</button>
+        <button class="btn secondary" id="saveDraft">Запази чернова (локално)</button>
+        <button class="btn secondary" id="loadDraft">Зареди чернова</button>
+        <span class="small">Име на файла: <span class="mono" id="fnamePreview">Протокол.docx</span></span>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ===== Helpers =====
+const LS_KEYS = {
+  DRAFT: 'protocol_draft_v1',
+  DIAGNOSES: 'protocol_diag_history_v1',
+  PERCENTS: 'protocol_percent_history_v1',
+  ROLES: 'protocol_roles_history_v1',
+};
+
+function formatDateBG(isoDate){
+  if(!isoDate) return '';
+  const [y,m,d]=isoDate.split('-');
+  return `${d}.${m}.${y}г.`;
+}
+
+function monthToBG(isoMonth){
+  if(!isoMonth) return '';
+  const [y,m] = isoMonth.split('-');
+  return `${m}.${y}г.`; // ММ.ГГГГг.
+}
+
+function nonEmptyLines(text){
+  return text.split('\n').map(s=>s.trim()).filter(Boolean);
+}
+
+// EGN → birthdate (YYYY-MM-DD) with century rules
+function birthdateFromEGN(egn){
+  if(!/^\d{10}$/.test(egn)) return null;
+  let yy = parseInt(egn.slice(0,2),10);
+  let mm = parseInt(egn.slice(2,4),10);
+  let dd = parseInt(egn.slice(4,6),10);
+  let century = 1900;
+  if(mm>=1 && mm<=12){century=1900;}
+  else if(mm>=21 && mm<=32){mm-=20;century=1800;}
+  else if(mm>=41 && mm<=52){mm-=40;century=2000;}
+  else return null;
+  const yyyy = century+yy;
+  const mStr = String(mm).padStart(2,'0');
+  const dStr = String(dd).padStart(2,'0');
+  // Rough validity check
+  const dt = new Date(`${yyyy}-${mStr}-${dStr}T00:00:00`);
+  if(isNaN(dt.getTime())) return null;
+  return `${yyyy}-${mStr}-${dStr}`;
+}
+
+function calcAgeOnDate(birthISO, onISO){
+  if(!birthISO || !onISO) return null;
+  const [by,bm,bd] = birthISO.split('-').map(Number);
+  const [yy,mm,dd] = onISO.split('-').map(Number);
+  let age = yy - by;
+  if(mm < bm || (mm===bm && dd < bd)) age--;
+  return age;
+}
+
+function createDatalist(id, values){
+  const dl = document.createElement('datalist');
+  dl.id = id;
+  (values||[]).forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = v;
+    dl.appendChild(opt);
+  });
+  return dl;
+}
+
+function pushUniqueLS(key, value, max=30){
+  if(!value) return;
+  let arr = [];
+  try{ arr = JSON.parse(localStorage.getItem(key)||'[]'); }catch{arr=[]}
+  if(!arr.includes(value)){
+    arr.unshift(value);
+    if(arr.length>max) arr = arr.slice(0,max);
+    localStorage.setItem(key, JSON.stringify(arr));
+  }
+}
+
+function getLSArray(key){
+  try{ return JSON.parse(localStorage.getItem(key)||'[]'); }catch{return []}
+}
+
+// ===== UI Elements =====
+const dateEl = document.getElementById('date');
+const muniEl = document.getElementById('municipality');
+const totalEl = document.getElementById('total');
+const fnamePreview = document.getElementById('fnamePreview');
+const addPersonBtn = document.getElementById('addPerson');
+const personsWrap = document.getElementById('persons');
+const notesEl = document.getElementById('notes');
+const addMemberBtn = document.getElementById('addMember');
+const commissionList = document.getElementById('commissionList');
+
+const saveDraftBtn = document.getElementById('saveDraft');
+const loadDraftBtn = document.getElementById('loadDraft');
+const generateBtn = document.getElementById('generateBtn');
+
+function updateFilename(){
+  const fname = dateEl.value ? `Протокол_${dateEl.value}.docx` : 'Протокол.docx';
+  fnamePreview.textContent = fname;
+}
+
+function updateTotal(){
+  const count = personsWrap.querySelectorAll('.person').length;
+  totalEl.textContent = String(count);
+}
+
+function memberRow(nameVal='', roleVal=''){
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.style.marginBottom='8px';
+  const name = document.createElement('input');
+  name.type='text'; name.placeholder='Име и фамилия'; name.value=nameVal;
+  const role = document.createElement('input');
+  role.type='text'; role.placeholder='Роля (напр. Председател)'; role.value=roleVal; role.setAttribute('list','rolesList');
+  const remove = document.createElement('button');
+  remove.className='btn danger'; remove.textContent='Премахни';
+  remove.onclick=()=> row.remove();
+  row.appendChild(name); row.appendChild(role); row.appendChild(remove);
+  return row;
+}
+
+function addMember(name='', role=''){
+  commissionList.appendChild(memberRow(name, role));
+}
+
+function personCard(data={}){
+  const idx = personsWrap.children.length + 1;
+  const card = document.createElement('div');
+  card.className='person';
+  const h3 = document.createElement('h3');
+  h3.textContent = `Лице #${idx}`;
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className='btn danger remove';
+  removeBtn.textContent='Премахни';
+  removeBtn.onclick=()=>{ card.remove(); updateTotal(); renumberPersons(); };
+
+  // Fields
+  const grid = document.createElement('div');
+  grid.className='grid grid-3';
+
+  // Име
+  const fName = document.createElement('div');
+  fName.innerHTML = '<label>Трите имена</label>';
+  const nameInput = document.createElement('input');
+  nameInput.type='text'; nameInput.placeholder='напр. МАРГАРИТА ХРИСТОВА ГЕОРГИЕВА';
+  if(data.name) nameInput.value=data.name;
+  fName.appendChild(nameInput);
+
+  // ЕГН + възраст
+  const fEGN = document.createElement('div');
+  fEGN.innerHTML = '<label>ЕГН</label>';
+  const egnInput = document.createElement('input');
+  egnInput.type='text'; egnInput.placeholder='10 цифри'; egnInput.inputMode='numeric'; egnInput.pattern='\\d{10}';
+  if(data.egn) egnInput.value=data.egn;
+  const hintAge = document.createElement('div');
+  hintAge.className='hint';
+  hintAge.textContent='Възраст: —';
+  fEGN.appendChild(egnInput); fEGN.appendChild(hintAge);
+
+  // Входящ номер + дата
+  const fIn = document.createElement('div');
+  fIn.innerHTML = '<label>Заявление–декларация Вх. № / дата</label>';
+  const rowIn = document.createElement('div'); rowIn.className='row';
+  const inNum = document.createElement('input'); inNum.type='text'; inNum.placeholder='№ ..............'; inNum.style.flex='1'; if(data.inNum) inNum.value=data.inNum;
+  const inDate = document.createElement('input'); inDate.type='date'; inDate.style.flex='1';
+  inDate.value = data.inDate || new Date().toISOString().slice(0,10);
+  rowIn.appendChild(inNum); rowIn.appendChild(inDate);
+  fIn.appendChild(rowIn);
+
+  // Пенсионер чек + тип
+  const fPens = document.createElement('div');
+  fPens.innerHTML = '<label>Пенсионер</label>';
+  const pensRow = document.createElement('div'); pensRow.className='row';
+  const pensChk = document.createElement('input'); pensChk.type='checkbox'; pensChk.checked=!!data.pensioner;
+  const pensLbl = document.createElement('span'); pensLbl.textContent=' Да';
+  const pensType = document.createElement('select');
+  ['по болест','по ОСВ'].forEach(v=>{
+    const o=document.createElement('option'); o.value=v; o.textContent=v; pensType.appendChild(o);
+  });
+  pensType.disabled = !pensChk.checked;
+  if(data.pensionerType) pensType.value = data.pensionerType;
+  pensChk.onchange=()=> pensType.disabled = !pensChk.checked;
+  pensRow.appendChild(pensChk); pensRow.appendChild(pensLbl); pensRow.appendChild(pensType);
+  fPens.appendChild(pensRow);
+
+  // ТНР/ВСУ + %
+  const fDis = document.createElement('div');
+  fDis.innerHTML = '<label>Степен (ТНР / ВСУ) и процент</label>';
+  const disRow = document.createElement('div'); disRow.className='row';
+  const disType = document.createElement('select');
+  ['ТНР','ВСУ'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;disType.appendChild(o);});
+  if(data.disType) disType.value=data.disType;
+  const disPct = document.createElement('input'); disPct.type='number'; disPct.placeholder='напр. 85'; disPct.min='10'; disPct.max='100'; disPct.step='0.1'; disPct.setAttribute('list','percentsList');
+  if(data.disPercent!=null) disPct.value=data.disPercent;
+  disRow.appendChild(disType); disRow.appendChild(disPct);
+  fDis.appendChild(disRow);
+
+  // Диагноза (с локална история)
+  const fDiag = document.createElement('div');
+  fDiag.innerHTML = '<label>Водеща диагноза</label>';
+  const diag = document.createElement('input'); diag.type='text'; diag.placeholder='напр. Неинсулинозависим захарен диабет'; diag.setAttribute('list','diagList');
+  if(data.diagnosis) diag.value=data.diagnosis;
+  fDiag.appendChild(diag);
+
+  // Срок по чл.70, ЗХУ (месец)
+  const fArt70 = document.createElement('div');
+  fArt70.innerHTML = '<label>МФП по чл.70, ЗХУ — срок до (месец)</label>';
+  const month = document.createElement('input'); month.type='month'; if(data.untilMonth) month.value=data.untilMonth;
+  fArt70.appendChild(month);
+
+  // Контейнер за полета
+  grid.appendChild(fName);
+  grid.appendChild(fEGN);
+  grid.appendChild(fIn);
+  grid.appendChild(fPens);
+  grid.appendChild(fDis);
+  grid.appendChild(fDiag);
+  grid.appendChild(fArt70);
+
+  card.appendChild(h3);
+  card.appendChild(removeBtn);
+  card.appendChild(grid);
+  personsWrap.appendChild(card);
+
+  // Age auto-calc from EGN
+  function refreshAge(){
+    const dob = birthdateFromEGN(egnInput.value.trim());
+    const on = dateEl.value || new Date().toISOString().slice(0,10);
+    const age = dob ? calcAgeOnDate(dob,on) : null;
+    hintAge.textContent = 'Възраст: ' + (age!=null ? `${age} г.` : '—');
+  }
+  egnInput.addEventListener('input', refreshAge);
+  dateEl.addEventListener('input', refreshAge);
+  refreshAge();
+
+  // Save histories on blur
+  diag.addEventListener('blur',()=> pushUniqueLS(LS_KEYS.DIAGNOSES, diag.value.trim()));
+  disPct.addEventListener('blur',()=> pushUniqueLS(LS_KEYS.PERCENTS, disPct.value.trim()));
+
+  return card;
+}
+
+function renumberPersons(){
+  [...personsWrap.children].forEach((card,i)=>{
+    const h3 = card.querySelector('h3');
+    if(h3) h3.textContent = `Лице #${i+1}`;
+  });
+}
+
+function collectData(){
+  const members = [...commissionList.querySelectorAll('.row')].map(r=>{
+    const [name, role] = r.querySelectorAll('input');
+    return {name: name.value.trim(), role: role.value.trim()};
+  }).filter(m=>m.name||m.role);
+
+  const persons = [...personsWrap.querySelectorAll('.person')].map(card=>{
+    const inputs = card.querySelectorAll('input, select');
+    const obj = {};
+    // mapping by order
+    obj.name = inputs[0].value.trim();                  // name
+    obj.egn = inputs[1].value.trim();                   // egn
+    obj.inNum = inputs[2].value.trim();                 // entry num
+    obj.inDate = inputs[3].value;                       // entry date ISO
+    obj.pensioner = inputs[4].checked;                  // pensioner chk
+    obj.pensionerType = inputs[6].value;                // pensioner type select (index depends on layout)
+    obj.disType = inputs[7].value;                      // TNR/VSU select
+    obj.disPercent = inputs[8].value.trim();            // %
+    obj.diagnosis = inputs[9].value.trim();             // diagnosis
+    obj.untilMonth = inputs[10].value;                  // month YYYY-MM
+    // Derived
+    obj.birthISO = birthdateFromEGN(obj.egn);
+    obj.age = obj.birthISO ? calcAgeOnDate(obj.birthISO, dateEl.value || new Date().toISOString().slice(0,10)) : null;
+    return obj;
+  });
+
+  return {
+    date: dateEl.value,
+    municipality: muniEl.value.trim(),
+    members,
+    persons,
+    notes: notesEl.value.trim(),
+  };
+}
+
+function saveDraft(){
+  const data = collectData();
+  localStorage.setItem(LS_KEYS.DRAFT, JSON.stringify(data));
+  alert('Черновата е записана локално.');
+}
+
+function loadDraft(){
+  const raw = localStorage.getItem(LS_KEYS.DRAFT);
+  if(!raw){ alert('Няма запазена чернова.'); return; }
+  try{
+    const d = JSON.parse(raw);
+    dateEl.value = d.date || dateEl.value;
+    muniEl.value = d.municipality || '';
+    commissionList.innerHTML='';
+    (d.members||[]).forEach(m=> addMember(m.name,m.role));
+    personsWrap.innerHTML='';
+    (d.persons||[]).forEach(p=> personCard(p));
+    notesEl.value = d.notes || '';
+    updateTotal(); updateFilename();
+  }catch(e){ alert('Грешка при зареждане на чернова.'); }
+}
+
+// ===== DOCX Generation =====
+async function generateDoc(){
+  const data = collectData();
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = window.docx;
+
+  const dateStr = formatDateBG(data.date || new Date().toISOString().slice(0,10));
+  const totalCount = data.persons.length;
+
+  const titlePara = new Paragraph({
+    children:[ new TextRun({text:'П Р О Т О К О Л', bold:true}) ],
+    heading: HeadingLevel.HEADING_1,
+    alignment: AlignmentType.CENTER,
+  });
+
+  const intro = `Днес ${dateStr} се състоя заседание на консултативната комисия по чл.13, ал.2 от ЗИХУ при следния дневен ред:`;
+  const introPara = new Paragraph({ children:[ new TextRun(intro) ] });
+
+  const agenda1 =
+    `1. Разглеждане на заявления – декларации по чл.12, ал.2, от ЗИХУ и изготвените към тях социални доклади `+
+    `съгласно чл.11, ал.2 от ППЗИХУ, обсъждане и преценка на обстоятелствата от социален, здравен, семеен и битов характер, `+
+    `отнасящи се до възможността за социална интеграция и изготвяне на социална оценка на  ${totalCount}   броя лица с увреждания, `+
+    `предложени за социална оценка.`;
+  const agenda2 = '2. Обобщаване на информацията.';
+  const agenda3 = '3. Други.';
+
+  const agendaParas = [
+    new Paragraph({ children:[ new TextRun(agenda1) ] }),
+    new Paragraph({ children:[ new TextRun(agenda2) ] }),
+    new Paragraph({ children:[ new TextRun(agenda3) ] }),
+  ];
+
+  const commHeader = new Paragraph({ children:[ new TextRun({ text:'\nСъстав на комисията:', bold:true }) ] });
+  const commParas = (data.members.length? data.members:[{name:'',role:''}]).map((m,i)=>
+    new Paragraph({ children:[ new TextRun(`${i+1}. ${m.name}${m.role? ' – '+m.role:''}`) ] })
+  );
+
+  const appsHeader1 = new Paragraph({ children:[ new TextRun({ text:'\nРазглеждане на заявление – декларации по чл.12, ал.2 от ЗИХУ', bold:true }) ] });
+  const appsHeader2 = new Paragraph({ children:[ new TextRun({ text: data.municipality || 'Община __________', italics: !data.municipality }) ] });
+
+  const personParas = [];
+  data.persons.forEach((p, i)=>{
+    const pDate = formatDateBG(p.inDate);
+    const pensTxt = p.pensioner ? `Пенсионер ${p.pensionerType}` : '';
+    const disTxt = `${p.disType} ${p.disPercent? p.disPercent+'%':''}`;
+    const ageTxt = (p.age!=null) ? `${p.age}г.` : '';
+    const monthTxt = p.untilMonth ? monthToBG(p.untilMonth) : '';
+
+    const line1 = `${i+1}. ${p.name}`;
+    const line2 = ` ЕГН   ${p.egn}`;
+    const line3 = `\tЗаявление-декл. Вх.№ ${p.inNum || '—'} / ${pDate}`;
+    const line4 = ` ${pensTxt ? pensTxt+' ' : ''}на ${ageTxt || '—'} с ${disTxt}${p.diagnosis? ' и водеща диагноза: '+p.diagnosis: ''}.`;
+    const line5 = `За повишаване качеството на живот, въз основа на ЕР на ТЕЛК и потребностите на лицето се предлага за одобрение месечна финансова подкрепа по чл.70, ЗХУ със срок  до ${monthTxt || '____.__г.'}`;
+
+    personParas.push(
+      new Paragraph({ children:[ new TextRun(line1) ] }),
+      new Paragraph({ children:[ new TextRun(line2) ] }),
+      new Paragraph({ children:[ new TextRun(line3) ] }),
+      new Paragraph({ children:[ new TextRun(line4) ] }),
+      new Paragraph({ children:[ new TextRun(line5) ] }),
+      new Paragraph({ children:[ new TextRun(' ') ] }) // spacer
+    );
+
+    // Save histories
+    pushUniqueLS(LS_KEYS.DIAGNOSES, p.diagnosis);
+    pushUniqueLS(LS_KEYS.PERCENTS, p.disPercent);
+    pushUniqueLS(LS_KEYS.ROLES, '');
+  });
+
+  const notesPara = data.notes ? new Paragraph({ children:[ new TextRun({ text:`\nБележки: ${data.notes}` }) ] }) : null;
+
+  const doc = new Document({
+    sections: [{
+      properties: {},
+      children: [
+        titlePara,
+        introPara,
+        ...agendaParas,
+        commHeader,
+        ...commParas,
+        appsHeader1,
+        appsHeader2,
+        ...personParas,
+        ...(notesPara ? [notesPara] : []),
+      ]
+    }]
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const filename = dateEl.value ? `Протокол_${dateEl.value}.docx` : 'Протокол.docx';
+  saveAs(blob, filename);
+}
+
+// ===== Init & Events =====
+function addPerson(data){ personCard(data); updateTotal(); }
+
+addPersonBtn.addEventListener('click', ()=> addPerson({}));
+addMemberBtn.addEventListener('click', ()=> addMember('',''));
+
+saveDraftBtn.addEventListener('click', saveDraft);
+loadDraftBtn.addEventListener('click', loadDraft);
+
+dateEl.addEventListener('input', ()=>{ updateFilename(); });
+
+document.getElementById('generateBtn').addEventListener('click', generateDoc);
+
+// Default date = today
+(function initToday(){
+  const t = new Date();
+  const yyyy=t.getFullYear(), mm=String(t.getMonth()+1).padStart(2,'0'), dd=String(t.getDate()).padStart(2,'0');
+  dateEl.value = `${yyyy}-${mm}-${dd}`;
+  updateFilename();
+})();
+
+// Seed one empty member + person for convenience
+addMember('', 'Председател');
+addMember('', 'Секретар');
+addPerson({});
+
+// Build datalists from LS histories
+const diagDL = createDatalist('diagList', getLSArray(LS_KEYS.DIAGNOSES));
+const pctDL = createDatalist('percentsList', getLSArray(LS_KEYS.PERCENTS));
+document.body.appendChild(diagDL);
+document.body.appendChild(pctDL);
+
+// Roles history datalist (predefined + LS)
+const defaultRoles=['Председател','Секретар','Член'];
+const roles = Array.from(new Set([ ...defaultRoles, ...getLSArray(LS_KEYS.ROLES) ]));
+const rolesDL = createDatalist('rolesList', roles);
+document.body.appendChild(rolesDL);
+
+</script>
+</body>
+</html>
