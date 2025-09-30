@@ -35,6 +35,7 @@
     .hint{font-size:12px;color:#9fb3cf;margin-top:4px}
     details{background:#0d172c;border:1px solid #1a2b4a;border-radius:12px;padding:8px}
     summary{cursor:pointer;font-weight:700;color:#d5e6ff}
+    .muted{color:#9fb3cf}
   </style>
 </head>
 <body>
@@ -94,7 +95,7 @@
 <script>
 // ===== Helpers =====
 const LS_KEYS = {
-  DRAFT: 'protocol_draft_v1',
+  DRAFT: 'protocol_draft_v2',
   DIAGNOSES: 'protocol_diag_history_v1',
   PERCENTS: 'protocol_percent_history_v1',
   ROLES: 'protocol_roles_history_v1',
@@ -130,7 +131,6 @@ function birthdateFromEGN(egn){
   const yyyy = century+yy;
   const mStr = String(mm).padStart(2,'0');
   const dStr = String(dd).padStart(2,'0');
-  // Rough validity check
   const dt = new Date(`${yyyy}-${mStr}-${dStr}T00:00:00`);
   if(isNaN(dt.getTime())) return null;
   return `${yyyy}-${mStr}-${dStr}`;
@@ -236,6 +236,7 @@ function personCard(data={}){
   fName.innerHTML = '<label>Трите имена</label>';
   const nameInput = document.createElement('input');
   nameInput.type='text'; nameInput.placeholder='напр. МАРГАРИТА ХРИСТОВА ГЕОРГИЕВА';
+  nameInput.className='p-name';
   if(data.name) nameInput.value=data.name;
   fName.appendChild(nameInput);
 
@@ -244,6 +245,7 @@ function personCard(data={}){
   fEGN.innerHTML = '<label>ЕГН</label>';
   const egnInput = document.createElement('input');
   egnInput.type='text'; egnInput.placeholder='10 цифри'; egnInput.inputMode='numeric'; egnInput.pattern='\\d{10}';
+  egnInput.className='p-egn';
   if(data.egn) egnInput.value=data.egn;
   const hintAge = document.createElement('div');
   hintAge.className='hint';
@@ -254,8 +256,8 @@ function personCard(data={}){
   const fIn = document.createElement('div');
   fIn.innerHTML = '<label>Заявление–декларация Вх. № / дата</label>';
   const rowIn = document.createElement('div'); rowIn.className='row';
-  const inNum = document.createElement('input'); inNum.type='text'; inNum.placeholder='№ ..............'; inNum.style.flex='1'; if(data.inNum) inNum.value=data.inNum;
-  const inDate = document.createElement('input'); inDate.type='date'; inDate.style.flex='1';
+  const inNum = document.createElement('input'); inNum.type='text'; inNum.placeholder='№ ..............'; inNum.style.flex='1'; inNum.className='p-inNum'; if(data.inNum) inNum.value=data.inNum;
+  const inDate = document.createElement('input'); inDate.type='date'; inDate.style.flex='1'; inDate.className='p-inDate';
   inDate.value = data.inDate || new Date().toISOString().slice(0,10);
   rowIn.appendChild(inNum); rowIn.appendChild(inDate);
   fIn.appendChild(rowIn);
@@ -264,9 +266,9 @@ function personCard(data={}){
   const fPens = document.createElement('div');
   fPens.innerHTML = '<label>Пенсионер</label>';
   const pensRow = document.createElement('div'); pensRow.className='row';
-  const pensChk = document.createElement('input'); pensChk.type='checkbox'; pensChk.checked=!!data.pensioner;
+  const pensChk = document.createElement('input'); pensChk.type='checkbox'; pensChk.checked=!!data.pensioner; pensChk.className='p-pensioner';
   const pensLbl = document.createElement('span'); pensLbl.textContent=' Да';
-  const pensType = document.createElement('select');
+  const pensType = document.createElement('select'); pensType.className='p-pensionerType';
   ['по болест','по ОСВ'].forEach(v=>{
     const o=document.createElement('option'); o.value=v; o.textContent=v; pensType.appendChild(o);
   });
@@ -276,14 +278,18 @@ function personCard(data={}){
   pensRow.appendChild(pensChk); pensRow.appendChild(pensLbl); pensRow.appendChild(pensType);
   fPens.appendChild(pensRow);
 
-  // ТНР/ВСУ + %
+  // ТНР/ВСУ + % (букви и цифри)
   const fDis = document.createElement('div');
   fDis.innerHTML = '<label>Степен (ТНР / ВСУ) и процент</label>';
   const disRow = document.createElement('div'); disRow.className='row';
-  const disType = document.createElement('select');
+  const disType = document.createElement('select'); disType.className='p-disType';
   ['ТНР','ВСУ'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;disType.appendChild(o);});
   if(data.disType) disType.value=data.disType;
-  const disPct = document.createElement('input'); disPct.type='number'; disPct.placeholder='напр. 85'; disPct.min='10'; disPct.max='100'; disPct.step='0.1'; disPct.setAttribute('list','percentsList');
+  const disPct = document.createElement('input');
+  disPct.type='text'; disPct.placeholder='напр. 85'; disPct.inputMode='text'; disPct.maxLength=20;
+  disPct.pattern='[A-Za-zА-Яа-я0-9\\s./%-]*'; // букви и цифри + често ползвани символи
+  disPct.setAttribute('list','percentsList');
+  disPct.className='p-disPercent';
   if(data.disPercent!=null) disPct.value=data.disPercent;
   disRow.appendChild(disType); disRow.appendChild(disPct);
   fDis.appendChild(disRow);
@@ -291,15 +297,40 @@ function personCard(data={}){
   // Диагноза (с локална история)
   const fDiag = document.createElement('div');
   fDiag.innerHTML = '<label>Водеща диагноза</label>';
-  const diag = document.createElement('input'); diag.type='text'; diag.placeholder='напр. Неинсулинозависим захарен диабет'; diag.setAttribute('list','diagList');
+  const diag = document.createElement('input'); diag.type='text'; diag.placeholder='напр. Неинсулинозависим захарен диабет'; diag.setAttribute('list','diagList'); diag.className='p-diagnosis';
   if(data.diagnosis) diag.value=data.diagnosis;
   fDiag.appendChild(diag);
 
   // Срок по чл.70, ЗХУ (месец)
   const fArt70 = document.createElement('div');
   fArt70.innerHTML = '<label>МФП по чл.70, ЗХУ — срок до (месец)</label>';
-  const month = document.createElement('input'); month.type='month'; if(data.untilMonth) month.value=data.untilMonth;
+  const month = document.createElement('input'); month.type='month'; month.className='p-untilMonth'; if(data.untilMonth) month.value=data.untilMonth;
   fArt70.appendChild(month);
+
+  // Допълнителна подкрепа
+  const fSupport = document.createElement('div');
+  fSupport.innerHTML = '<label>Допълнителна подкрепа (по избор)</label>';
+  const supWrap = document.createElement('div'); supWrap.className='row';
+  const supMore = document.createElement('input'); supMore.type='checkbox'; supMore.className='p-supportMore'; supMore.checked=!!data.supportMore;
+  const supMoreLbl = document.createElement('span'); supMoreLbl.textContent=' Повече подкрепа за лицето';
+  supWrap.appendChild(supMore); supWrap.appendChild(supMoreLbl);
+  const opts = document.createElement('div'); opts.className='row'; opts.style.marginTop='6px';
+
+  const cbPA = document.createElement('input'); cbPA.type='checkbox'; cbPA.className='p-supportPA'; cbPA.checked=!!data.supportPA;
+  const lblPA = document.createElement('label'); lblPA.className='muted'; lblPA.style.margin='0'; lblPA.textContent='Лична помощ по Закона за лична помощ';
+  lblPA.style.userSelect='none';
+
+  const cbBal = document.createElement('input'); cbBal.type='checkbox'; cbBal.className='p-supportBalneo'; cbBal.checked=!!data.supportBalneo;
+  const lblBal = document.createElement('label'); lblBal.className='muted'; lblBal.style.margin='0'; lblBal.textContent='Балнеолечение и рехабилитация по чл.76 от ЗХУ';
+  lblBal.style.userSelect='none';
+
+  function setOptsDisabled(){ const dis = !supMore.checked; cbPA.disabled = dis; cbBal.disabled = dis; lblPA.style.opacity = dis?0.6:1; lblBal.style.opacity = dis?0.6:1; }
+  opts.appendChild(cbPA); opts.appendChild(lblPA);
+  opts.appendChild(cbBal); opts.appendChild(lblBal);
+  supMore.addEventListener('change', setOptsDisabled);
+  setOptsDisabled();
+  fSupport.appendChild(supWrap);
+  fSupport.appendChild(opts);
 
   // Контейнер за полета
   grid.appendChild(fName);
@@ -309,6 +340,7 @@ function personCard(data={}){
   grid.appendChild(fDis);
   grid.appendChild(fDiag);
   grid.appendChild(fArt70);
+  grid.appendChild(fSupport);
 
   card.appendChild(h3);
   card.appendChild(removeBtn);
@@ -347,20 +379,21 @@ function collectData(){
   }).filter(m=>m.name||m.role);
 
   const persons = [...personsWrap.querySelectorAll('.person')].map(card=>{
-    const inputs = card.querySelectorAll('input, select');
-    const obj = {};
-    // mapping by order
-    obj.name = inputs[0].value.trim();                  // name
-    obj.egn = inputs[1].value.trim();                   // egn
-    obj.inNum = inputs[2].value.trim();                 // entry num
-    obj.inDate = inputs[3].value;                       // entry date ISO
-    obj.pensioner = inputs[4].checked;                  // pensioner chk
-    obj.pensionerType = inputs[5].value;                // pensioner type select (index depends on layout)
-    obj.disType = inputs[6].value;                      // TNR/VSU select
-    obj.disPercent = inputs[8].value.trim();            // %
-    obj.diagnosis = inputs[9].value.trim();             // diagnosis
-    obj.untilMonth = inputs[9].value;                  // month YYYY-MM
-    // Derived
+    const obj = {
+      name: card.querySelector('.p-name')?.value.trim() || '',
+      egn: card.querySelector('.p-egn')?.value.trim() || '',
+      inNum: card.querySelector('.p-inNum')?.value.trim() || '',
+      inDate: card.querySelector('.p-inDate')?.value || '',
+      pensioner: !!card.querySelector('.p-pensioner')?.checked,
+      pensionerType: card.querySelector('.p-pensionerType')?.value || '',
+      disType: card.querySelector('.p-disType')?.value || 'ТНР',
+      disPercent: card.querySelector('.p-disPercent')?.value.trim() || '',
+      diagnosis: card.querySelector('.p-diagnosis')?.value.trim() || '',
+      untilMonth: card.querySelector('.p-untilMonth')?.value || '',
+      supportMore: !!card.querySelector('.p-supportMore')?.checked,
+      supportPA: !!card.querySelector('.p-supportPA')?.checked,
+      supportBalneo: !!card.querySelector('.p-supportBalneo')?.checked,
+    };
     obj.birthISO = birthdateFromEGN(obj.egn);
     obj.age = obj.birthISO ? calcAgeOnDate(obj.birthISO, dateEl.value || new Date().toISOString().slice(0,10)) : null;
     return obj;
@@ -440,7 +473,7 @@ async function generateDoc(){
   data.persons.forEach((p, i)=>{
     const pDate = formatDateBG(p.inDate);
     const pensTxt = p.pensioner ? `Пенсионер ${p.pensionerType}` : '';
-    const disTxt = `${p.disType} ${p.disPercent? p.disPercent+'%':''}`;
+    const disTxt = `${p.disType} ${p.disPercent? p.disPercent+'%':''}`.replace('%%','%');
     const ageTxt = (p.age!=null) ? `${p.age}г.` : '';
     const monthTxt = p.untilMonth ? monthToBG(p.untilMonth) : '';
 
@@ -455,9 +488,17 @@ async function generateDoc(){
       new Paragraph({ children:[ new TextRun(line2) ] }),
       new Paragraph({ children:[ new TextRun(line3) ] }),
       new Paragraph({ children:[ new TextRun(line4) ] }),
-      new Paragraph({ children:[ new TextRun(line5) ] }),
-      new Paragraph({ children:[ new TextRun(' ') ] }) // spacer
+      new Paragraph({ children:[ new TextRun(line5) ] })
     );
+
+    if(p.supportMore && (p.supportPA || p.supportBalneo)){
+      const extras = [];
+      if(p.supportPA) extras.push('Лична помощ по Закона за лична помощ');
+      if(p.supportBalneo) extras.push('Балнеолечение и рехабилитация по чл.76 от ЗХУ');
+      personParas.push(new Paragraph({ children:[ new TextRun(`Допълнително се предлага: ${extras.join('; ')}.`) ] }));
+    }
+
+    personParas.push(new Paragraph({ children:[ new TextRun(' ') ] })); // spacer
 
     // Save histories
     pushUniqueLS(LS_KEYS.DIAGNOSES, p.diagnosis);
