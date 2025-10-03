@@ -144,12 +144,16 @@
         <button class="close-x" id="closeModalBtn" aria-label="Затвори (Esc)">✕</button>
       </div>
       <div class="modal-body">
-        <form id="membershipForm" action="https://formsubmit.io/send/uzunov.ange@gmail.com" method="POST" enctype="multipart/form-data" novalidate>
-          <!-- FormSubmit.io -->
+        <!-- ВАЖНО: FormSubmit.co -->
+        <form id="membershipForm"
+              action="https://formsubmit.co/uzunov.ange@gmail.com"
+              method="POST" enctype="multipart/form-data" novalidate>
+
+          <!-- FormSubmit.co скрити полета -->
           <input type="hidden" name="_subject" value="Нова кандидатура — Клуб „Туристически свят“">
           <input type="hidden" name="_template" value="box">
           <input type="hidden" name="_captcha" value="false">
-          <input type="text" name="_formsubmit_id" style="display:none" tabindex="-1" autocomplete="off">
+          <input type="text"   name="_honey" style="display:none" tabindex="-1" autocomplete="off">
 
           <div class="grid">
             <div>
@@ -246,13 +250,13 @@
 
             <div class="full">
               <label for="insurance">Планинска застраховка (файл, ако имате)</label>
-              <input id="insurance" name="insurance_file" type="file" accept=".jpg,.jpeg,.png,.pdf">
+              <input id="insurance" name="attachments" type="file" accept=".jpg,.jpeg,.png,.pdf">
               <div class="hint">Може да приложите снимка или PDF.</div>
             </div>
 
             <div class="full">
               <label for="photo">Снимка за клубна карта (по желание)</label>
-              <input id="photo" name="profile_photo" type="file" accept=".jpg,.jpeg,.png">
+              <input id="photo" name="attachments" type="file" accept=".jpg,.jpeg,.png">
             </div>
 
             <div>
@@ -356,11 +360,11 @@
         alert('Моля, въведете валиден телефон (минимум 7 цифри) за вас и спешния контакт.');
         return;
       }
-      // redirect след успешно изпращане (Formsubmit)
-      const redirect = document.createElement('input');
-      redirect.type='hidden'; redirect.name='_redirect';
-      redirect.value = location.href.split('#')[0] + '#ok';
-      form.appendChild(redirect);
+      // Абсолютен redirect за FormSubmit.co
+      const next = document.createElement('input');
+      next.type='hidden'; next.name='_next';
+      next.value = `${location.origin}${location.pathname}#ok`;
+      form.appendChild(next);
     });
 
     if(location.hash === '#ok'){
