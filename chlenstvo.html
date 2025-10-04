@@ -420,6 +420,15 @@
       openModal(); show(successNote);
       const body = document.querySelector('.modal-body'); body?.scrollTo({top:0, behavior:'instant'});
     }
+
+    // --- Активиране на pop-up и на мобилни устройства ---
+    document.addEventListener('touchstart', function(){}, {passive: true}); // активира touch събитията
+
+    // Отваряне и при докосване (mobile-friendly)
+    openBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      openModal();
+    });
   </script>
 </body>
 </html>
