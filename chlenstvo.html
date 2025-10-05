@@ -314,6 +314,15 @@
               <input id="photo" name="attachments" type="file" accept=".jpg,.jpeg,.png">
             </div>
 
+            <!-- === Динамичен въпрос по туризъм / обща култура === -->
+            <div class="full" id="quiz_block">
+              <label id="quiz_label" class="required">Въпрос по туризъм</label>
+              <input type="hidden" name="quiz_question" id="quiz_question">
+              <input id="quiz_answer" name="quiz_answer" type="text" required placeholder="Вашият кратък отговор…">
+              <div class="hint">Няма значение дали е вярно или грешно — важно е да споделите какво знаете.</div>
+            </div>
+            <!-- === край на динамичния въпрос === -->
+
             <div>
               <label for="date" class="required">Дата на подаване</label>
               <input id="date" name="submit_date" type="date" required>
@@ -366,6 +375,49 @@
       document.getElementById('year').textContent = new Date().getFullYear();
     })();
 
+    // ===== Динамичен въпрос: въпроси и логика =====
+    const QUESTIONS = [
+      'Кой е най-високият връх в България?',
+      'Коя е най-дългата планинска верига в България?',
+      'Кои три основни маркировъчни цвята се използват по туристическите пътеки?',
+      'Какво винаги трябва да носим в раницата през лятна планина (посочете 2–3 неща)?',
+      'В коя планина се намира Седемте рилски езера?',
+      'Какво означава принципът „Остави само следи, вземи само спомени“?',
+      'Кое е подходящото поведение при среща с диво животно?',
+      'Кой е връх първенец на Пирин?',
+      'Коя е правилната посока за изпреварване по тесен планински пътек?',
+      'Как проверяваме прогнозата и условията преди преход?',
+      'Какво е значението на червената туристическа маркировка?',
+      'Кои са двата национални парка в Рила и Пирин (избройте)?',
+      'Какви са основните правила за безопасност при гръмотевична буря в планината?',
+      'Коя е най-високата хижа в България, която знаете?',
+      'Как се процедира при травма на участник по време на преход?',
+      'Кое е основното предназначение на GPS трак/карта при туризъм?',
+      'Какво е „слоеста“ екипировка и защо е важна?',
+      'Как се ориентираме по карта – какво показват хоризонталите?',
+      'Кой връх е по-висок: Мусала или Вихрен?',
+      'Какво не бива да правим в защитени територии (дайте пример)?'
+    ];
+
+    function pickQuestion(){
+      // различен избор на всяко отваряне; добавяме лека зависимост от времето
+      const seed = Date.now() + Math.floor(Math.random()*1000);
+      const idx = seed % QUESTIONS.length;
+      return QUESTIONS[idx];
+    }
+
+    function setQuizQuestion(){
+      const label = document.getElementById('quiz_label');
+      const hiddenQ = document.getElementById('quiz_question');
+      const answer = document.getElementById('quiz_answer');
+      if(!label || !hiddenQ || !answer) return;
+      const q = pickQuestion();
+      label.textContent = 'Въпрос по туризъм: ' + q;
+      hiddenQ.value = q;
+      answer.value = '';
+      answer.setAttribute('aria-label', 'Отговор на въпроса: ' + q);
+    }
+
     // ===== Modal controls + scroll lock (iOS-friendly) =====
     const openBtn = document.getElementById('openModalBtn');
     const backdrop = document.getElementById('modalBackdrop');
@@ -394,7 +446,10 @@
     function openModal(){
       backdrop.setAttribute('aria-hidden','false');
       lockScroll();
-      setTimeout(()=> document.getElementById('fname')?.focus(), 60);
+      setTimeout(()=> {
+        setQuizQuestion(); // <-- задаваме нов въпрос при всяко отваряне
+        document.getElementById('fname')?.focus()
+      }, 60);
     }
     function closeModal(){
       backdrop.setAttribute('aria-hidden','true');
@@ -430,6 +485,9 @@
         alert('Моля, въведете валиден телефон (минимум 7 цифри) за вас и спешния контакт.');
         return;
       }
+      // задължително да има въпрос; презастраховка
+      if(!document.getElementById('quiz_question').value){ setQuizQuestion(); }
+
       // Абсолютен redirect за FormSubmit.co
       const next = document.createElement('input');
       next.type='hidden'; next.name='_next';
