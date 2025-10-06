@@ -251,7 +251,16 @@
       <style>
         /* скрит хоризонтален скрол само за секцията */
         #tmap-events-slider .no-scrollbar::-webkit-scrollbar{height:0}
-        #tmap-events-slider .no-scrollbar{scrollbar-width:none;-ms-overflow-style:none}
+  #tmap-events-slider .no-scrollbar{scrollbar-width:none;-ms-overflow-style:none}
+        
+  /* Подсветка за нови карти */
+  #tmap-events-slider .ev-card.ev-new{
+    box-shadow:
+      0 0 0 3px rgba(16,185,129,.35) inset,
+      0 14px 28px rgba(16,185,129,.18);
+    outline: 2px solid rgba(16,185,129,.35);
+    outline-offset: -2px;
+  }
       </style>
     </section>
 
@@ -398,6 +407,10 @@
       const track=document.getElementById('ev-track');
       if(!track) return;
 
+      // --- NEW: локално следене на "видени" събития ---
+      const SEEN_KEY='tmap_seen_calendar_ids';
+      const seen = new Set(JSON.parse(localStorage.getItem(SEEN_KEY)||'[]'));
+
       const today = new Date().toISOString().slice(0,10);
       const { data, error } = await client
         .from('tmap_calendar_events')
@@ -420,10 +433,18 @@
         const href  = `${CALENDAR_URL}?from=${encodeURIComponent(first||'')}&to=${encodeURIComponent(last||'')}&focus=${encodeURIComponent(ev.id)}`;
         const title = (ev.title||'Събитие').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         const img   = ev.image ? `<img src="${ev.image}" alt="${title}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" loading="lazy" decoding="async"/>` : '';
-        return `<a href="${href}" class="group relative shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 snap-start hover-tilt">
+
+        // --- NEW: маркиране "НОВО" ако не е виждано досега ---
+        const isNew = !seen.has(ev.id);
+        const newBadge = isNew
+          ? `<span class="px-2 py-1 rounded-full bg-emerald-600 text-white shadow text-[11px] font-extrabold">НОВО</span>`
+          : '';
+
+        return `<a href="${href}" class="group ev-card ${isNew?'ev-new':''} relative shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 snap-start hover-tilt">
           ${img}
           <div class="absolute inset-0 tilt-item"></div>
-          <div class="absolute top-2 left-2 text-[12px] font-extrabold">
+          <div class="absolute top-2 left-2 text-[12px] font-extrabold flex gap-2 items-center">
+            ${newBadge}
             ${dates?`<span class="px-2.5 py-1 rounded-full bg-white shadow">${dates}</span>`:''}
           </div>
           <div class="absolute bottom-0 left-0 right-0 p-4 text-white bg-gradient-to-t from-black/60 via-black/15 to-transparent">
@@ -432,13 +453,20 @@
         </a>`;
       }).join('');
 
+      // --- NEW: след визуализация — запазваме като "видени" ---
+      try{
+        const renderedIds = upcoming.map(ev=>ev.id);
+        const merged = Array.from(new Set([...seen, ...renderedIds]));
+        localStorage.setItem(SEEN_KEY, JSON.stringify(merged));
+      }catch(e){ console.warn('cannot persist seen calendar ids', e); }
+
       // стрелки
       const prev=document.getElementById('ev-prev'), next=document.getElementById('ev-next');
       const step=()=>{ const card=track.querySelector('a'); if(!card) return 320; const gap=parseInt(getComputedStyle(track).gap||'16',10); return card.getBoundingClientRect().width+gap; };
       prev?.addEventListener('click',()=>track.scrollBy({left:-step(),behavior:'smooth'}));
       next?.addEventListener('click',()=>track.scrollBy({left: step(),behavior:'smooth'}));
 
-      // realtime — презареждане при промени
+      // realtime — презареждане при промени (без промяна)
       try{
         supabase.createClient(
           'https://cmiylzpmpwqbacjoqtkx.supabase.co',
