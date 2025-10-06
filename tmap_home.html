@@ -69,6 +69,19 @@
     /* Tilt hover for cards */
     .hover-tilt{ transform-style:preserve-3d; perspective:800px }
     .hover-tilt > .tilt-item{ transition: transform .15s ease; transform: translateZ(0) }
+
+    /* === NEW: стилове за „НОВО“ === */
+    .ev-card{ position:relative }
+    .ev-card.ev-new{
+      background:linear-gradient(180deg,#fffdf4,#ffffff);
+      box-shadow:inset 0 0 0 2px rgba(245,158,11,.18);
+    }
+    .ev-badge-new{
+      position:absolute; top:.5rem; right:.5rem;
+      font-weight:900; font-size:11px; padding:4px 10px; border-radius:999px;
+      background:#10b981; color:#002218;
+      box-shadow:0 6px 18px rgba(16,24,40,.15); border:1px solid rgba(0,0,0,.06)
+    }
   </style>
 </head>
 <body class="selection:bg-emerald-100/70">
@@ -160,7 +173,7 @@
                 <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Нови обекти всеки ден
               </span>
               <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-black/5">
-                <svg class="h-4 w-4 text-sky-600" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H8l-4 4V5з" stroke="currentColor" stroke-width="1.5"/></svg> Общ чат в реално време
+                <svg class="h-4 w-4 text-sky-600" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H8l-4 4В5" stroke="currentColor" stroke-width="1.5"/></svg> Общ чат в реално време
               </span>
               <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm ring-1 ring-black/5">
                 <svg class="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M5 7h14M5 17h7" stroke="currentColor" stroke-width="1.5"/></svg> Лек интерфейс
@@ -293,10 +306,10 @@
           <path fill="#e8f7f0" d="M0,192L48,202.7C96,213,192,235,288,240C384,245,480,235,576,208C672,181,768,139,864,138.7C960,139,1056,181,1152,197.3C1248,213,1344,203,1392,197.3L1440,192L1440,320L0,320Z"></path>
         </svg>
         <svg class="absolute bottom-0 w-[200%] h-[200px] mountain-layer" data-fast viewBox="0 0 1440 320" preserveAspectRatio="none">
-          <path fill="#dff3ea" d="M0,256L60,256C120,256,240,256,360,240C480,224,600,192,720,197.3C840,203,960,245,1080,261.3C1200,277,1320,267,1380,261.3Л1440,256L1440,320L0,320Z"></path>
+          <path fill="#dff3ea" d="M0,256L60,256C120,256,240,256,360,240C480,224,600,192,720,197.3C840,203,960,245,1080,261.3C1200,277,1320,267,1380,261.3Л1440,256L1440,320Л0,320Z"></path>
         </svg>
         <svg class="absolute bottom-0 w-[200%] h-[220px] mountain-layer" viewBox="0 0 1440 320" preserveAspectRatio="none">
-          <path fill="#cfeadf" d="M0,288L80,282.7C160,277,320,267,480,234.7C640,203,800,149,960,149.3C1120,149,1280,203,1360,229.3Л1440,256L1440,320L0,320Z"></path>
+          <path fill="#cfeadf" d="M0,288L80,282.7C160,277,320,267,480,234.7C640,203,800,149,960,149.3C1120,149,1280,203,1360,229.3Л1440,256Л1440,320Л0,320Z"></path>
         </svg>
       </div>
 
@@ -312,7 +325,7 @@
               <span class="hidden sm:inline-block h-5 w-px bg-gray-300"></span>
               <a href="https://turistibg.weebly.com" target="_blank" rel="noopener" class="hover:underline">Основен сайт</a>
               <a href="https://www.facebook.com/turizamworld?locale=bg_BG" target="_blank" rel="noopener" aria-label="Facebook" class="inline-flex items-center gap-1 hover:underline">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.53 17.52 2 12 2S2 6.53 2 12.06c0 4.99 3.66 9.13 8.44 9.94v-7.03H7.9v-2.9h2.54V9.41c0-2.5 1.49-3.88 3.77-3.88 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.81 8.44-4.95 8.44-9.94z"/></svg>
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.53 17.52 2 12 2S2 6.53 2 12.06c0 4.99 3.66 9.13 8.44 9.94v-7.03H7.9v-2.9h2.54V9.41c0-2.5 1.49-3.88 3.77-3.88 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78л-.44 2.9h-2.34V22c4.78-.81 8.44-4.95 8.44-9.94z"/></svg>
               </a>
             </nav>
           </div>
@@ -354,7 +367,7 @@
       <div class="glass bg-white/90 border border-black/5 shadow-2xl rounded-2xl p-4">
         <div class="flex items-start gap-3">
           <div class="h-10 w-10 rounded-xl bg-emerald-600/10 grid place-content-center">
-            <svg class="h-6 w-6 text-emerald-600" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4 4-4M4 21h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <svg class="h-6 w-6 text-emerald-600" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0л-4-4m4 4 4-4M4 21h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
           <div class="flex-1">
             <h3 class="font-semibold">Инсталирай T-MAP</h3>
@@ -374,8 +387,8 @@
   <section id="policy-modal" class="fixed inset-x-4 top-10 md:inset-x-auto md:right-6 md:left-auto z-50 hidden max-w-2xl md:w-[640px] rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden">
     <header class="flex items-center justify-between px-5 py-3 border-b border-gray-200">
       <h2 id="policy-title" class="text-base font-semibold">Политики</h2>
-      <button type="button" id="policy-close" class="rounded-lg p-2 hover:bg-gray-50" aria-label="Затвори">
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <button type="button" id="policy-close" class="rounded-lg p-2 hover:bg-gray-50" aria-label="Зatвори">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M6 6л12 12M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       </button>
     </header>
     <article id="policy-content" class="px-5 py-4 max-h-[70vh] overflow-y-auto text-sm leading-6 text-gray-700 space-y-3"></article>
@@ -401,7 +414,7 @@
       const today = new Date().toISOString().slice(0,10);
       const { data, error } = await client
         .from('tmap_calendar_events')
-        .select('id,title,image,dates')
+        .select('id,title,image,dates,created_at') /* + created_at за "НОВО" */
         .order('dates->0', { ascending: true });
       if(error) throw error;
 
@@ -411,6 +424,13 @@
 
       const upcoming = events.filter(ev => (ev.dates[ev.dates.length-1] || ev.dates[0]) >= today);
 
+      const NEW_WINDOW_DAYS = 7;
+      const isNew = (ev) => {
+        if(!ev.created_at) return false;
+        const c = new Date(ev.created_at).getTime();
+        return (Date.now() - c) <= NEW_WINDOW_DAYS*86400000;
+      };
+
       const fmt = s => { const [Y,M,D]=(s||'').split('-'); return (D&&M&&Y)?`${D}.${M}.${Y}`:s; };
 
       track.innerHTML = upcoming.map(ev=>{
@@ -419,10 +439,12 @@
         const dates = first ? `${fmt(first)}${last!==first?`–${fmt(last)}`:''}` : '';
         const href  = `${CALENDAR_URL}?from=${encodeURIComponent(first||'')}&to=${encodeURIComponent(last||'')}&focus=${encodeURIComponent(ev.id)}`;
         const title = (ev.title||'Събитие').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const fresh = isNew(ev);
         const img   = ev.image ? `<img src="${ev.image}" alt="${title}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" loading="lazy" decoding="async"/>` : '';
-        return `<a href="${href}" class="group relative shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 snap-start hover-tilt">
+        return `<a href="${href}" class="ev-card group relative shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-white ring-1 ring-black/5 snap-start hover-tilt ${fresh?'ev-new':''}">
           ${img}
           <div class="absolute inset-0 tilt-item"></div>
+          ${fresh?'<span class="ev-badge-new">НОВО</span>':''}
           <div class="absolute top-2 left-2 text-[12px] font-extrabold">
             ${dates?`<span class="px-2.5 py-1 rounded-full bg-white shadow">${dates}</span>`:''}
           </div>
@@ -442,7 +464,7 @@
       try{
         supabase.createClient(
           'https://cmiylzpmpwqbacjoqtkx.supabase.co',
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8'
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZз8'
         ).channel('events-rt')
           .on('postgres_changes', { event:'*', schema:'public', table:'tmap_calendar_events' }, ()=>initEvents())
           .subscribe();
@@ -625,7 +647,7 @@
     (async function initPhotoSlider(){
       const client = supabase.createClient(
         'https://cmiylzpmpwqbacjoqtkx.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8'
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFзZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicм9сZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8'
       );
       const track=$('#pv-track'), btnPrev=$('#pv-prev'), btnNext=$('#pv-next');
 
@@ -644,25 +666,29 @@
         return;
       }
 
+      const NEW_WINDOW_DAYS = 7;
+      const isFresh = (row) => {
+        if (!row?.created_at) return false;
+        const t = new Date(row.created_at).getTime();
+        return (Date.now() - t) <= NEW_WINDOW_DAYS * 86400000;
+      };
+
       track.innerHTML = rows.map(r=>{
         const url='tmap.html?focus='+encodeURIComponent(r.id);
-        const created=new Date(r.created_at);
-        const fresh=(Date.now()-created.getTime())/(1000*60*60*24)<=7;
         const title=(r.title||'Обект').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        return `<a href="${url}" class="group relative shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-black/5 snap-start hover-tilt">
+        const fresh=isFresh(r);
+        return `<a href="${url}" class="ev-card group relative shrink-0 w-72 sm:w-80 md:w-96 aspect-[4/3] rounded-2xl overflow-hidden bg-white ring-1 ring-black/5 snap-start hover-tilt ${fresh?'ev-new':''}">
           <img src="${r.image_url}" alt="${title}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" loading="lazy" decoding="async"/>
           <div class="absolute inset-0 tilt-item"></div>
+          ${fresh?'<span class="ev-badge-new">НОВО</span>':''}
           <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.65) 100%)"></div>
           <div class="absolute bottom-0 left-0 right-0 p-4 text-white">
-            <div class="flex items-center gap-2">
-              <h3 class="line-clamp-1 font-semibold text-base">${title}</h3>
-              ${fresh?'<span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/90">нов</span>':''}
-            </div>
+            <h3 class="line-clamp-1 font-semibold text-base">${title}</h3>
             <p class="text-white/80 text-xs">Отвори в картата →</p>
           </div>
         </a>`;
       }).join('');
-      $$('#pv-track .hover-tilt').forEach(attachTilt);
+      $$('#pv-track .hover-tilt, #pv-track .ev-card').forEach(attachTilt);
 
       const getStep=()=>{ const card=track.querySelector('a'); if(!card) return 320; const gap=parseInt(getComputedStyle(track).gap||'16',10); return card.getBoundingClientRect().width+gap; };
       btnPrev?.addEventListener('click',()=>track.scrollBy({left:-getStep(),behavior:'smooth'}));
@@ -762,7 +788,6 @@
       {id:'go',    q:'Хей, стягаш ли се за преход?', yes:'equip', no:'browse'},
       {id:'equip', q:'Екипировката сезонна ли е?',     yes:'ins',   no:'gear'},
       {id:'ins',   q:'Имаш ли застраховка?',       yes:'check',  no:'insurance'},
- // different id to avoid name clash with END.pack
       {id:'pack',  q:'Вода, храна, аптечка?',   yes:'ready', no:'pack'}
     ];
     let i=0;
