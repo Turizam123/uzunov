@@ -68,9 +68,16 @@
     .empty{opacity:.7;padding:6px}
 
     .event-card{
+      position:relative; /* за НОВО баджа */
       display:grid; grid-template-columns:1fr; gap:10px;
       padding:12px; border-radius:16px; background:#fff;
       border:1px solid rgba(2,6,23,.06); box-shadow:var(--shadow); cursor:pointer
+    }
+    /* Подцветка за нови обяви */
+    .event-card.new{
+      background:linear-gradient(180deg,#fffdf4,#ffffff);
+      box-shadow:var(--shadow), 0 0 0 2px rgba(245,158,11,.18) inset;
+      border-color:rgba(245,158,11,.35);
     }
     .event-card .thumb{position:relative;width:100%;height:180px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#e6f9ff,#efe7ff);border:1px solid rgba(2,6,23,.06)}
     .event-card .thumb img{width:100%;height:100%;object-fit:cover;display:block}
@@ -78,6 +85,12 @@
       position:absolute;top:8px;left:8px;background:#fff;color:#0b1220;
       padding:4px 10px;border-radius:999px;font-weight:800;font-size:12px;
       box-shadow:0 6px 18px rgba(16,24,40,.15);border:1px solid rgba(2,6,23,.08)
+    }
+    /* Бадж НОВО */
+    .event-card .new-badge{
+      position:absolute;top:8px;right:8px;background:var(--tmap-blue);color:#001a26;
+      padding:4px 10px;border-radius:999px;font-weight:900;font-size:11px;
+      letter-spacing:.02em;box-shadow:0 6px 18px rgba(16,24,40,.15);border:1px solid rgba(2,6,23,.08)
     }
     .event-card .title{font-weight:900;font-size:16px}
     .event-card .meta{font-size:12px;opacity:.9}
@@ -315,7 +328,8 @@
       return (data||[]).map(r=>({
         id:r.id, title:r.title, category:r.category||'other', color:r.color||null,
         notes:r.notes||'', url:r.url||'', image:r.image||'',
-        dates:(r.dates||[]).map(String)
+        dates:(r.dates||[]).map(String),
+        created_at: r.created_at // <-- нужно за НОВО
       }));
     }
     async function db_upsert(ev){
@@ -374,6 +388,14 @@
       other:{name:'Друго', color:'#a855f7'}
     };
     const catName = c => categories[c]?.name || 'Друго';
+
+    /* Нови обяви: прозорец в дни */
+    const NEW_WINDOW_DAYS = 7; // считаме за "ново" до 7 дни след създаване
+    function isNew(ev){
+      if(!ev.created_at) return false;
+      const created = new Date(ev.created_at);
+      return (Date.now() - created.getTime()) <= NEW_WINDOW_DAYS*86400000;
+    }
 
     /* ---------- Header / Nav ---------- */
     const title = $('#title'), prevBtn=$('#prevBtn'), nextBtn=$('#nextBtn'), todayBtn=$('#todayBtn');
@@ -486,12 +508,14 @@
     function renderEventsInto(container, emptyEl, list){
       if(!container) return; container.innerHTML=''; emptyEl.hidden = list.length>0;
       list.forEach(ev=>{
-        const item=document.createElement('div'); item.className='event-card';
+        const item=document.createElement('div'); const fresh = isNew(ev);
+        item.className='event-card'+(fresh?' new':'');
         const datesShort = compressDates(ev.dates);
         item.innerHTML = `
           <div class="thumb">
             ${ev.image?`<img src="${ev.image}" alt="${escapeHtml(ev.title)}">`:''}
             <div class="date-badge">${datesShort}</div>
+            ${fresh?'<div class="new-badge">НОВО</div>':''}
           </div>
           <div class="title">${escapeHtml(ev.title)}</div>
           <div class="meta">${catName(ev.category)}</div>
@@ -597,11 +621,12 @@
       const list = visibleEvents().filter(ev=> ev.dates.includes(isoDate));
       sheetEvents.innerHTML = list.length? '' : '<div class="empty">Няма събития за този ден.</div>';
       list.forEach(ev=>{
-        const row=document.createElement('div'); row.className='event-card';
+        const row=document.createElement('div'); const fresh=isNew(ev); row.className='event-card'+(fresh?' new':'');
         row.innerHTML = `
           <div class="thumb">
             ${ev.image?`<img src="${ev.image}" alt="${escapeHtml(ev.title)}">`:''}
             <div class="date-badge">${compressDates(ev.dates)}</div>
+            ${fresh?'<div class="new-badge">НОВО</div>':''}
           </div>
           <div class="title">${escapeHtml(ev.title)}</div>
           <div class="meta">${catName(ev.category)}</div>
@@ -677,7 +702,7 @@
     }
 
     /* ---------- Helpers / Init ---------- */
-    function escapeHtml(s){ return String(s||'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+    function escapeHtml(s){ return String(s||'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])) }
 
     async function refreshEvents(){
       state.events = await db_list();
