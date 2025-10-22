@@ -268,7 +268,7 @@
     langEN.addEventListener('click', ()=> applyI18n('en'));
 
     // Set initial language based on browser or default BG
-    const preferred = (navigator.language || 'bg').toLowerCase().startsWith('en') ? 'en' : 'bg';
+    const preferred = (navigator. || 'bg').toLowerCase().startsWith('en') ? 'en' : 'bg';
     applyI18n(preferred);
 
     // Extra: client-side safety net — basic validation + graceful error
