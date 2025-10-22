@@ -18,120 +18,140 @@
   <style>
     .img-full{width:100%;height:auto;object-fit:contain}
     .popup-bg{background-color:rgba(0,0,0,0.7)}
-  </style>
-  <style>
-    .img-full{width:100%;height:auto;object-fit:contain}
-    .popup-bg{background-color:rgba(0,0,0,0.7)}
     .fade-in{opacity:0;transform:translateY(10px);animation:fadeIn .9s ease-out .2s forwards}
     @keyframes fadeIn{to{opacity:1;transform:translateY(0)}}
   </style>
 </head>
 <body class="bg-coal text-white font-sans antialiased selection:bg-gold/30 selection:text-white">
+  <!-- Language Switcher -->
+  <div class="fixed top-4 right-4 z-50 flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-3 py-1">
+    <span class="text-xs text-white/70">Language</span>
+    <button id="lang-bg" class="text-xs px-2 py-1 rounded-full bg-gold text-black font-semibold">BG</button>
+    <button id="lang-en" class="text-xs px-2 py-1 rounded-full hover:bg-white/10">EN</button>
+  </div>
+
   <header class="text-center py-10">
-    <h1 class="text-4xl font-display text-gold">UZI Noir — Вдъхновение от планината</h1>
-    <p class="text-white/80 mt-2">Основен и Премиум парфюм</p>
+    <h1 class="text-4xl font-display text-gold" data-i18n="header.title">UZI Noir — Вдъхновение от планината</h1>
+    <p class="text-white/80 mt-2" data-i18n="header.subtitle">Основен и Премиум парфюм</p>
   </header>
 
-  <!-- HERO / Приветлива начална част -->
+  <!-- HERO -->
   <section id="hero" class="relative min-h-[70vh] flex items-center justify-center text-center overflow-hidden bg-gradient-to-b from-black via-coal to-coal">
     <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/generated-image-1-12_orig.png" alt="UZI Noir фон" class="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm">
     <div class="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60"></div>
     <div class="relative z-10 max-w-3xl px-6 fade-in">
       <h1 class="text-5xl md:text-6xl font-display text-gold drop-shadow mb-4">UZI Noir Parfume</h1>
-      <p class="text-white/85 text-lg md:text-xl mb-8">Вдъхновен от безкрайните върхове. Създаден за онези, които следват собствения си път.</p>
+      <p class="text-white/85 text-lg md:text-xl mb-8" data-i18n="hero.tagline">Вдъхновен от безкрайните върхове. Създаден за онези, които следват собствения си път.</p>
       <div class="flex flex-wrap justify-center gap-4">
-        <a href="#noir" class="px-6 py-3 bg-gold text-black font-semibold rounded-xl hover:bg-gold/90 transition">Открий UZI Noir</a>
-        <a href="#mortality" class="px-6 py-3 bg-transparent border border-gold text-gold font-semibold rounded-xl hover:bg-gold hover:text-black transition">Виж Mortality</a>
+        <a href="#noir" class="px-6 py-3 bg-gold text-black font-semibold rounded-xl hover:bg-gold/90 transition" data-i18n="hero.ctaNoir">Открий UZI Noir</a>
+        <a href="#mortality" class="px-6 py-3 bg-transparent border border-gold text-gold font-semibold rounded-xl hover:bg-gold hover:text-black transition" data-i18n="hero.ctaMortality">Виж Mortality</a>
       </div>
     </div>
-    <!-- декоративна вълна -->
     <svg class="absolute bottom-0 left-0 w-full" viewBox="0 0 1440 120" aria-hidden="true"><path fill="rgba(212,175,55,0.15)" d="M0,64 C240,160 480,0 720,64 C960,128 1200,32 1440,80 L1440,120 L0,120 Z"/></svg>
   </section>
 
   <main class="max-w-6xl mx-auto px-6 space-y-16">
     <section id="noir" class="text-center">
-      <h2 class="text-2xl font-semibold mb-4">UZI Noir — Основен парфюм</h2>
+      <h2 class="text-2xl font-semibold mb-4" data-i18n="noir.title">UZI Noir — Основен парфюм</h2>
       <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/generated-image-1-12_orig.png" alt="UZI Noir Основен парфюм" class="img-full mx-auto rounded-3xl shadow-glow mb-6">
-      <p class="max-w-3xl mx-auto text-white/80 leading-relaxed">
+      <p class="max-w-3xl mx-auto text-white/80 leading-relaxed" data-i18n="noir.desc">
         Основният <span class="text-gold">UZI Noir</span> е вдъхновен от чистия въздух на високите върхове и от усещането за свобода сред природата. Той комбинира свежи и дървесни акорди, които се разгръщат в балансиран и елегантен аромат, подходящ за всеки ден. Подчертава силата, самоувереността и връзката с планината.
       </p>
       <div class="mt-6 max-w-2xl mx-auto bg-white/5 ring-1 ring-white/10 rounded-2xl p-6">
-        <h3 class="text-xl font-semibold text-gold mb-2">Ароматна пирамида</h3>
-        <p class="text-white/80"><strong>Връхни нотки:</strong> бергамот, лавандула, цитрус</p>
-        <p class="text-white/80 mt-1"><strong>Сърце:</strong> мускус, зелени треви, здравец</p>
-        <p class="text-white/80 mt-1"><strong>База:</strong> кедър, ветивер, амбра</p>
+        <h3 class="text-xl font-semibold text-gold mb-2" data-i18n="noir.pyramid">Ароматна пирамида</h3>
+        <p class="text-white/80" data-i18n="noir.top"><strong>Връхни нотки:</strong> бергамот, лавандула, цитрус</p>
+        <p class="text-white/80 mt-1" data-i18n="noir.heart"><strong>Сърце:</strong> мускус, зелени треви, здравец</p>
+        <p class="text-white/80 mt-1" data-i18n="noir.base"><strong>База:</strong> кедър, ветивер, амбра</p>
       </div>
-      <p class="mt-4 text-gold font-medium">Категория: Унисекс | Концентрация: Eau de Parfum | Подходящ за всеки сезон</p>
-      <button data-product="UZI Noir — Основен парфюм" class="openPopup mt-6 px-6 py-3 bg-gold text-black font-semibold rounded-xl hover:bg-gold/90">Запитване за този продукт</button>
+      <p class="mt-4 text-gold font-medium" data-i18n="noir.meta">Категория: Унисекс | Концентрация: Eau de Parfum | Подходящ за всеки сезон</p>
+      <button data-product="UZI Noir — Основен парфюм" class="openPopup mt-6 px-6 py-3 bg-gold text-black font-semibold rounded-xl hover:bg-gold/90" data-i18n="form.open">Запитване за този продукт</button>
     </section>
 
     <section id="mortality" class="text-center">
-      <h2 class="text-2xl font-semibold mb-4">UZI Mortality — Премиум парфюм</h2>
+      <h2 class="text-2xl font-semibold mb-4" data-i18n="mort.title">UZI Mortality — Премиум парфюм</h2>
       <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/generated-image-1-14_orig.png" alt="UZI Mortality Премиум парфюм" class="img-full mx-auto rounded-3xl shadow-glow mb-6">
-      <p class="max-w-3xl mx-auto text-white/80 leading-relaxed">
+      <p class="max-w-3xl mx-auto text-white/80 leading-relaxed" data-i18n="mort.desc">
         <span class="text-gold">UZI Mortality Premium</span> е луксозната интерпретация на аромата — по-дълбок, наситен и мистериозен. Той разкрива мъжкарски, но и артистичен характер, носещ усещане за сила и спокойствие. Създаден е за хора, които ценят индивидуалността, страстта и харизмата.
       </p>
       <div class="mt-6 max-w-2xl mx-auto bg-white/5 ring-1 ring-white/10 rounded-2xl p-6">
-        <h3 class="text-xl font-semibold text-gold mb-2">Ароматна пирамида</h3>
-        <p class="text-white/80"><strong>Връхни нотки:</strong> бор, хвойна</p>
-        <p class="text-white/80 mt-1"><strong>Сърце:</strong> тамян, кожа</p>
-        <p class="text-white/80 mt-1"><strong>База:</strong> ветивер, черен дъб, смола</p>
+        <h3 class="text-xl font-semibold text-gold mb-2" data-i18n="mort.pyramid">Ароматна пирамида</h3>
+        <p class="text-white/80" data-i18n="mort.top"><strong>Връхни нотки:</strong> бор, хвойна</p>
+        <p class="text-white/80 mt-1" data-i18n="mort.heart"><strong>Сърце:</strong> тамян, кожа</p>
+        <p class="text-white/80 mt-1" data-i18n="mort.base"><strong>База:</strong> ветивер, черен дъб, смола</p>
       </div>
-      <p class="mt-4 text-gold font-medium">Категория: Унисекс | Концентрация: Extrait de Parfum | Дълготрайност: 10+ часа</p>
-      <button data-product="UZI Mortality — Премиум парфюм" class="openPopup mt-6 px-6 py-3 bg-gold text-black font-semibold rounded-xl hover:bg-gold/90">Запитване за този продукт</button>
+      <p class="mt-4 text-gold font-medium" data-i18n="mort.meta">Категория: Унисекс | Концентрация: Extrait de Parfum | Дълготрайност: 10+ часа</p>
+      <button data-product="UZI Mortality — Премиум парфюм" class="openPopup mt-6 px-6 py-3 bg-gold text-black font-semibold rounded-xl hover:bg-gold/90" data-i18n="form.open">Запитване за този продукт</button>
     </section>
   </main>
 
   <!-- Pop-up форма за запитване (FormSubmit) -->
   <div id="popup" class="hidden fixed inset-0 flex items-center justify-center popup-bg z-50">
     <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-md w-full ring-1 ring-white/20">
-      <h3 class="text-2xl font-semibold text-gold mb-4 text-center">Изпрати запитване</h3>
-      <form id="inquiryForm" class="space-y-3" method="POST" action="https://formsubmit.co/uzunov.ange@gmail.com">
-        <!-- анти‑бот поле -->
+      <h3 class="text-2xl font-semibold text-gold mb-4 text-center" data-i18n="form.title">Изпрати запитване</h3>
+
+      <!-- IMPORTANT: Correct FormSubmit endpoint -->
+      <form id="inquiryForm" class="space-y-3" method="POST" action="https://formsubmit.co/uzunov.angel@abv.bg" accept-charset="UTF-8">
+        <!-- anti-bot field -->
         <input type="text" name="_honey" class="hidden" style="display:none" tabindex="-1" autocomplete="off">
-        <!-- да не се изисква captcha -->
+        <!-- disable captcha -->
         <input type="hidden" name="_captcha" value="false">
-        <!-- страница за благодарност (връща към текущата) -->
+        <!-- success redirect back to page with flag -->
         <input type="hidden" name="_next" id="_next" value="">
-        <input type="hidden" name="Продукт" id="productField" value="">
         <input type="hidden" name="_template" value="table">
         <input type="hidden" name="_subject" value="Ново запитване от сайта UZI Noir">
+        <input type="hidden" name="_language" id="_language" value="bg">
+        <input type="hidden" name="product" id="productField" value="">
 
-        <label class="block text-sm text-white/80">Име
-          <input name="Име" type="text" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none">
+        <label class="block text-sm text-white/80"><span data-i18n="form.name">Име</span>
+          <input id="name" name="name" type="text" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="name">
         </label>
-        <label class="block text-sm text-white/80">Имейл
-          <input name="Имейл" type="email" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none">
+
+        <label class="block text-sm text-white/80"><span data-i18n="form.email">Имейл</span>
+          <!-- name=email helps FormSubmit set Reply-To -->
+          <input id="email" name="email" type="email" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="email">
         </label>
-        <label class="block text-sm text-white/80">Телефон
-          <input name="Телефон" type="text" class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none">
+
+        <label class="block text-sm text-white/80"><span data-i18n="form.phone">Телефон</span>
+          <input id="phone" name="phone" type="text" class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="tel">
         </label>
-        <label class="block text-sm text-white/80">Съобщение
-          <textarea name="Съобщение" rows="4" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none"></textarea>
+
+        <label class="block text-sm text-white/80"><span data-i18n="form.message">Съобщение</span>
+          <textarea id="message" name="message" rows="4" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none"></textarea>
         </label>
+
         <label class="flex items-center gap-2 text-xs text-white/70">
-          <input type="checkbox" required class="accent-gold"> Съгласен/на съм данните да бъдат използвани за връзка относно това запитване.
+          <input type="checkbox" required class="accent-gold"> <span data-i18n="form.consent">Съгласен/на съм данните да бъдат използвани за връзка относно това запитване.</span>
         </label>
+
         <div class="grid grid-cols-2 gap-2">
-          <button type="submit" class="px-4 py-2 rounded-lg bg-gold text-black font-semibold hover:bg-gold/90">Изпрати</button>
-          <button id="closePopup" type="button" class="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20">Затвори</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-gold text-black font-semibold hover:bg-gold/90" data-i18n="form.submit">Изпрати</button>
+          <button id="closePopup" type="button" class="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20" data-i18n="form.close">Затвори</button>
         </div>
       </form>
-      <p id="successMsg" class="hidden text-green-400 text-center mt-3">Благодарим! Изпратихме вашето запитване.</p>
+
+      <p id="successMsg" class="hidden text-green-400 text-center mt-3" data-i18n="form.success">Благодарим! Изпратихме вашето запитване.</p>
+      <p id="errorMsg" class="hidden text-red-400 text-center mt-3" data-i18n="form.error">Възникна проблем при изпращането. Моля, опитайте отново.</p>
     </div>
   </div>
 
   <footer class="text-center py-10 border-t border-white/10 mt-10 text-white/60">
-    <p>© <span id="year"></span> UZI Parfume Noir / Mortality. Всички права запазени.</p>
+    <p>© <span id="year"></span> UZI Parfume Noir / Mortality. <span data-i18n="footer.rights">Всички права запазени.</span></p>
   </footer>
 
   <script>
+    // Year
     document.getElementById('year').textContent = new Date().getFullYear();
 
+    // Popup controls
     const popup = document.getElementById('popup');
     const productField = document.getElementById('productField');
     const nextField = document.getElementById('_next');
-    nextField.value = location.href; // връщане към текущата страница след изпращане
+    const successMsg = document.getElementById('successMsg');
+    const errorMsg = document.getElementById('errorMsg');
+
+    // Redirect back with ?sent=1 and anchor for accessibility
+    const baseUrl = location.href.split('#')[0].split('?')[0];
+    nextField.value = baseUrl + '?sent=1#popup';
 
     document.querySelectorAll('.openPopup').forEach(btn=>{
       btn.addEventListener('click', () => {
@@ -139,8 +159,124 @@
         popup.classList.remove('hidden');
       });
     });
-
     document.getElementById('closePopup').addEventListener('click', () => popup.classList.add('hidden'));
+
+    // If redirected with sent flag — show success
+    const usp = new URLSearchParams(location.search);
+    if (usp.get('sent') === '1') {
+      popup.classList.remove('hidden');
+      successMsg.classList.remove('hidden');
+      setTimeout(()=>{ popup.classList.add('hidden'); successMsg.classList.add('hidden'); }, 3500);
+      // Clean the URL
+      history.replaceState({}, '', baseUrl);
+    }
+
+    // LANG: minimal i18n
+    const dict = {
+      bg: {
+        'header.title': 'UZI Noir — Вдъхновение от планината',
+        'header.subtitle': 'Основен и Премиум парфюм',
+        'hero.tagline': 'Вдъхновен от безкрайните върхове. Създаден за онези, които следват собствения си път.',
+        'hero.ctaNoir': 'Открий UZI Noir',
+        'hero.ctaMortality': 'Виж Mortality',
+        'noir.title': 'UZI Noir — Основен парфюм',
+        'noir.desc': 'Основният <span class="text-gold">UZI Noir</span> е вдъхновен от чистия въздух на високите върхове и от усещането за свобода сред природата. Той комбинира свежи и дървесни акорди, които се разгръщат в балансиран и елегантен аромат, подходящ за всеки ден. Подчертава силата, самоувереността и връзката с планината.',
+        'noir.pyramid': 'Ароматна пирамида',
+        'noir.top': '<strong>Връхни нотки:</strong> бергамот, лавандула, цитрус',
+        'noir.heart': '<strong>Сърце:</strong> мускус, зелени треви, здравец',
+        'noir.base': '<strong>База:</strong> кедър, ветивер, амбра',
+        'noir.meta': 'Категория: Унисекс | Концентрация: Eau de Parfum | Подходящ за всеки сезон',
+        'mort.title': 'UZI Mortality — Премиум парфюм',
+        'mort.desc': '<span class="text-gold">UZI Mortality Premium</span> е луксозната интерпретация на аромата — по-дълбок, наситен и мистериозен. Той разкрива мъжкарски, но и артистичен характер, носещ усещане за сила и спокойствие. Създаден е за хора, които ценят индивидуалността, страстта и харизмата.',
+        'mort.pyramid': 'Ароматна пирамида',
+        'mort.top': '<strong>Връхни нотки:</strong> бор, хвойна',
+        'mort.heart': '<strong>Сърце:</strong> тамян, кожа',
+        'mort.base': '<strong>База:</strong> ветивер, черен дъб, смола',
+        'mort.meta': 'Категория: Унисекс | Концентрация: Extrait de Parfum | Дълготрайност: 10+ часа',
+        'form.open': 'Запитване за този продукт',
+        'form.title': 'Изпрати запитване',
+        'form.name': 'Име',
+        'form.email': 'Имейл',
+        'form.phone': 'Телефон',
+        'form.message': 'Съобщение',
+        'form.consent': 'Съгласен/на съм данните да бъдат използвани за връзка относно това запитване.',
+        'form.submit': 'Изпрати',
+        'form.close': 'Затвори',
+        'form.success': 'Благодарим! Изпратихме вашето запитване.',
+        'form.error': 'Възникна проблем при изпращането. Моля, опитайте отново.',
+        'footer.rights': 'Всички права запазени.'
+      },
+      en: {
+        'header.title': 'UZI Noir — Inspired by the Mountains',
+        'header.subtitle': 'Core and Premium perfume',
+        'hero.tagline': 'Inspired by endless peaks. Created for those who follow their own path.',
+        'hero.ctaNoir': 'Discover UZI Noir',
+        'hero.ctaMortality': 'See Mortality',
+        'noir.title': 'UZI Noir — Core Perfume',
+        'noir.desc': 'The <span class="text-gold">UZI Noir</span> core scent is inspired by crisp mountain air and the feeling of freedom in nature. It blends fresh and woody accords into a balanced, elegant aroma for everyday wear, highlighting strength, confidence, and a bond with the mountains.',
+        'noir.pyramid': 'Fragrance Pyramid',
+        'noir.top': '<strong>Top:</strong> bergamot, lavender, citrus',
+        'noir.heart': '<strong>Heart:</strong> musk, green grasses, geranium',
+        'noir.base': '<strong>Base:</strong> cedar, vetiver, amber',
+        'noir.meta': 'Category: Unisex | Concentration: Eau de Parfum | Suitable for all seasons',
+        'mort.title': 'UZI Mortality — Premium Perfume',
+        'mort.desc': '<span class="text-gold">UZI Mortality Premium</span> is a deeper, richer, and more mysterious take. It reveals a bold yet artistic character, evoking strength and calm. Made for those who value individuality, passion, and charisma.',
+        'mort.pyramid': 'Fragrance Pyramid',
+        'mort.top': '<strong>Top:</strong> pine, juniper',
+        'mort.heart': '<strong>Heart:</strong> incense, leather',
+        'mort.base': '<strong>Base:</strong> vetiver, black oak, resin',
+        'mort.meta': 'Category: Unisex | Concentration: Extrait de Parfum | Longevity: 10+ hours',
+        'form.open': 'Product inquiry',
+        'form.title': 'Send an inquiry',
+        'form.name': 'Name',
+        'form.email': 'Email',
+        'form.phone': 'Phone',
+        'form.message': 'Message',
+        'form.consent': 'I consent to my data being used to contact me about this inquiry.',
+        'form.submit': 'Send',
+        'form.close': 'Close',
+        'form.success': 'Thank you! Your inquiry has been sent.',
+        'form.error': 'There was a problem sending. Please try again.',
+        'footer.rights': 'All rights reserved.'
+      }
+    };
+
+    const langBG = document.getElementById('lang-bg');
+    const langEN = document.getElementById('lang-en');
+    const langHidden = document.getElementById('_language');
+
+    function applyI18n(locale) {
+      const map = dict[locale];
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (map[key]) {
+          el.innerHTML = map[key];
+        }
+      });
+      document.documentElement.lang = locale === 'bg' ? 'bg' : 'en';
+      langHidden.value = locale;
+      if (locale === 'bg') {
+        langBG.classList.add('bg-gold','text-black','font-semibold');
+        langEN.classList.remove('bg-gold','text-black','font-semibold');
+      } else {
+        langEN.classList.add('bg-gold','text-black','font-semibold');
+        langBG.classList.remove('bg-gold','text-black','font-semibold');
+      }
+    }
+
+    langBG.addEventListener('click', ()=> applyI18n('bg'));
+    langEN.addEventListener('click', ()=> applyI18n('en'));
+
+    // Set initial language based on browser or default BG
+    const preferred = (navigator.language || 'bg').toLowerCase().startsWith('en') ? 'en' : 'bg';
+    applyI18n(preferred);
+
+    // Extra: client-side safety net — basic validation + graceful error
+    document.getElementById('inquiryForm').addEventListener('submit', async (e) => {
+      // Let the browser/remote handle posting; no AJAX here to keep FormSubmit redirect working
+      successMsg.classList.add('hidden');
+      errorMsg.classList.add('hidden');
+    });
   </script>
 </body>
 </html>
