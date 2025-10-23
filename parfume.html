@@ -90,44 +90,40 @@
       <h3 class="text-2xl font-semibold text-gold mb-4 text-center" data-i18n="form.title">Изпрати запитване</h3>
 
       <!-- IMPORTANT: Correct FormSubmit endpoint -->
-      <form id="inquiryForm" class="space-y-3" method="POST" action="https://formsubmit.co/uzunov.ange@gmail.com" accept-charset="UTF-8">
-        <!-- anti-bot field -->
-        <input type="text" name="_honey" class="hidden" style="display:none" tabindex="-1" autocomplete="off">
-        <!-- disable captcha -->
-        <input type="hidden" name="_captcha" value="false">
-        <!-- success redirect back to page with flag -->
-        <input type="hidden" name="_next" id="_next" value="">
-        <input type="hidden" name="_template" value="table">
-        <input type="hidden" name="_subject" value="Ново запитване от сайта UZI Noir">
-        <input type="hidden" name="_language" id="_language" value="bg">
-        <input type="hidden" name="product" id="productField" value="">
+      <form id="inquiryForm" class="space-y-3" method="POST"
+      action="https://formsubmit.co/uzunov.ange@gmail.com" accept-charset="UTF-8">
+  <input type="text" name="_honey" class="hidden" style="display:none" tabindex="-1" autocomplete="off">
+  <input type="hidden" name="_captcha" value="false">
+  <input type="hidden" name="_next" value="https://turizam123.github.io/uzunov/parfume.html?sent=1#popup">
+  <input type="hidden" name="_template" value="table">
+  <input type="hidden" name="_subject" value="Ново запитване от сайта UZI Noir">
+  <input type="hidden" name="_language" id="_language" value="bg">
+  <input type="hidden" name="product" id="productField" value="">
 
-        <label class="block text-sm text-white/80"><span data-i18n="form.name">Име</span>
-          <input id="name" name="name" type="text" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="name">
-        </label>
+  <label class="block text-sm text-white/80"><span>Име</span>
+    <input id="name" name="name" type="text" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="name">
+  </label>
+  <label class="block text-sm text-white/80"><span>Имейл</span>
+    <!-- ВАЖНО: name="email" за правилно Reply-To -->
+    <input id="email" name="email" type="email" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="email">
+  </label>
+  <label class="block text-sm text-white/80"><span>Телефон</span>
+    <input id="phone" name="phone" type="text" class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="tel">
+  </label>
+  <label class="block text-sm text-white/80"><span>Съобщение</span>
+    <textarea id="message" name="message" rows="4" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none"></textarea>
+  </label>
 
-        <label class="block text-sm text-white/80"><span data-i18n="form.email">Имейл</span>
-          <!-- name=email helps FormSubmit set Reply-To -->
-          <input id="email" name="email" type="email" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="email">
-        </label>
+  <label class="flex items-center gap-2 text-xs text-white/70">
+    <input type="checkbox" required class="accent-gold">
+    <span>Съгласен/на съм данните да бъдат използвани за връзка относно това запитване.</span>
+  </label>
 
-        <label class="block text-sm text-white/80"><span data-i18n="form.phone">Телефон</span>
-          <input id="phone" name="phone" type="text" class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="tel">
-        </label>
-
-        <label class="block text-sm text-white/80"><span data-i18n="form.message">Съобщение</span>
-          <textarea id="message" name="message" rows="4" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none"></textarea>
-        </label>
-
-        <label class="flex items-center gap-2 text-xs text-white/70">
-          <input type="checkbox" required class="accent-gold"> <span data-i18n="form.consent">Съгласен/на съм данните да бъдат използвани за връзка относно това запитване.</span>
-        </label>
-
-        <div class="grid grid-cols-2 gap-2">
-          <button type="submit" class="px-4 py-2 rounded-lg bg-gold text-black font-semibold hover:bg-gold/90" data-i18n="form.submit">Изпрати</button>
-          <button id="closePopup" type="button" class="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20" data-i18n="form.close">Затвори</button>
-        </div>
-      </form>
+  <div class="grid grid-cols-2 gap-2">
+    <button type="submit" class="px-4 py-2 rounded-lg bg-gold text-black font-semibold hover:bg-gold/90">Изпрати</button>
+    <button id="closePopup" type="button" class="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20">Затвори</button>
+  </div>
+   </form>
 
       <p id="successMsg" class="hidden text-green-400 text-center mt-3" data-i18n="form.success">Благодарим! Изпратихме вашето запитване.</p>
       <p id="errorMsg" class="hidden text-red-400 text-center mt-3" data-i18n="form.error">Възникна проблем при изпращането. Моля, опитайте отново.</p>
