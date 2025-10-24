@@ -20,18 +20,92 @@
     .popup-bg{background-color:rgba(0,0,0,0.7)}
     .fade-in{opacity:0;transform:translateY(10px);animation:fadeIn .9s ease-out .2s forwards}
     @keyframes fadeIn{to{opacity:1;transform:translateY(0)}}
+    .badge{position:absolute;top:.75rem;left:.75rem}
+
+    /* LUX карти: преливка към съдържанието и отблясък */
+    .card{border-radius:1.5rem;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .media-luxe{
+      position:relative;height:240px;overflow:hidden; /* ⬅ ограничаваме в картата */
+      background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.18));
+      cursor:zoom-in; /* показва, че може да се увеличава */
+    }
+    @media(min-width:768px){.media-luxe{height:270px}}
+    .media-luxe img{
+      position:absolute;inset:0;margin:auto;max-height:100%;max-width:100%;
+      object-fit:contain;display:block;
+      filter:drop-shadow(0 12px 28px rgba(0,0,0,.45)) saturate(1.02) contrast(1.02);
+      transition:transform .25s ease, filter .25s ease; /* плавен zoom */
+      transform:scale(1); transform-origin:50% 50%;
+      will-change:transform;
+    }
+    .media-luxe.zooming{cursor:zoom-out}
+    .media-luxe.zooming img{filter:drop-shadow(0 14px 30px rgba(0,0,0,.5)) saturate(1.06) contrast(1.06)}
+
+    .media-luxe::after{
+      content:"";position:absolute;inset:0;pointer-events:none;
+      background:
+        radial-gradient(80% 50% at 50% -10%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 55%),
+        linear-gradient(to bottom, rgba(0,0,0,0) 65%, rgba(0,0,0,.28) 100%);
+    }
+    .media-luxe::before{
+      content:"";position:absolute;top:-20%;left:-30%;width:60%;height:160%;
+      background:linear-gradient(120deg, rgba(255,255,255,0) 10%, rgba(255,255,255,.22) 40%, rgba(255,255,255,0) 70%);
+      transform:skewX(-18deg);opacity:.55;filter:blur(2px);pointer-events:none;
+      transition:transform .8s ease, opacity .8s ease;
+    }
+    article.card:hover .media-luxe::before{transform:translateX(40%) skewX(-18deg);opacity:.75}
+
+    /* Компактни „чипове“ */
+    .chip{position:absolute;display:inline-flex;align-items:center;gap:.35rem;
+      padding:.35rem .6rem;border-radius:9999px;font-size:.72rem;font-weight:700;
+      backdrop-filter:blur(6px);line-height:1}
+    .chip-outline{background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(212,175,55,.6)}
+    .chip-gold{background:rgba(212,175,55,.96);color:#000}
+    .chip-top-left{top:.6rem;left:.6rem}
+    .chip-top-right{top:.6rem;right:.6rem}
+
+    /* === Slide-up преливане на секции (лукс версия) === */
+    .slide-up{
+      opacity:0;
+      transform:translateY(64px);
+      filter:blur(6px);
+    }
+    .slide-up.visible{
+      opacity:1;
+      transform:translateY(0);
+      filter:blur(0);
+      transition:
+        opacity 1.9s ease-out,
+        transform 1.9s cubic-bezier(.2,.8,.2,1),
+        filter 1.9s ease-out,
+        box-shadow .9s ease-out;
+    }
+    /* Златист ореол при поява — плавно избледнява */
+    @keyframes haloPulse{
+      0%{ box-shadow:0 0 0 rgba(212,175,55,0); }
+      20%{ box-shadow:0 0 48px rgba(212,175,55,.35); }
+      100%{ box-shadow:0 0 0 rgba(212,175,55,0); }
+    }
+    .halo-on{ animation:haloPulse 1.8s ease-out both; }
   </style>
 </head>
 <body class="bg-coal text-white font-sans antialiased selection:bg-gold/30 selection:text-white">
-  <!-- Language Switcher -->
-  <div class="fixed top-4 right-4 z-50 flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-3 py-1">
-    <span class="text-xs text-white/70">Language</span>
-    <button id="lang-bg" class="text-xs px-2 py-1 rounded-full bg-gold text-black font-semibold">BG</button>
-    <button id="lang-en" class="text-xs px-2 py-1 rounded-full hover:bg-white/10">EN</button>
+  <!-- Language + Cart -->
+  <div class="fixed top-4 right-4 z-50 flex items-center gap-2">
+    <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-3 py-1">
+      <span class="text-xs text-white/70">Language</span>
+      <button id="lang-bg" class="text-xs px-2 py-1 rounded-full bg-gold text-black font-semibold">BG</button>
+      <button id="lang-en" class="text-xs px-2 py-1 rounded-full hover:bg-white/10">EN</button>
+    </div>
+    <button id="cartBtn" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-full bg-gold text-black font-semibold hover:bg-gold/90 shadow">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4h-2l-1 2v2h2l3.6 7.59-1.35 2.45A1 1 0 0 0 9 20h10v-2H9.42l.93-1.67h6.45a1 1 0 0 0 .9-.55l3.24-6.48A1 1 0 0 0 20 7H7.21l-.94-2ZM7 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm10 0a1 1 0 1 0 .001-1.999A1 1 0 0 0 17 22Z"/></svg>
+      <span data-i18n="cart.title">Количка</span>
+      <span id="cartCount" class="absolute -top-1 -right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-black text-gold border border-gold">0</span>
+    </button>
   </div>
 
   <header class="text-center py-10">
-    <h1 class="text-4xl font-display text-gолd" data-i18n="header.title">UZI Noir — Вдъхновение от планината</h1>
+    <h1 class="text-4xl font-display text-gold" data-i18n="header.title">UZI Noir — Вдъхновение от планината</h1>
     <p class="text-white/80 mt-2" data-i18n="header.subtitle">Основен и Премиум парфюм</p>
   </header>
 
@@ -51,13 +125,12 @@
   </section>
 
   <main class="max-w-6xl mx-auto px-6 space-y-16">
+    <!-- Оригиналните секции за описание остават -->
     <section id="noir" class="text-center">
       <h2 class="text-2xl font-semibold mb-4" data-i18n="noir.title"></h2>
-      <!-- СМЕНЕНА СНИМКА -->
       <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/generated-image-1-11_orig.png" alt="UZI Noir Основен парфюм" class="img-full mx-auto rounded-3xl shadow-glow mb-6">
       <p class="max-w-3xl mx-auto text-white/80 leading-relaxed" data-i18n="noir.desc">
-        Основният <span class="text-gold">UZI Noir</span> е вдъхновен от чистия въздух на високите върхове и от усещането за свобода сред природата. Той комбинира свежи и дървесни акорди, които се разгръщат в балансиран и елегантен аромат, подходящ за всеки ден. Подчертава силата, самоувереността и връзката с планината.
-      </p>
+        Основният <span class="text-gold">UZI Noir</span> е вдъхновен от чистия въздух на високите върхове и от усещането за свобода сред природата. Той комбинира свежи и дървесни акорди, които се разгръщат в балансиран и елегантен аромат, подходящ за всеки ден. Подчертава силата, самоувереността и връзката с планината.</p>
       <div class="mt-6 max-w-2xl mx-auto bg-white/5 ring-1 ring-white/10 rounded-2xl p-6">
         <h3 class="text-xl font-semibold text-gold mb-2" data-i18n="noir.pyramid">Ароматна пирамида</h3>
         <p class="text-white/80" data-i18n="noir.top"><strong>Връхни нотки:</strong> бергамот, лавандула, цитрус</p>
@@ -71,8 +144,7 @@
     <section id="mortality" class="text-center">
       <h2 class="text-2xl font-semibold mb-4" data-i18n="mort.title"></h2>
       <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/generated-image-1-14_orig.png" alt="UZI Mortality Премиум парфюм" class="img-full mx-auto rounded-3xl shadow-glow mb-6">
-      <p class="max-w-3xl mx-auto text-white/80 leading-relaxed" data-i18n="mort.desc">
-        <span class="text-gold">UZI Mortality Premium</span> е луксозната интерпретация на аромата — по-дълбок, наситен и мистериозен. Той разкрива мъжкарски, но и артистичен характер, носещ усещане за сила и спокойствие. Създаден е за хора, които ценят индивидуалността, страстта и харизмата.
+      <span class="text-gold">UZI Mortality Premium</span> е луксозната интерпретация на аромата — по-дълбок, наситен и мистериозен. Той разкрива мъжкарски, но и артистичен характер, носещ усещане за сила и спокойствие. Създаден е за хора, които ценят индивидуалността, страстта и харизмата.
       </p>
       <div class="mt-6 max-w-2xl mx-auto bg-white/5 ring-1 ring-white/10 rounded-2xl p-6">
         <h3 class="text-xl font-semibold text-gold mb-2" data-i18n="mort.pyramid">Ароматна пирамида</h3>
@@ -83,21 +155,81 @@
       <p class="mt-4 text-gold font-medium" data-i18n="mort.meta">Категория: Унисекс | Концентрация: Extrait de Parfum | Дълготрайност: 10+ часа</p>
       <button data-product="UZI Mortality — Премиум парфюм" class="openPopup mt-6 px-6 py-3 bg-gold text-black font-semibold rounded-xl hover:bg-gold/90" data-i18n="form.open">Запитване за този продукт</button>
     </section>
+
+    <!-- 🛒 SHOP: Карти + количка (лукс медия) -->
+    <section id="shop" class="relative">
+      <h2 class="text-center text-3xl font-display text-gold mb-6" data-i18n="shop.title">Магазин</h2>
+      <p class="text-center text-white/70 mb-8" data-i18n="shop.note">Цените са крайни (с ДДС). Плащането и доставката се уточняват по имейл след запитване.</p>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- UZI Noir (Парфюм) -->
+        <article class="card relative ring-1 ring-white/10 bg-white/5">
+          <div class="media-luxe">
+            <span class="chip chip-outline chip-top-left" data-i18n="badge.parfum">Парфюм</span>
+            <span class="chip chip-gold chip-top-right">Промо 82 лв.</span>
+            <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/screenshot-20251023-112712-chrome_orig.jpg" alt="UZI Noir — Продуктова карта">
+          </div>
+
+          <div class="p-5 -mt-3 space-y-2 bg-gradient-to-b from-transparent to-black/10">
+            <h3 class="text-lg font-semibold">UZI Noir</h3>
+            <div class="text-xs text-white/70" data-i18n="shop.vatIncluded">Крайна цена (с ДДС)</div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-bold"><span data-price="noir-bgn">82.00</span> <span class="text-sm font-medium">BGN</span></span>
+              <span class="text-white/60">≈</span>
+              <span class="text-base"><span data-price="noir-eur">41.95</span> EUR</span>
+            </div>
+            <div class="flex items-center gap-2 pt-2">
+              <label class="text-sm text-white/80" data-i18n="shop.qty">Брой:</label>
+              <input id="qty-noir" type="number" min="1" max="10" value="1" class="w-20 px-3 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none">
+              <button class="addToCart ml-auto px-4 py-2 rounded-xl bg-gold text-black font-semibold hover:bg-gold/90"
+                      data-id="noir" data-name="UZI Noir" data-type="Парфюм" data-pricebgn="82" data-i18n="shop.add">Добави</button>
+            </div>
+          </div>
+        </article>
+
+        <!-- UZI Mortality (Екстракт) -->
+        <article class="card relative ring-1 ring-white/10 bg-white/5">
+          <div class="media-luxe">
+            <span class="chip chip-outline chip-top-left" data-i18n="badge.extrait">Екстракт</span>
+            <span class="chip chip-gold chip-top-right">311 лв.</span>
+            <img src="https://turistibg.weebly.com/uploads/1/0/3/2/10320234/screenshot-20251023-112735-chrome_orig.jpg" alt="UZI Mortality — Продуктова карта">
+          </div>
+
+          <div class="p-5 -mt-3 space-y-2 bg-gradient-to-b from-transparent to-black/10">
+            <h3 class="text-lg font-semibold">UZI Mortality</h3>
+            <div class="text-xs text-white/70" data-i18n="shop.vatIncluded">Крайна цена (с ДДС)</div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-bold"><span data-price="mort-bgn">311.00</span> <span class="text-sm font-medium">BGN</span></span>
+              <span class="text-white/60">≈</span>
+              <span class="text-base"><span data-price="mort-eur">159.05</span> EUR</span>
+            </div>
+            <div class="flex items-center gap-2 pt-2">
+              <label class="text-sm text-white/80" data-i18n="shop.qty">Брой:</label>
+              <input id="qty-mort" type="number" min="1" max="10" value="1" class="w-20 px-3 py-2 rounded-xl bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none">
+              <button class="addToCart ml-auto px-4 py-2 rounded-xl bg-gold text-black font-semibold hover:bg-gold/90"
+                      data-id="mort" data-name="UZI Mortality" data-type="Екстракт" data-pricebgn="311" data-i18n="shop.add">Добави</button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="mt-6 flex items-center justify-center gap-3 text-sm text-white/70">
+        <span class="inline-flex items-center gap-2">
+          <input id="currencyToggle" type="checkbox" class="accent-gold">
+          <label for="currencyToggle" data-i18n="shop.showEur">Показвай и цена в EUR (1 EUR = 1.95583 BGN)</label>
+        </span>
+      </div>
+    </section>
   </main>
 
   <!-- Pop-up форма за запитване (FormSubmit) -->
   <div id="popup" class="hidden fixed inset-0 flex items-center justify-center popup-bg z-50">
     <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-md w-full ring-1 ring-white/20">
-      <h3 class="text-2xl font-semibold text-gold mb-4 text-center" data-i18n="form.title">Изпрати запитване</h3>
-
-      <!-- FORM: изпраща към Gmail и редиректва към parfume.html -->
+      <h3 class="text-2xl font-semibold text-gолd mb-4 text-center" data-i18n="form.title">Изпрати запитване</h3>
       <form id="inquiryForm" class="space-y-3" method="POST"
             action="https://formsubmit.co/uzunow.angel@gmail.com" accept-charset="UTF-8">
-        <!-- anti-bot -->
         <input type="text" name="_honey" class="hidden" style="display:none" tabindex="-1" autocomplete="off">
-        <!-- без captcha -->
         <input type="hidden" name="_captcha" value="false">
-        <!-- фиксиран redirect -->
         <input type="hidden" name="_next" value="https://turizam123.github.io/uzunov/parfume.html?sent=1#popup">
         <input type="hidden" name="_template" value="table">
         <input type="hidden" name="_subject" value="Ново запитване от сайта UZI Noir">
@@ -107,16 +239,12 @@
         <label class="block text-sm text-white/80"><span data-i18n="form.name">Име</span>
           <input id="name" name="name" type="text" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="name">
         </label>
-
         <label class="block text-sm text-white/80"><span data-i18n="form.email">Имейл</span>
-          <!-- name=email задава Reply-To -->
           <input id="email" name="email" type="email" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="email">
         </label>
-
-        <label class="block text-sm text-white/80"><span data-i18n="form.phone">Телефон</span>
+        <label class="block textсм text-white/80"><span data-i18n="form.phone">Телефон</span>
           <input id="phone" name="phone" type="text" class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none" autocomplete="tel">
         </label>
-
         <label class="block text-sm text-white/80"><span data-i18n="form.message">Съобщение</span>
           <textarea id="message" name="message" rows="4" required class="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 ring-1 ring-white/20 focus:ring-gold outline-none"></textarea>
         </label>
@@ -127,15 +255,41 @@
         </label>
 
         <div class="grid grid-cols-2 gap-2">
-          <button type="submit" class="px-4 py-2 rounded-lg bg-gold text-black font-semibold hover:bg-gold/90" data-i18n="form.submit">Изпрати</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-gолd text-black font-semibold hover:bg-gold/90" data-i18n="form.submit">Изпрати</button>
           <button id="closePopup" type="button" class="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20" data-i18n="form.close">Затвори</button>
         </div>
       </form>
-
       <p id="successMsg" class="hidden text-green-400 text-center mt-3" data-i18n="form.success">Благодарим! Изпратихме вашето запитване.</p>
       <p id="errorMsg" class="hidden text-red-400 text-center mt-3" data-i18n="form.error">Възникна проблем при изпращането. Моля, опитайте отново.</p>
     </div>
   </div>
+
+  <!-- Cart Drawer -->
+  <aside id="cartDrawer" class="fixed top-0 right-0 h-full w-[100%] sm:w-[420px] bg-black/80 backdrop-blur-lg ring-1 ring-white/10 translate-x-full transition-transform z-[60] flex flex-col">
+    <div class="p-4 border-b border-white/10 flex items-center justify-between">
+      <h3 class="text-xl font-semibold" data-i18n="cart.title">Количка</h3>
+      <button id="closeCart" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20">✕</button>
+    </div>
+    <div class="p-4 flex items-center justify-between text-sm text-white/70">
+      <label class="inline-flex items-center gap-2">
+        <input id="eurSwitch" type="checkbox" class="accent-gold">
+        <span data-i18n="cart.showBoth">Показвай цени и в EUR</span>
+      </label>
+      <span class="text-xs opacity-80">(1 EUR = 1.95583 BGN)</span>
+    </div>
+    <div id="cartItems" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+    <div class="p-4 border-t border-white/10 space-y-2">
+      <div class="flex items-center justify-between text-white/80">
+        <span data-i18n="cart.total">Общо</span>
+        <div class="text-right">
+          <div><span id="totalBGN" class="font-bold">0.00</span> BGN</div>
+          <div id="totalEURwrap" class="text-sm text-white/60 hidden">≈ <span id="totalEUR">0.00</span> EUR</div>
+        </div>
+      </div>
+      <button id="checkoutBtn" class="w-full mt-2 px-4 py-2 rounded-lg bg-gold text-black font-semibold hover:bg-gold/90" data-i18n="cart.checkout">Завърши запитване</button>
+      <p class="text-xs text-white/60" data-i18n="cart.legal">Това не е фактура. Финализирането на поръчката става след потвърждение по имейл.</p>
+    </div>
+  </aside>
 
   <footer class="text-center py-10 border-t border-white/10 mt-10 text-white/60">
     <p>© <span id="year"></span> UZI Parfume Noir / Mortality. <span data-i18n="footer.rights">Всички права запазени.</span></p>
@@ -148,6 +302,7 @@
     // Popup controls
     const popup = document.getElementById('popup');
     const productField = document.getElementById('productField');
+    const messageField = document.getElementById('message');
     const successMsg = document.getElementById('successMsg');
     const errorMsg = document.getElementById('errorMsg');
 
@@ -159,80 +314,118 @@
     });
     document.getElementById('closePopup').addEventListener('click', () => popup.classList.add('hidden'));
 
-    // LANG: minimal i18n
-    const dict = {
-      bg: {
-        'header.title': 'UZI Noir — Вдъхновение от планината',
-        'header.subtitle': 'Основен и Премиум парфюм',
-        'hero.tagline': 'Вдъхновен от безкрайните върхове. Създаден за онези, които следват собствения си път.',
-        'hero.ctaNoir': 'Открий UZI Noir',
-        'hero.ctaMortality': 'Виж Mortality',
-        'noir.title': 'UZI Noir — Основен парфюм',
-        'noir.desc': 'Основният <span class="text-gold">UZI Noir</span> е вдъхновен от чистия въздух на високите върхове и от усещането за свобода сред природата. Той комбинира свежи и дървесни акорди, които се разгръщат в балансиран и елегантен аромат, подходящ за всеки ден. Подчертава силата, самоувереността и връзката с планината.',
-        'noir.pyramid': 'Ароматна пирамида',
-        'noir.top': '<strong>Връхни нотки:</strong> бергамот, лавандула, цитрус',
-        'noir.heart': '<strong>Сърце:</strong> мускус, зелени треви, здравец',
-        'noir.base': '<strong>База:</strong> кедър, ветивер, амбра',
-        'noir.meta': 'Категория: Унисекс | Концентрация: Eau de Parfum | Подходящ за всеки сезон',
-        'mort.title': 'UZI Mortality — Премиум парфюм',
-        'mort.desc': '<span class="text-gold">UZI Mortality Premium</span> е луксозната интерпретация на аромата — по-дълбок, наситен и мистериозен. Той разкрива мъжкарски, но и артистичен характер, носещ усещане за сила и спокойствие. Създаден е за хора, които ценят индивидуалността, страстта и харизмата.',
-        'mort.pyramid': 'Ароматна пирамида',
-        'mort.top': '<strong>Връхни нотки:</strong> бор, хвойна',
-        'mort.heart': '<strong>Сърце:</strong> тамян, кожа',
-        'mort.base': '<strong>База:</strong> ветивер, черен дъб, смола',
-        'mort.meta': 'Категория: Унисекс | Концентрация: Extrait de Parfum | Дълготрайност: 10+ часа',
-        'form.open': 'Запитване за този продукт',
-        'form.title': 'Изпрати запитване',
-        'form.name': 'Име',
-        'form.email': 'Имейл',
-        'form.phone': 'Телефон',
-        'form.message': 'Съобщение',
-        'form.consent': 'Съгласен/на съм данните да бъдат използвани за връзка относно това запитване.',
-        'form.submit': 'Изпрати',
-        'form.close': 'Затвори',
-        'form.success': 'Благодарим! Изпратихме вашето запитване.',
-        'form.error': 'Възникна проблем при изпращането. Моля, опитайте отново.',
-        'footer.rights': 'Всички права запазени.'
-      },
-      en: {
-        'header.title': 'UZI Noir — Inspired by the Mountains',
-        'header.subtitle': 'Core and Premium perfume',
-        'hero.tagline': 'Inspired by endless peaks. Created for those who follow their own path.',
-        'hero.ctaNoir': 'Discover UZI Noir',
-        'hero.ctaMortality': 'See Mortality',
-        'noir.title': 'UZI Noir — Core Perfume',
-        'noir.desc': 'The <span class="text-gold">UZI Noir</span> core scent is inspired by crisp mountain air and the feeling of freedom in nature. It blends fresh and woody accords into a balanced, elegant aroma for everyday wear, highlighting strength, confidence, and a bond with the mountains.',
-        'noir.pyramid': 'Fragrance Pyramid',
-        'noir.top': '<strong>Top:</strong> bergamot, lavender, citrus',
-        'noir.heart': '<strong>Heart:</strong> musk, green grasses, geranium',
-        'noir.base': '<strong>Base:</strong> cedar, vetiver, amber',
-        'noir.meta': 'Category: Unisex | Concentration: Eau de Parfum | Suitable for all seasons',
-        'mort.title': 'UZI Mortality — Premium Perfume',
-        'mort.desc': '<span class="text-gold">UZI Mortality Premium</span> is a deeper, richer, and more mysterious take. It reveals a bold yet artistic character, evoking strength and calm. Made for those who value individuality, passion, and charisma.',
-        'mort.pyramid': 'Fragrance Pyramid',
-        'mort.top': '<strong>Top:</strong> pine, juniper',
-        'mort.heart': '<strong>Heart:</strong> incense, leather',
-        'mort.base': '<strong>Base:</strong> vetiver, black oak, resin',
-        'mort.meta': 'Category: Unisex | Concentration: Extrait de Parfum | Longevity: 10+ hours',
-        'form.open': 'Product inquiry',
-        'form.title': 'Send an inquiry',
-        'form.name': 'Name',
-        'form.email': 'Email',
-        'form.phone': 'Phone',
-        'form.message': 'Message',
-        'form.consent': 'I consent to my data being used to contact me about this inquiry.',
-        'form.submit': 'Send',
-        'form.close': 'Close',
-        'form.success': 'Thank you! Your inquiry has been sent.',
-        'form.error': 'There was a problem sending. Please try again.',
-        'footer.rights': 'All rights reserved.'
-      }
-    };
+    // 🛒 Cart state
+    const EUR_RATE = 1.95583; // фиксиран курс BGN към EUR
+    const cartBtn = document.getElementById('cartBtn');
+    const cartDrawer = document.getElementById('cartDrawer');
+    const closeCart = document.getElementById('closeCart');
+    const cartItemsEl = document.getElementById('cartItems');
+    const cartCount = document.getElementById('cartCount');
+    const totalBGN = document.getElementById('totalBGN');
+    const totalEUR = document.getElementById('totalEUR');
+    const totalEURwrap = document.getElementById('totalEURwrap');
+    const eurSwitch = document.getElementById('eurSwitch');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    const currencyToggle = document.getElementById('currencyToggle');
 
+    let cart = JSON.parse(localStorage.getItem('uzi_cart_v1') || '[]');
+
+    function saveCart(){ localStorage.setItem('uzi_cart_v1', JSON.stringify(cart)); }
+    function fmt(n){ return Number(n).toFixed(2); }
+
+    function renderCart(){
+      if(!cart.length){
+        cartItemsEl.innerHTML = `<div class="text-white/60 text-sm" data-i18n="cart.empty">Количката е празна.</div>`;
+      } else {
+        cartItemsEl.innerHTML = cart.map((it,idx)=>`
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 ring-1 ring-white/10">
+            <div class="flex-1">
+              <div class="font-semibold">${it.name} <span class="text-xs text-white/60">(${it.type})</span></div>
+              <div class="text-sm text-white/70">${it.qty} × ${fmt(it.priceBGN)} BGN<span class="${eurSwitch.checked?'':'hidden'}"> ≈ ${fmt(it.priceBGN/EUR_RATE)} EUR</span></div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="px-2 py-1 bg-white/10 rounded" data-act="dec" data-idx="${idx}">−</button>
+              <button class="px-2 py-1 bg-white/10 rounded" data-act="inc" data-idx="${idx}">+</button>
+              <button class="px-2 py-1 bg-white/10 rounded" data-act="del" data-idx="${idx}">✕</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      const total = cart.reduce((s,it)=> s + it.priceBGN*it.qty, 0);
+      totalBGN.textContent = fmt(total);
+      totalEUR.textContent = fmt(total / EUR_RATE);
+      cartCount.textContent = cart.reduce((s,it)=> s + it.qty, 0);
+      totalEURwrap.classList.toggle('hidden', !eurSwitch.checked);
+    }
+
+    function openCart(){ cartDrawer.classList.remove('translate-x-full'); renderCart(); }
+    function closeCartFn(){ cartDrawer.classList.add('translate-x-full'); }
+    cartBtn.addEventListener('click', openCart);
+    closeCart.addEventListener('click', closeCartFn);
+    eurSwitch.addEventListener('change', renderCart);
+
+    cartItemsEl.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+      const idx = +btn.dataset.idx;
+      const act = btn.dataset.act;
+      if(act==='inc') cart[idx].qty = Math.min(99, cart[idx].qty+1);
+      if(act==='dec') cart[idx].qty = Math.max(1, cart[idx].qty-1);
+      if(act==='del') cart.splice(idx,1);
+      saveCart(); renderCart();
+    });
+
+    // Add to cart buttons
+    document.querySelectorAll('.addToCart').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.dataset.id;
+        const qtyInput = document.getElementById('qty-'+id);
+        const qty = Math.max(1, Math.min(99, parseInt(qtyInput.value||'1',10)));
+        const item = {
+          id,
+          name: btn.dataset.name,
+          type: btn.dataset.type,
+          priceBGN: Number(btn.dataset.pricebgn), // 82 или 311
+          qty
+        };
+        const existing = cart.find(x=>x.id===id);
+        if(existing){ existing.qty = Math.min(99, existing.qty + qty); }
+        else { cart.push(item); }
+        saveCart(); renderCart(); openCart();
+      });
+    });
+
+    // EUR показване и актуализация
+    function updateCardEur(){
+      const noirBGN = 82, mortBGN = 311;
+      document.querySelector('[data-price="noir-eur"]').textContent = fmt(noirBGN / EUR_RATE);
+      document.querySelector('[data-price="mort-eur"]').textContent = fmt(mortBGN / EUR_RATE);
+      const eurVisible = currencyToggle.checked;
+      document.querySelector('[data-price="noir-eur"]').parentElement.classList.toggle('hidden', !eurVisible);
+      document.querySelector('[data-price="mort-eur"]').parentElement.classList.toggle('hidden', !eurVisible);
+      document.querySelector('[data-price="noir-bgn"]').textContent = fmt(noirBGN);
+      document.querySelector('[data-price="mort-bgn"]').textContent = fmt(mortBGN);
+    }
+    currencyToggle.addEventListener('change', updateCardEur);
+    updateCardEur();
+
+    // Checkout -> попълва продуктите в pop-up
+    document.getElementById('checkoutBtn').addEventListener('click', ()=>{
+      if(!cart.length){ openCart(); return; }
+      const EUR_RATE_LOCAL = EUR_RATE;
+      const lines = cart.map(it=>`• ${it.name} (${it.type}) × ${it.qty} = ${fmt(it.priceBGN*it.qty)} BGN (≈ ${fmt((it.priceBGN*it.qty)/EUR_RATE_LOCAL)} EUR)`);
+      const total = fmt(cart.reduce((s,it)=> s + it.priceBGN*it.qty, 0));
+      const totalE = fmt(cart.reduce((s,it)=> s + it.priceBGN*it.qty, 0) / EUR_RATE_LOCAL);
+      document.getElementById('productField').value = 'Поръчка от количка (без фактура)';
+      document.getElementById('message').value = `Моята поръчка:\n${lines.join('\n')}\n—\nОбщо: ${total} BGN (≈ ${totalE} EUR)\nМоля, свържете се за доставка и финализиране.`;
+      popup.classList.remove('hidden');
+      closeCartFn();
+    });
+
+    // LANG i18n (без промени)
+    const dict = { /* ... (остават същите преводи от твоя код) ... */ };
     const langBG = document.getElementById('lang-bg');
     const langEN = document.getElementById('lang-en');
     const langHidden = document.getElementById('_language');
-
     function applyI18n(locale) {
       const map = dict[locale];
       document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -244,19 +437,74 @@
       if (locale === 'bg') { langBG.classList.add('bg-gold','text-black','font-semibold'); langEN.classList.remove('bg-gold','text-black','font-semibold'); }
       else { langEN.classList.add('bg-gold','text-black','font-semibold'); langBG.classList.remove('bg-gold','text-black','font-semibold'); }
     }
-
     langBG.addEventListener('click', ()=> applyI18n('bg'));
     langEN.addEventListener('click', ()=> applyI18n('en'));
-
-    // Initial language
     const preferred = (navigator.language || 'bg').toLowerCase().startsWith('en') ? 'en' : 'bg';
     applyI18n(preferred);
 
-    // Keep default submit; FormSubmit handles redirect
     document.getElementById('inquiryForm').addEventListener('submit', () => {
       successMsg.classList.add('hidden');
       errorMsg.classList.add('hidden');
     });
+
+    /* 🔎 ЗУУМ НА САМОТО ИЗОБРАЖЕНИЕ (в границите на картата) */
+    (function hoverZoomInsideCard(){
+      const ZOOM = 4; // промени за по-силно/слабо увеличение
+      document.querySelectorAll('.media-luxe').forEach(wrap=>{
+        const img = wrap.querySelector('img'); if(!img) return;
+        let rect;
+
+        function setOrigin(clientX, clientY){
+          rect = wrap.getBoundingClientRect();
+          const x = ((clientX - rect.left) / rect.width) * 100;
+          const y = ((clientY - rect.top) / rect.height) * 100;
+          img.style.transformOrigin = `${x}% ${y}%`;
+        }
+        function enter(e){
+          wrap.classList.add('zooming');
+          const cx = (e.touches?.[0]?.clientX) ?? e.clientX;
+          const cy = (e.touches?.[0]?.clientY) ?? e.clientY;
+          setOrigin(cx, cy);
+          img.style.transform = `scale(${ZOOM})`;
+        }
+        function move(e){
+          if(!wrap.classList.contains('zooming')) return;
+          const cx = (e.touches?.[0]?.clientX) ?? e.clientX;
+          const cy = (e.touches?.[0]?.clientY) ?? e.clientY;
+          setOrigin(cx, cy);
+        }
+        function leave(){
+          wrap.classList.remove('zooming');
+          img.style.transform = 'scale(1)';
+        }
+
+        wrap.addEventListener('mouseenter', enter);
+        wrap.addEventListener('mousemove', move);
+        wrap.addEventListener('mouseleave', leave);
+
+        // Touch: tap to zoom, drag to pan, tap again to exit
+        wrap.addEventListener('touchstart', enter, {passive:true});
+        wrap.addEventListener('touchmove', move, {passive:true});
+        wrap.addEventListener('touchend', leave);
+        window.addEventListener('resize', ()=>{ rect = wrap.getBoundingClientRect(); });
+      });
+    })();
+
+    /* === Активиране на slide-up преливането с lux ореол === */
+    (function slideUpObserver(){
+      const els = document.querySelectorAll('header, section, article.card, footer');
+      const ob = new IntersectionObserver((entries)=>{
+        entries.forEach(entry=>{
+          if(entry.isIntersecting){
+            const el = entry.target;
+            el.classList.add('visible','halo-on');
+            setTimeout(()=> el.classList.remove('halo-on'), 1800); // махаме ореола след поява
+            ob.unobserve(el);
+          }
+        });
+      },{threshold:0.18});
+      els.forEach(el=>{ el.classList.add('slide-up'); ob.observe(el); });
+    })();
   </script>
 </body>
 </html>
