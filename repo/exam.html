@@ -4,177 +4,256 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Изпит</title>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body class="bg-slate-50 text-slate-900">
-  <div class="max-w-3xl mx-auto px-4 py-8">
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h1 id="examTitle" class="text-2xl font-extrabold">Изпит</h1>
-        <p id="meta" class="mt-1 text-slate-600 text-sm">…</p>
-      </div>
-      <a href="./dashboard.html" class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">Назад</a>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h1 id="examTitle" class="text-2xl font-extrabold">Изпит</h1>
+      <p id="meta" class="mt-1 text-slate-600 text-sm"></p>
     </div>
-
-    <div class="mt-6 rounded-2xl border bg-white p-5 shadow-sm">
-      <div class="flex items-center justify-between">
-        <div class="text-sm text-slate-600">Оставащо време:</div>
-        <div id="timer" class="text-lg font-extrabold">--:--</div>
-      </div>
-
-      <form id="examForm" class="mt-5 space-y-5"></form>
-
-      <button id="btnSubmit" class="mt-6 w-full rounded-xl bg-green-600 px-4 py-2.5 font-semibold text-white hover:bg-green-700">
-        Изпрати изпита
-      </button>
-
-      <p id="msg" class="mt-3 text-sm"></p>
-    </div>
+    <a href="./dashboard.html"
+       class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
+      Назад
+    </a>
   </div>
 
-  <script src="./config.js"></script>
-  <script>
-    const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG;
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  <div class="mt-6 rounded-2xl border bg-white p-5 shadow-sm">
+    <div class="flex items-center justify-between">
+      <div class="text-sm text-slate-600">Оставащо време:</div>
+      <div id="timer" class="text-lg font-extrabold">--:--</div>
+    </div>
 
-    const params = new URLSearchParams(location.search);
-    const moduleId = params.get("module_id");
+    <form id="examForm" class="mt-5 space-y-5"></form>
 
-    const msg = document.getElementById("msg");
-    const examForm = document.getElementById("examForm");
-    const examTitle = document.getElementById("examTitle");
-    const meta = document.getElementById("meta");
-    const timerEl = document.getElementById("timer");
-    const btnSubmit = document.getElementById("btnSubmit");
+    <button id="btnSubmit"
+      class="mt-6 w-full rounded-xl bg-green-600 px-4 py-2.5
+             font-semibold text-white hover:bg-green-700">
+      Изпрати изпита
+    </button>
 
-    function setMsg(text, ok=true){
-      msg.textContent = text;
-      msg.className = "mt-3 text-sm " + (ok ? "text-green-700" : "text-red-700");
-    }
+    <p id="msg" class="mt-3 text-sm"></p>
+  </div>
+</div>
 
-    let exam = null;
-    let questions = [];
-    let secondsLeft = 0;
-    let timerId = null;
+<!-- CONFIG -->
+<script src="./config.js"></script>
 
-    function renderQuestion(q, idx){
-      const wrap = document.createElement("div");
-      wrap.className = "rounded-xl border p-4 bg-slate-50";
-      wrap.innerHTML = `<div class="font-bold">${idx+1}) ${q.question}</div>`;
-      const answers = q.answers || [];
-      const isMulti = (q.correct_answers || []).length > 1;
+<script>
+/* ================= INIT ================= */
+if (!window.APP_CONFIG) {
+  alert("config.js не е зареден");
+  throw new Error("APP_CONFIG missing");
+}
 
-      const list = document.createElement("div");
-      list.className = "mt-3 space-y-2";
+const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      answers.forEach((a, i) => {
-        const id = `q_${q.id}_${i}`;
-        const type = isMulti ? "checkbox" : "radio";
-        const name = `q_${q.id}`;
-        const row = document.createElement("label");
-        row.className = "flex items-center gap-2 text-sm";
-        row.innerHTML = `
-          <input type="${type}" name="${name}" value="${i}" class="accent-green-600" ${isMulti ? "" : "required"}>
-          <span>${a}</span>
-        `;
-        list.appendChild(row);
-      });
+const params = new URLSearchParams(location.search);
+const moduleId = params.get("module_id");
 
-      wrap.appendChild(list);
-      return wrap;
-    }
+const examForm = document.getElementById("examForm");
+const examTitle = document.getElementById("examTitle");
+const meta = document.getElementById("meta");
+const timerEl = document.getElementById("timer");
+const btnSubmit = document.getElementById("btnSubmit");
+const msg = document.getElementById("msg");
 
-    function startTimer(){
-      function tick(){
-        const m = Math.floor(secondsLeft/60);
-        const s = secondsLeft % 60;
-        timerEl.textContent = String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
-        if(secondsLeft <= 0){
-          clearInterval(timerId);
-          setMsg("Времето изтече. Изпитът се изпраща…", false);
-          submitExam();
-          return;
-        }
-        secondsLeft--;
-      }
-      tick();
-      timerId = setInterval(tick, 1000);
-    }
+function setMsg(text, ok = true) {
+  msg.textContent = text;
+  msg.className = "mt-3 text-sm " + (ok ? "text-green-700" : "text-red-700");
+}
 
-    async function loadExam(){
-      if(!moduleId) { setMsg("Липсва module_id.", false); return; }
+/* ================= STATE ================= */
+let exam = null;
+let questions = [];
+let secondsLeft = 0;
+let timerId = null;
 
-      // взимаме активен изпит за този модул
-      const { data: ex, error: exErr } = await supabase
-        .from("exams")
-        .select("id,title,duration_minutes,min_score_percent,is_active")
-        .eq("module_id", moduleId)
-        .eq("is_active", true)
-        .maybeSingle();
+/* ================= GUARD ================= */
+async function guard() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    location.href = "./login.html";
+    return null;
+  }
 
-      if(exErr) { setMsg(exErr.message, false); return; }
-      if(!ex) { setMsg("Няма активен изпит за този модул.", false); btnSubmit.disabled = true; return; }
+  const email = session.user.email || "";
+  if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    setMsg("Администраторът не може да държи изпит.", false);
+    btnSubmit.disabled = true;
+    return null;
+  }
 
-      exam = ex;
-      examTitle.textContent = ex.title;
-      meta.textContent = `Време: ${ex.duration_minutes} мин • Минимум: ${ex.min_score_percent}%`;
+  return session;
+}
 
-      const { data: qs, error: qErr } = await supabase
-        .from("questions")
-        .select("id,question,answers,correct_answers")
-        .eq("exam_id", ex.id)
-        .order("created_at", { ascending: true });
+/* ================= RENDER QUESTION ================= */
+function renderQuestion(q, idx) {
+  const wrap = document.createElement("div");
+  wrap.className = "rounded-xl border p-4 bg-slate-50";
 
-      if(qErr) { setMsg(qErr.message, false); return; }
+  wrap.innerHTML = `<div class="font-bold">${idx + 1}) ${q.question}</div>`;
 
-      questions = qs || [];
-      examForm.innerHTML = "";
-      questions.forEach((q, idx) => examForm.appendChild(renderQuestion(q, idx)));
+  const answers = q.answers || [];
+  const isMulti = (q.correct_answers || []).length > 1;
 
-      secondsLeft = (ex.duration_minutes || 10) * 60;
-      startTimer();
-    }
+  const list = document.createElement("div");
+  list.className = "mt-3 space-y-2";
 
-    function collectAnswers(){
-      const payload = [];
-      questions.forEach(q=>{
-        const name = `q_${q.id}`;
-        const nodes = [...examForm.querySelectorAll(`input[name="${name}"]:checked`)];
-        const picked = nodes.map(n => Number(n.value));
-        payload.push({ question_id: q.id, picked });
-      });
-      return payload;
-    }
+  answers.forEach((a, i) => {
+    const type = isMulti ? "checkbox" : "radio";
+    const name = `q_${q.id}`;
+    const row = document.createElement("label");
+    row.className = "flex items-center gap-2 text-sm";
+    row.innerHTML = `
+      <input type="${type}" name="${name}" value="${i}"
+             class="accent-green-600" ${isMulti ? "" : "required"}>
+      <span>${a}</span>
+    `;
+    list.appendChild(row);
+  });
 
-    async function submitExam(){
-      btnSubmit.disabled = true;
+  wrap.appendChild(list);
+  return wrap;
+}
+
+/* ================= TIMER ================= */
+function startTimer() {
+  function tick() {
+    const m = Math.floor(secondsLeft / 60);
+    const s = secondsLeft % 60;
+    timerEl.textContent =
+      String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+
+    if (secondsLeft <= 0) {
       clearInterval(timerId);
-
-      const answers = collectAnswers();
-
-      // Edge Function: submit_exam (server-side оценяване, запис в exam_results)
-      const { data, error } = await supabase.functions.invoke("submit_exam", {
-        body: { exam_id: exam.id, answers }
-      });
-
-      if(error){
-        setMsg("Грешка при изпращане: " + error.message, false);
-        btnSubmit.disabled = false;
-        return;
-      }
-      if(!data?.ok){
-        setMsg(data?.message || "Неуспешно изпращане.", false);
-        btnSubmit.disabled = false;
-        return;
-      }
-
-      setMsg(`Резултат: ${data.score_percent}% • ${data.passed ? "ИЗДЪРЖАН" : "НЕИЗДЪРЖАН"}`, data.passed);
+      setMsg("Времето изтече. Изпитът се изпраща…", false);
+      submitExam();
+      return;
     }
+    secondsLeft--;
+  }
+  tick();
+  timerId = setInterval(tick, 1000);
+}
 
-    btnSubmit.addEventListener("click", (e)=>{ e.preventDefault(); submitExam(); });
+/* ================= LOAD EXAM ================= */
+async function loadExam() {
+  if (!moduleId) {
+    setMsg("Липсва module_id.", false);
+    btnSubmit.disabled = true;
+    return;
+  }
 
-    loadExam();
-  </script>
+  const { data: ex, error: exErr } = await sb
+    .from("exams")
+    .select("id,title,duration_minutes,min_score_percent,is_active")
+    .eq("module_id", moduleId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (exErr) {
+    setMsg(exErr.message, false);
+    return;
+  }
+
+  if (!ex) {
+    setMsg("Няма активен изпит за този модул.", false);
+    btnSubmit.disabled = true;
+    return;
+  }
+
+  exam = ex;
+  examTitle.textContent = ex.title;
+  meta.textContent =
+    `Време: ${ex.duration_minutes} мин • Минимум: ${ex.min_score_percent}%`;
+
+  const { data: qs, error: qErr } = await sb
+    .from("questions")
+    .select("id,question,answers,correct_answers")
+    .eq("exam_id", ex.id)
+    .order("created_at", { ascending: true });
+
+  if (qErr) {
+    setMsg(qErr.message, false);
+    return;
+  }
+
+  questions = qs || [];
+  examForm.innerHTML = "";
+  questions.forEach((q, idx) =>
+    examForm.appendChild(renderQuestion(q, idx))
+  );
+
+  secondsLeft = (ex.duration_minutes || 10) * 60;
+  startTimer();
+}
+
+/* ================= COLLECT ANSWERS ================= */
+function collectAnswers() {
+  return questions.map(q => {
+    const name = `q_${q.id}`;
+    const nodes = [...examForm.querySelectorAll(`input[name="${name}"]:checked`)];
+    return {
+      question_id: q.id,
+      picked: nodes.map(n => Number(n.value))
+    };
+  });
+}
+
+/* ================= SUBMIT ================= */
+async function submitExam() {
+  if (!exam) return;
+
+  btnSubmit.disabled = true;
+  clearInterval(timerId);
+
+  const answers = collectAnswers();
+
+  const { data, error } = await sb.functions.invoke("submit_exam", {
+    body: { exam_id: exam.id, answers }
+  });
+
+  if (error) {
+    setMsg("Грешка при изпращане: " + error.message, false);
+    btnSubmit.disabled = false;
+    return;
+  }
+
+  if (!data?.ok) {
+    setMsg(data?.message || "Неуспешно изпращане.", false);
+    btnSubmit.disabled = false;
+    return;
+  }
+
+  setMsg(
+    `Резултат: ${data.score_percent}% • ` +
+    (data.passed ? "ИЗДЪРЖАН" : "НЕИЗДЪРЖАН"),
+    data.passed
+  );
+}
+
+btnSubmit.addEventListener("click", e => {
+  e.preventDefault();
+  submitExam();
+});
+
+/* ================= BOOT ================= */
+(async () => {
+  const ok = await guard();
+  if (ok) await loadExam();
+})();
+</script>
+
 </body>
 </html>
