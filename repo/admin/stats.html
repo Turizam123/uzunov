@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Админ – Статистика</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+
+<!-- CONFIG + NAV -->
+<script src="../config.js"></script>
+<script src="./_admin-nav.js"></script>
+
+<main class="mx-auto max-w-7xl px-4 py-8 space-y-6">
+
+  <h1 class="text-2xl font-extrabold">Статистика</h1>
+
+  <!-- FILTERS -->
+  <section class="rounded-2xl border bg-white p-4 shadow-sm grid md:grid-cols-4 gap-4">
+    <input id="fCode" placeholder="Достъп код"
+      class="border rounded-xl px-3 py-2" />
+
+    <select id="fModule" class="border rounded-xl px-3 py-2">
+      <option value="">Всички модули</option>
+    </select>
+
+    <select id="fExam" class="border rounded-xl px-3 py-2">
+      <option value="">Всички изпити</option>
+    </select>
+
+    <button id="btnFilter"
+      class="rounded-xl bg-slate-900 text-white px-4 py-2 font-semibold">
+      Филтрирай
+    </button>
+  </section>
+
+  <!-- TABLE -->
+  <section class="rounded-2xl border bg-white p-4 shadow-sm overflow-auto">
+    <table class="w-full text-sm border">
+      <thead class="bg-slate-100">
+        <tr>
+          <th class="border p-2">Код</th>
+          <th class="border p-2">Модул</th>
+          <th class="border p-2">Изпит</th>
+          <th class="border p-2">Опит</th>
+          <th class="border p-2">Резултат</th>
+          <th class="border p-2">Статус</th>
+          <th class="border p-2">Дата</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </section>
+
+</main>
+
+<script>
+const sb = window.__sb_admin;
+
+const fCode = document.getElementById("fCode");
+const fModule = document.getElementById("fModule");
+const fExam = document.getElementById("fExam");
+const rows = document.getElementById("rows");
+const btnFilter = document.getElementById("btnFilter");
+
+// LOAD FILTER DATA
+async function loadFilters(){
+  const { data: modules } = await sb.from("modules").select("id,title");
+  modules?.forEach(m=>{
+    fModule.innerHTML += `<option value="${m.id}">${m.title}</option>`;
+  });
+
+  const { data: exams } = await sb.from("exams").select("id,title");
+  exams?.forEach(e=>{
+    fExam.innerHTML += `<option value="${e.id}">${e.title}</option>`;
+  });
+}
+
+// LOAD STATS
+async function loadStats(){
+  rows.innerHTML = "";
+
+  let q = sb.from("exam_results")
+    .select(`
+      access_code,
+      attempt,
+      score_percent,
+      passed,
+      created_at,
+      exams(id,title,modules(title))
+    `)
+    .order("created_at", { ascending:false });
+
+  if(fCode.value) q = q.eq("access_code", fCode.value);
+  if(fExam.value) q = q.eq("exam_id", fExam.value);
+  if(fModule.value) q = q.eq("exams.module_id", fModule.value);
+
+  const { data, error } = await q;
+  if(error){ alert(error.message); return; }
+
+  data.forEach(r=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="border p-2">${r.access_code}</td>
+      <td class="border p-2">${r.exams?.modules?.title || "-"}</td>
+      <td class="border p-2">${r.exams?.title || "-"}</td>
+      <td class="border p-2 text-center">${r.attempt}</td>
+      <td class="border p-2 text-center">${r.score_percent}%</td>
+      <td class="border p-2 text-center ${r.passed?"text-green-700":"text-red-700"}">
+        ${r.passed?"ИЗДЪРЖАН":"НЕИЗДЪРЖАН"}
+      </td>
+      <td class="border p-2 text-xs">
+        ${new Date(r.created_at).toLocaleString()}
+      </td>
+    `;
+    rows.appendChild(tr);
+  });
+}
+
+btnFilter.onclick = loadStats;
+
+// INIT
+loadFilters();
+loadStats();
+</script>
+
+</body>
+</html>
