@@ -12,172 +12,168 @@
 
 <body class="bg-slate-100 min-h-screen">
 
-  <header class="bg-slate-900 text-white p-4 flex justify-between items-center">
-    <h1 class="text-xl font-bold">Админ панел</h1>
-    <button id="logoutBtn" class="bg-red-600 px-3 py-1 rounded">Изход</button>
-  </header>
+<header class="bg-slate-900 text-white p-4 flex justify-between items-center">
+  <h1 class="text-xl font-bold">Админ панел</h1>
+  <button id="logoutBtn" class="bg-red-600 px-3 py-1 rounded">Изход</button>
+</header>
 
-  <main class="max-w-6xl mx-auto p-6 space-y-10">
+<main class="max-w-6xl mx-auto p-6 space-y-10">
 
-    <!-- ACCESS CODES -->
-    <section class="bg-white p-5 rounded-xl shadow">
-      <h2 class="text-lg font-bold mb-4">Достъп кодове</h2>
+  <!-- ACCESS CODES -->
+  <section class="bg-white p-5 rounded-xl shadow">
+    <h2 class="text-lg font-bold mb-4">Достъп кодове</h2>
 
-      <div class="flex gap-2 mb-4">
-        <input id="newCodeInput" placeholder="PW-AX9K-7Q2M"
-               class="border px-3 py-2 rounded w-64">
-        <button id="addCodeBtn"
-                class="bg-green-600 text-white px-4 py-2 rounded">
-          Добави код
-        </button>
-      </div>
+    <div class="flex gap-2 mb-4">
+      <input id="newCodeInput" placeholder="PW-AX9K-7Q2M"
+             class="border px-3 py-2 rounded w-64">
+      <button id="addCodeBtn"
+              class="bg-green-600 text-white px-4 py-2 rounded">
+        Добави код
+      </button>
+    </div>
 
-      <table class="w-full text-sm border">
-        <thead class="bg-slate-200">
-          <tr>
-            <th class="border p-2">Код</th>
-            <th class="border p-2">Имейл</th>
-            <th class="border p-2">Статус</th>
-            <th class="border p-2">Действие</th>
-          </tr>
-        </thead>
-        <tbody id="codesTable"></tbody>
-      </table>
-    </section>
+    <table class="w-full text-sm border">
+      <thead class="bg-slate-200">
+        <tr>
+          <th class="border p-2">Код</th>
+          <th class="border p-2">Имейл</th>
+          <th class="border p-2">Статус</th>
+          <th class="border p-2">Действие</th>
+        </tr>
+      </thead>
+      <tbody id="codesTable"></tbody>
+    </table>
+  </section>
 
-    <!-- LESSONS -->
-    <section class="bg-white p-5 rounded-xl shadow">
-      <h2 class="text-lg font-bold mb-4">Добавяне на тема (PDF / Word)</h2>
+  <!-- LESSONS -->
+  <section class="bg-white p-5 rounded-xl shadow">
+    <h2 class="text-lg font-bold mb-4">Добавяне на тема (PDF / Word)</h2>
 
-      <div class="grid md:grid-cols-2 gap-4">
-        <input id="lessonTitle" placeholder="Заглавие"
-               class="border px-3 py-2 rounded">
-        <input id="lessonDesc" placeholder="Описание"
-               class="border px-3 py-2 rounded">
-        <input type="file" id="lessonFile"
-               accept=".pdf,.doc,.docx"
-               class="border px-3 py-2 rounded">
-        <button id="uploadLessonBtn"
-                class="bg-blue-600 text-white px-4 py-2 rounded">
-          Качи тема
-        </button>
-      </div>
-    </section>
+    <div class="grid md:grid-cols-2 gap-4">
+      <input id="lessonTitle" placeholder="Заглавие" class="border px-3 py-2 rounded">
+      <input id="lessonDesc" placeholder="Описание" class="border px-3 py-2 rounded">
+      <input type="file" id="lessonFile" accept=".pdf,.doc,.docx"
+             class="border px-3 py-2 rounded">
+      <button id="uploadLessonBtn"
+              class="bg-blue-600 text-white px-4 py-2 rounded">
+        Качи тема
+      </button>
+    </div>
+  </section>
 
-  </main>
+</main>
 
-  <script src="./config.js"></script>
+<!-- CONFIG -->
+<script src="./config.js"></script>
 
-  <script>
-    const ADMIN_EMAIL = "uzunov.ange@gmail.com";
+<script>
+  // ========= INIT =========
+  const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const codesTable = document.getElementById("codesTable");
-    const newCodeInput = document.getElementById("newCodeInput");
-    const addCodeBtn = document.getElementById("addCodeBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
+  const codesTable = document.getElementById("codesTable");
+  const newCodeInput = document.getElementById("newCodeInput");
+  const addCodeBtn = document.getElementById("addCodeBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
 
-    const uploadLessonBtn = document.getElementById("uploadLessonBtn");
-    const lessonFile = document.getElementById("lessonFile");
-    const lessonTitle = document.getElementById("lessonTitle");
-    const lessonDesc = document.getElementById("lessonDesc");
+  const uploadLessonBtn = document.getElementById("uploadLessonBtn");
+  const lessonFile = document.getElementById("lessonFile");
+  const lessonTitle = document.getElementById("lessonTitle");
+  const lessonDesc = document.getElementById("lessonDesc");
 
-    // ---------- ADMIN GUARD ----------
-    async function guardAdmin() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session || session.user.email !== ADMIN_EMAIL) {
-        window.location.href = "./login.html";
-      }
-    }
-    guardAdmin();
-
-    // ---------- LOGOUT ----------
-    logoutBtn.onclick = async () => {
-      await supabase.auth.signOut();
+  // ========= ADMIN GUARD =========
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session || session.user.email !== ADMIN_EMAIL) {
       window.location.href = "./login.html";
-    };
-
-    // ---------- LOAD ACCESS CODES ----------
-    async function loadCodes() {
-      const { data } = await supabase
-        .from("access_codes")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      codesTable.innerHTML = "";
-      data.forEach(c => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="border p-2">${c.code}</td>
-          <td class="border p-2">${c.assigned_email || "-"}</td>
-          <td class="border p-2">${c.status}</td>
-          <td class="border p-2">
-            <button class="bg-yellow-500 text-white px-2 py-1 rounded"
-              onclick="resetCode('${c.code}')">Reset</button>
-          </td>
-        `;
-        codesTable.appendChild(tr);
-      });
     }
+  })();
+
+  // ========= LOGOUT =========
+  logoutBtn.onclick = async () => {
+    await sb.auth.signOut();
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "./login.html";
+  };
+
+  // ========= LOAD CODES =========
+  async function loadCodes() {
+    const { data } = await sb
+      .from("access_codes")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    codesTable.innerHTML = "";
+    (data || []).forEach(c => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="border p-2">${c.code}</td>
+        <td class="border p-2">${c.assigned_email || "-"}</td>
+        <td class="border p-2">${c.status}</td>
+        <td class="border p-2">
+          <button class="bg-yellow-500 text-white px-2 py-1 rounded"
+            onclick="resetCode('${c.code}')">Reset</button>
+        </td>`;
+      codesTable.appendChild(tr);
+    });
+  }
+  loadCodes();
+
+  // ========= ADD CODE =========
+  addCodeBtn.onclick = async () => {
+    const code = newCodeInput.value.trim();
+    if (!code) return alert("Въведи код");
+
+    await sb.from("access_codes").insert({ code, status: "active" });
+    newCodeInput.value = "";
     loadCodes();
+  };
 
-    // ---------- ADD CODE ----------
-    addCodeBtn.onclick = async () => {
-      const code = newCodeInput.value.trim();
-      if (!code) return alert("Въведи код");
+  // ========= RESET CODE =========
+  async function resetCode(code) {
+    const { data: { session } } = await sb.auth.getSession();
 
-      await supabase.from("access_codes").insert({
-        code,
-        status: "active"
-      });
+    await fetch(`${SUPABASE_URL}/functions/v1/reset_access_code`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + session.access_token
+      },
+      body: JSON.stringify({ code })
+    });
 
-      newCodeInput.value = "";
-      loadCodes();
-    };
+    loadCodes();
+  }
+  window.resetCode = resetCode;
 
-    // ---------- RESET CODE ----------
-    async function resetCode(code) {
-      const { data: { session } } = await supabase.auth.getSession();
+  // ========= UPLOAD LESSON =========
+  uploadLessonBtn.onclick = async () => {
+    if (!lessonFile.files.length) return alert("Избери файл");
 
-      await fetch(`${SUPABASE_URL}/functions/v1/reset_access_code`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + session.access_token
-        },
-        body: JSON.stringify({ code })
-      });
+    const file = lessonFile.files[0];
+    const ext = file.name.split(".").pop().toLowerCase();
+    const fileName = crypto.randomUUID() + "." + ext;
 
-      loadCodes();
-    }
-    window.resetCode = resetCode;
+    const { data, error } = await sb.storage
+      .from("lesson_files")
+      .upload(fileName, file);
 
-    // ---------- UPLOAD LESSON ----------
-    uploadLessonBtn.onclick = async () => {
-      if (!lessonFile.files.length) return alert("Избери файл");
+    if (error) return alert("Грешка при upload");
 
-      const file = lessonFile.files[0];
-      const ext = file.name.split(".").pop().toLowerCase();
-      const fileName = crypto.randomUUID() + "." + ext;
+    await sb.from("lessons").insert({
+      title: lessonTitle.value,
+      description: lessonDesc.value,
+      file_url: data.path,
+      file_type: ext === "pdf" ? "pdf" : "word"
+    });
 
-      const { data, error } = await supabase.storage
-        .from("lesson_files")
-        .upload(fileName, file);
-
-      if (error) return alert("Грешка при upload");
-
-      await supabase.from("lessons").insert({
-        title: lessonTitle.value,
-        description: lessonDesc.value,
-        file_url: data.path,
-        file_type: ext === "pdf" ? "pdf" : "word"
-      });
-
-      lessonTitle.value = "";
-      lessonDesc.value = "";
-      lessonFile.value = "";
-      alert("Темата е качена успешно");
-    };
-  </script>
+    lessonTitle.value = "";
+    lessonDesc.value = "";
+    lessonFile.value = "";
+    alert("Темата е качена успешно");
+  };
+</script>
 
 </body>
 </html>
