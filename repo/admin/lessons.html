@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Админ – Теми</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+
+<!-- CONFIG + NAV -->
+<script src="../config.js"></script>
+<script src="./_admin-nav.js"></script>
+
+<main class="mx-auto max-w-7xl px-4 py-8 space-y-8">
+
+  <!-- ADD LESSON -->
+  <section class="rounded-2xl border bg-white p-6 shadow-sm">
+    <h2 class="text-xl font-extrabold mb-4">Добави тема</h2>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-4">
+      <select id="moduleSelect" class="border rounded-xl px-4 py-2">
+        <option value="">-- избери модул --</option>
+      </select>
+
+      <input id="lessonTitle" placeholder="Заглавие"
+             class="border rounded-xl px-4 py-2" />
+    </div>
+
+    <textarea id="lessonDesc" placeholder="Описание"
+              class="border rounded-xl px-4 py-2 w-full mb-4"></textarea>
+
+    <div class="flex flex-wrap gap-4 items-center">
+      <input type="file" id="lessonFile"
+             accept=".pdf,.doc,.docx"
+             class="border rounded-xl px-4 py-2" />
+
+      <button id="btnUpload"
+        class="rounded-xl bg-slate-900 text-white px-6 py-2 font-semibold hover:bg-slate-800">
+        Качи тема
+      </button>
+    </div>
+
+    <p id="msg" class="mt-3 text-sm"></p>
+  </section>
+
+  <!-- LESSONS LIST -->
+  <section class="rounded-2xl border bg-white p-6 shadow-sm">
+    <h2 class="text-xl font-extrabold mb-4">Теми по модул</h2>
+    <div id="lessonsList" class="space-y-3"></div>
+  </section>
+
+</main>
+
+<script>
+  const sb = window.__sb_admin;
+
+  const moduleSelect = document.getElementById("moduleSelect");
+  const lessonTitle = document.getElementById("lessonTitle");
+  const lessonDesc = document.getElementById("lessonDesc");
+  const lessonFile = document.getElementById("lessonFile");
+  const btnUpload = document.getElementById("btnUpload");
+  const msg = document.getElementById("msg");
+  const lessonsList = document.getElementById("lessonsList");
+
+  function setMsg(text, ok=true){
+    msg.textContent = text;
+    msg.className = "mt-3 text-sm " + (ok ? "text-green-700" : "text-red-700");
+  }
+
+  // LOAD MODULES
+  async function loadModules(){
+    const { data } = await sb
+      .from("modules")
+      .select("id,title")
+      .order("created_at");
+
+    moduleSelect.innerHTML = `<option value="">-- избери модул --</option>`;
+    (data || []).forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m.id;
+      opt.textContent = m.title;
+      moduleSelect.appendChild(opt);
+    });
+  }
+
+  // LOAD LESSONS
+  async function loadLessons(){
+    const moduleId = moduleSelect.value;
+    if(!moduleId){
+      lessonsList.innerHTML = "<p class='text-sm text-slate-500'>Избери модул</p>";
+      return;
+    }
+
+    const { data, error } = await sb
+      .from("lessons")
+      .select("id,title,description,file_url,file_type")
+      .eq("module_id", moduleId)
+      .order("created_at");
+
+    if(error){
+      alert(error.message);
+      return;
+    }
+
+    lessonsList.innerHTML = "";
+    (data || []).forEach(l => {
+      const div = document.createElement("div");
+      div.className = "rounded-xl border p-4 bg-slate-50";
+      div.innerHTML = `
+        <div class="flex justify-between gap-4">
+          <div>
+            <div class="font-bold">${l.title}</div>
+            <div class="text-sm text-slate-600">${l.description || ""}</div>
+            ${l.file_url
+              ? `<a class="text-green-700 underline text-sm"
+                   href="${l.file_url}" target="_blank">
+                   Файл (${l.file_type})
+                 </a>`
+              : ""
+            }
+          </div>
+          <button class="text-red-600 underline text-sm"
+            onclick="deleteLesson('${l.id}')">
+            Изтрий
+          </button>
+        </div>
+      `;
+      lessonsList.appendChild(div);
+    });
+  }
+
+  moduleSelect.onchange = loadLessons;
+
+  // UPLOAD LESSON
+  btnUpload.onclick = async () => {
+    const module_id = moduleSelect.value;
+    const title = lessonTitle.value.trim();
+
+    if(!module_id || !title || !lessonFile.files.length){
+      setMsg("Попълни всички полета", false);
+      return;
+    }
+
+    const file = lessonFile.files[0];
+    const ext = file.name.split(".").pop().toLowerCase();
+    const fileName = crypto.randomUUID() + "." + ext;
+
+    const { data: upload, error: upErr } = await sb.storage
+      .from("lesson_files")
+      .upload(fileName, file);
+
+    if(upErr){
+      setMsg("Грешка при upload", false);
+      return;
+    }
+
+    const file_url = sb.storage
+      .from("lesson_files")
+      .getPublicUrl(upload.path).data.publicUrl;
+
+    const { error } = await sb.from("lessons").insert({
+      module_id,
+      title,
+      description: lessonDesc.value,
+      file_url,
+      file_type: ext
+    });
+
+    if(error){
+      setMsg(error.message, false);
+      return;
+    }
+
+    lessonTitle.value = "";
+    lessonDesc.value = "";
+    lessonFile.value = "";
+    setMsg("Темата е добавена");
+    loadLessons();
+  };
+
+  async function deleteLesson(id){
+    if(!confirm("Изтриване на темата?")) return;
+    await sb.from("lessons").delete().eq("id", id);
+    loadLessons();
+  }
+  window.deleteLesson = deleteLesson;
+
+  loadModules();
+</script>
+
+</body>
+</html>
