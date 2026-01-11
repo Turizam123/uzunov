@@ -1,4 +1,4 @@
-// config.js — ЧИСТ JavaScript файл (БЕЗ <script>)
+// config.js — ЧИСТ JavaScript, без HTML
 
 const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
 
@@ -7,7 +7,6 @@ const SUPABASE_ANON_KEY =
 
 const ADMIN_EMAIL = "uzunov.ange@gmail.com";
 
-// Supabase client
 const sb = supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
