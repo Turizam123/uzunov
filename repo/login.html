@@ -5,10 +5,10 @@
   <title>Вход | Обучителна платформа</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Supabase -->
+  <!-- Supabase library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Tailwind (по желание, за стил) -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -17,7 +17,6 @@
   <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
     <h1 class="text-2xl font-bold mb-4 text-center">Вход в платформата</h1>
 
-    <!-- Google Login -->
     <button
       id="googleLoginBtn"
       class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700"
@@ -25,14 +24,13 @@
       Вход с Google
     </button>
 
-    <!-- Access code section -->
     <div id="codeSection" class="hidden mt-6">
       <label class="block mb-2 font-semibold">Достъп код</label>
       <input
         id="accessCodeInput"
         type="text"
-        placeholder="напр. PW-AX9K-7Q2M"
         class="w-full border rounded-lg px-3 py-2 mb-3"
+        placeholder="напр. PW-AX9K-7Q2M"
       />
       <button
         id="submitCodeBtn"
@@ -45,10 +43,17 @@
     <p id="statusMsg" class="mt-4 text-center text-sm text-red-600"></p>
   </div>
 
-  <!-- Config -->
+  <!-- CONFIG (СЛЕД Supabase CDN) -->
   <script src="./config.js"></script>
 
   <script>
+    // защита – ако config.js не се е заредил
+    if (typeof sb === "undefined") {
+      document.getElementById("statusMsg").textContent =
+        "Грешка: Supabase клиентът не е зареден.";
+      throw new Error("Supabase client (sb) not loaded");
+    }
+
     const ADMIN_EMAIL = "uzunov.ange@gmail.com";
 
     const googleLoginBtn = document.getElementById("googleLoginBtn");
@@ -57,11 +62,11 @@
     const accessCodeInput = document.getElementById("accessCodeInput");
     const statusMsg = document.getElementById("statusMsg");
 
-    // Google login
+    // Google OAuth login
     googleLoginBtn.addEventListener("click", async () => {
       statusMsg.textContent = "";
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await sb.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: window.location.href
@@ -73,27 +78,22 @@
       }
     });
 
-    // Handle session after redirect
+    // Проверка на сесия след redirect
     async function handleSession() {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-
+      const { data: { session } } = await sb.auth.getSession();
       if (!session || !session.user) return;
 
       const email = session.user.email;
 
-      // ADMIN → директно в админ панела
       if (email === ADMIN_EMAIL) {
         window.location.href = "./admin.html";
         return;
       }
 
-      // Курсист → искаме код
       codeSection.classList.remove("hidden");
     }
 
-    // Submit access code
+    // Потвърждаване на достъп код
     submitCodeBtn.addEventListener("click", async () => {
       statusMsg.textContent = "";
 
@@ -103,10 +103,7 @@
         return;
       }
 
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-
+      const { data: { session } } = await sb.auth.getSession();
       if (!session) {
         statusMsg.textContent = "Няма активна сесия.";
         return;
@@ -126,12 +123,10 @@
         );
 
         if (!res.ok) {
-          const text = await res.text();
-          statusMsg.textContent = text;
+          statusMsg.textContent = await res.text();
           return;
         }
 
-        // Успех → към таблото
         window.location.href = "./dashboard.html";
 
       } catch (err) {
