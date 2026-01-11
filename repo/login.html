@@ -53,7 +53,13 @@ if (!window.APP_CONFIG) {
   throw new Error("APP_CONFIG missing");
 }
 
-const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG;
+const {
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  ADMIN_EMAIL,
+  BASE_PATH
+} = window.APP_CONFIG;
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ================= ELEMENTS ================= */
@@ -65,22 +71,32 @@ const statusMsg = document.getElementById("statusMsg");
 
 /* ================= GOOGLE LOGIN ================= */
 googleLoginBtn.onclick = async () => {
+  statusMsg.textContent = "";
+
   const { error } = await sb.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: location.origin + APP_CONFIG.BASE_PATH + "dashboard.html"
+      redirectTo: location.origin + BASE_PATH + "login.html"
     }
   });
 
   if (error) statusMsg.textContent = error.message;
 };
-  
+
 /* ================= SESSION CHECK ================= */
 async function handleSession() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
 
-  // вече сме логнати → показваме код
+  const email = session.user.email || "";
+
+  // ✅ АДМИН → директно в админ панела
+  if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    location.href = BASE_PATH + "admin.html";
+    return;
+  }
+
+  // ✅ КУРСИСТ → показваме полето за код
   codeSection.classList.remove("hidden");
 }
 handleSession();
@@ -118,7 +134,8 @@ submitCodeBtn.onclick = async () => {
     return;
   }
 
-  location.href = APP_CONFIG.BASE_PATH + "dashboard.html";
+  // ✅ УСПЕХ → табло
+  location.href = BASE_PATH + "dashboard.html";
 };
 </script>
 
