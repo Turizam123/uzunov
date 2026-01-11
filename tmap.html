@@ -207,7 +207,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         window.location.href = 'tmap_home.html';
       }
     });
-    supabase.auth.onAuthStateChange((_event, _session) => { refreshAuthUI(); });
+    sb.auth.onAuthStateChange((_event, _session) => { refreshAuthUI(); });
 
     // ---------- Base layers ----------
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
