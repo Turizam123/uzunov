@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Вход – Планински водачи</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="max-w-xl mx-auto px-4 py-10">
+    <div class="rounded-2xl border bg-white p-6 shadow-sm">
+      <h1 class="text-xl font-extrabold">Достъп до платформата</h1>
+      <p class="mt-2 text-slate-600">
+        Входът изисква Google акаунт и валиден унифициран код.
+      </p>
+
+      <div id="state" class="mt-5 rounded-xl border bg-slate-50 p-4 text-sm text-slate-700">
+        Проверка на сесията…
+      </div>
+
+      <div id="codeBox" class="mt-5 hidden">
+        <label class="block text-sm font-semibold">Унифициран код</label>
+        <input id="codeInput" class="mt-2 w-full rounded-xl border px-3 py-2" placeholder="напр. PW-2026-001" />
+        <button id="btnClaim" class="mt-3 w-full rounded-xl bg-green-600 px-4 py-2.5 font-semibold text-white hover:bg-green-700">
+          Потвърди код
+        </button>
+        <p class="mt-2 text-xs text-slate-500">
+          Ако нямаш код, свържи се с администратора.
+        </p>
+      </div>
+
+      <div class="mt-6 flex items-center justify-between">
+        <button id="btnLogout" class="text-sm font-semibold underline">Изход</button>
+        <button id="btnLogin" class="text-sm font-semibold underline">Вход с Google</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./config.js"></script>
+
+  <script>
+    const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL, REDIRECT_URL } = window.APP_CONFIG;
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const stateEl = document.getElementById("state");
+    const codeBox = document.getElementById("codeBox");
+    const codeInput = document.getElementById("codeInput");
+
+    function setState(msg, type="info"){
+      stateEl.textContent = msg;
+      stateEl.className = "mt-5 rounded-xl border p-4 text-sm";
+      if(type==="ok") stateEl.classList.add("bg-green-50","border-green-200","text-green-800");
+      else if(type==="err") stateEl.classList.add("bg-red-50","border-red-200","text-red-800");
+      else stateEl.classList.add("bg-slate-50","border-slate-200","text-slate-700");
+    }
+
+    async function ensureAuth(){
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if(!session){
+        setState("Няма активна сесия. Натисни „Вход с Google“.", "err");
+        codeBox.classList.add("hidden");
+        return;
+      }
+
+      const email = session.user?.email || "";
+      if(email.toLowerCase() === ADMIN_EMAIL.toLowerCase()){
+        setState("Админ сесия открита. Пренасочване към админ панел…", "ok");
+        location.href = "./admin.html";
+        return;
+      }
+
+      // Опит: ако вече има user record с код -> пускаме директно (валидира се server-side по Edge Function при следващите действия).
+      // Тук правим „мек“ check: имаме ли user в таблица users
+      const { data: userRow } = await supabase.from("users").select("access_code").eq("email", email).maybeSingle();
+      if(userRow?.access_code){
+        setState("Достъпът е потвърден. Пренасочване към таблото…", "ok");
+        location.href = "./dashboard.html";
+        return;
+      }
+
+      setState("Сесия активна: " + email + ". Въведи достъп код.", "info");
+      codeBox.classList.remove("hidden");
+    }
+
+    document.getElementById("btnLogin").addEventListener("click", async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: REDIRECT_URL }
+      });
+      if(error) alert(error.message);
+    });
+
+    document.getElementById("btnLogout").addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      location.href = "./index.html";
+    });
+
+    document.getElementById("btnClaim").addEventListener("click", async () => {
+      const code = codeInput.value.trim();
+      if(!code) return setState("Моля, въведи код.", "err");
+
+      setState("Проверка на кода…", "info");
+
+      // Edge Function: claim_access_code (server-side проверка и assign към този email)
+      const { data, error } = await supabase.functions.invoke("claim_access_code", { body: { code } });
+
+      if(error){
+        setState("Грешка: " + error.message, "err");
+        return;
+      }
+      if(!data?.ok){
+        setState(data?.message || "Кодът е невалиден или вече е използван.", "err");
+        return;
+      }
+
+      setState("Кодът е потвърден. Пренасочване…", "ok");
+      location.href = "./dashboard.html";
+    });
+
+    ensureAuth();
+  </script>
+</body>
+</html>
