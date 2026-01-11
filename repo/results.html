@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8">
+  <title>Резултати</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50">
+
+<div class="max-w-5xl mx-auto px-4 py-8">
+  <div class="flex justify-between items-center">
+    <h1 class="text-2xl font-extrabold">Резултати от изпити</h1>
+    <a href="./dashboard.html" class="rounded-xl border px-4 py-2 font-semibold">Назад</a>
+  </div>
+
+  <table class="mt-6 w-full bg-white border rounded-xl overflow-hidden">
+    <thead class="bg-slate-200 text-sm">
+      <tr>
+        <th class="p-2 border">Модул</th>
+        <th class="p-2 border">Резултат</th>
+        <th class="p-2 border">Статус</th>
+        <th class="p-2 border">Дата</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<script src="./config.js"></script>
+<script>
+const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function load(){
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session) return location.href = "./login.html";
+
+  const email = session.user.email;
+
+  const { data, error } = await sb
+    .from("exam_results")
+    .select("score_percent,passed,created_at,modules(title)")
+    .eq("email", email)
+    .order("created_at", { ascending: false });
+
+  if(error) return alert(error.message);
+
+  const box = document.getElementById("rows");
+  box.innerHTML = "";
+
+  (data||[]).forEach(r=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="border p-2">${r.modules?.title || "-"}</td>
+      <td class="border p-2">${r.score_percent}%</td>
+      <td class="border p-2 ${r.passed ? "text-green-700" : "text-red-700"}">
+        ${r.passed ? "ИЗДЪРЖАН" : "НЕИЗДЪРЖАН"}
+      </td>
+      <td class="border p-2 text-sm">${new Date(r.created_at).toLocaleString()}</td>
+    `;
+    box.appendChild(tr);
+  });
+}
+
+load();
+</script>
+</body>
+</html>
