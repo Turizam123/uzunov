@@ -513,7 +513,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         })
         .subscribe();
 
-      supabase.channel('rt:comments')
+      sb.channel('rt:comments')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, async (payload) => {
           const row = payload.new; const oid = String(row.object_id);
           const wrap = openCommentContainers.get(oid);
