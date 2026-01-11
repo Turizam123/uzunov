@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Платформа – Планински водачи</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="max-w-4xl mx-auto px-4 py-10">
+    <div class="rounded-2xl border bg-white p-6 shadow-sm">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-extrabold">Обучителна платформа – Планински водачи</h1>
+          <p class="mt-2 text-slate-600">
+            Достъпът е само за одобрени курсисти. Входът става с Google + унифициран код.
+          </p>
+        </div>
+        <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold bg-slate-50">
+          GitHub Pages + Supabase
+        </span>
+      </div>
+
+      <div class="mt-6 flex flex-col sm:flex-row gap-3">
+        <button id="btnLogin" class="rounded-xl bg-green-600 px-4 py-2.5 font-semibold text-white hover:bg-green-700">
+          Вход с Google
+        </button>
+        <a href="./login.html" class="rounded-xl border px-4 py-2.5 font-semibold hover:bg-slate-50">
+          Продължи към вход
+        </a>
+      </div>
+
+      <div class="mt-6 text-sm text-slate-600">
+        <p class="font-semibold">Админ:</p>
+        <p>Само: <code class="px-1 py-0.5 bg-slate-100 rounded">uzunov.ange@gmail.com</code></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- shared config -->
+  <script src="./config.js"></script>
+
+  <script>
+    const { SUPABASE_URL, SUPABASE_ANON_KEY, REDIRECT_URL } = window.APP_CONFIG;
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.getElementById("btnLogin").addEventListener("click", async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: REDIRECT_URL }
+      });
+      if (error) alert("Грешка при вход: " + error.message);
+    });
+  </script>
+</body>
+</html>
