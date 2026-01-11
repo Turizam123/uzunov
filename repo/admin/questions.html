@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Админ – Въпроси</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+
+<!-- CONFIG + NAV -->
+<script src="../config.js"></script>
+<script src="./_admin-nav.js"></script>
+
+<main class="mx-auto max-w-7xl px-4 py-8 space-y-8">
+
+  <!-- ADD QUESTION -->
+  <section class="rounded-2xl border bg-white p-6 shadow-sm">
+    <h2 class="text-xl font-extrabold mb-4">Добави въпрос</h2>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-4">
+      <select id="examSelect" class="border rounded-xl px-4 py-2">
+        <option value="">-- избери изпит --</option>
+      </select>
+
+      <input id="questionText"
+        placeholder="Текст на въпроса"
+        class="border rounded-xl px-4 py-2" />
+    </div>
+
+    <div id="answersBox" class="space-y-2 mb-4"></div>
+
+    <div class="flex gap-2 mb-4">
+      <button id="addAnswer"
+        class="rounded-xl border px-4 py-2 text-sm font-semibold">
+        + Отговор
+      </button>
+
+      <button id="addQuestion"
+        class="rounded-xl bg-slate-900 text-white px-6 py-2 font-semibold hover:bg-slate-800">
+        Запиши въпроса
+      </button>
+    </div>
+
+    <p id="msg" class="text-sm"></p>
+  </section>
+
+  <!-- QUESTIONS LIST -->
+  <section class="rounded-2xl border bg-white p-6 shadow-sm">
+    <h2 class="text-xl font-extrabold mb-4">Въпроси</h2>
+    <div id="questionsList" class="space-y-3"></div>
+  </section>
+
+</main>
+
+<script>
+  const sb = window.__sb_admin;
+
+  const examSelect = document.getElementById("examSelect");
+  const questionText = document.getElementById("questionText");
+  const answersBox = document.getElementById("answersBox");
+  const addAnswerBtn = document.getElementById("addAnswer");
+  const addQuestionBtn = document.getElementById("addQuestion");
+  const list = document.getElementById("questionsList");
+  const msg = document.getElementById("msg");
+
+  function setMsg(t, ok=true){
+    msg.textContent = t;
+    msg.className = "text-sm " + (ok ? "text-green-700" : "text-red-700");
+  }
+
+  function addAnswerRow(text = ""){
+    const row = document.createElement("div");
+    row.className = "flex gap-2 items-center";
+    row.innerHTML = `
+      <input type="checkbox" class="correct accent-green-600">
+      <input type="text" class="answer border rounded-xl px-3 py-2 flex-1"
+        placeholder="Отговор" value="${text}">
+      <button class="text-red-600 text-sm">✕</button>
+    `;
+    row.querySelector("button").onclick = () => row.remove();
+    answersBox.appendChild(row);
+  }
+
+  addAnswerBtn.onclick = () => addAnswerRow();
+
+  // LOAD EXAMS
+  async function loadExams(){
+    const { data } = await sb
+      .from("exams")
+      .select("id,title,modules(title)")
+      .order("created_at");
+
+    examSelect.innerHTML = `<option value="">-- избери изпит --</option>`;
+    (data || []).forEach(e => {
+      const opt = document.createElement("option");
+      opt.value = e.id;
+      opt.textContent = `${e.modules?.title || ""} → ${e.title}`;
+      examSelect.appendChild(opt);
+    });
+  }
+
+  // LOAD QUESTIONS
+  async function loadQuestions(){
+    const { data, error } = await sb
+      .from("questions")
+      .select("id,question,answers,correct_answers,exams(title)")
+      .order("created_at", { ascending: false });
+
+    if(error){ alert(error.message); return; }
+
+    list.innerHTML = "";
+    (data || []).forEach(q => {
+      const box = document.createElement("div");
+      box.className = "rounded-xl border p-4 bg-slate-50";
+
+      const answers = q.answers || [];
+      const correct = q.correct_answers || [];
+
+      box.innerHTML = `
+        <div class="font-bold">${q.question}</div>
+        <div class="mt-1 text-xs text-slate-600">Изпит: ${q.exams?.title || "-"}</div>
+        <ul class="mt-2 text-sm space-y-1">
+          ${answers.map((a,i)=>`
+            <li>${correct.includes(i) ? "✅" : "⬜"} ${a}</li>
+          `).join("")}
+        </ul>
+        <button class="mt-2 text-red-600 text-sm underline"
+          onclick="deleteQuestion('${q.id}')">Изтрий</button>
+      `;
+      list.appendChild(box);
+    });
+  }
+
+  // ADD QUESTION
+  addQuestionBtn.onclick = async () => {
+    const examId = examSelect.value;
+    const qText = questionText.value.trim();
+    const rows = [...answersBox.querySelectorAll("div")];
+
+    if(!examId || !qText || rows.length < 2){
+      setMsg("Попълни въпроса и поне 2 отговора", false);
+      return;
+    }
+
+    const answers = [];
+    const correct = [];
+
+    rows.forEach((r, i) => {
+      const txt = r.querySelector(".answer").value.trim();
+      if(txt){
+        answers.push(txt);
+        if(r.querySelector(".correct").checked) correct.push(i);
+      }
+    });
+
+    if(correct.length === 0){
+      setMsg("Маркирай поне един верен отговор", false);
+      return;
+    }
+
+    const { error } = await sb.from("questions").insert({
+      exam_id: examId,
+      question: qText,
+      answers,
+      correct_answers: correct
+    });
+
+    if(error){
+      setMsg(error.message, false);
+      return;
+    }
+
+    questionText.value = "";
+    answersBox.innerHTML = "";
+    addAnswerRow();
+    addAnswerRow();
+
+    setMsg("Въпросът е добавен");
+    loadQuestions();
+  };
+
+  async function deleteQuestion(id){
+    if(!confirm("Изтриване на въпроса?")) return;
+    await sb.from("questions").delete().eq("id", id);
+    loadQuestions();
+  }
+
+  window.deleteQuestion = deleteQuestion;
+
+  // INIT
+  addAnswerRow();
+  addAnswerRow();
+  loadExams();
+  loadQuestions();
+</script>
+
+</body>
+</html>
