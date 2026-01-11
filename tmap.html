@@ -203,7 +203,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       });
     });
     document.getElementById('signOutBtn').addEventListener('click', async () => {
-      try { await supabase.auth.signOut(); } finally {
+      try { await sb.auth.signOut(); } finally {
         window.location.href = 'tmap_home.html';
       }
     });
