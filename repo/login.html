@@ -65,19 +65,16 @@ const statusMsg = document.getElementById("statusMsg");
 
 /* ================= GOOGLE LOGIN ================= */
 googleLoginBtn.onclick = async () => {
-  statusMsg.textContent = "";
-
   const { error } = await sb.auth.signInWithOAuth({
     provider: "google",
     options: {
-      // ⬅️ ВИНАГИ към dashboard
       redirectTo: location.origin + APP_CONFIG.BASE_PATH + "dashboard.html"
     }
   });
 
   if (error) statusMsg.textContent = error.message;
 };
-
+  
 /* ================= SESSION CHECK ================= */
 async function handleSession() {
   const { data: { session } } = await sb.auth.getSession();
