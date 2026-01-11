@@ -1,8 +1,8 @@
-<script>
+// nav.js
 async function loadNav() {
   if (!window.APP_CONFIG || !window.supabase) return;
 
-  const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = APP_CONFIG;
+  const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const nav = document.getElementById("appNav");
@@ -10,9 +10,11 @@ async function loadNav() {
 
   const { data: { session } } = await sb.auth.getSession();
 
+  // === НЕВЛЯЗЪЛ ===
   if (!session) {
     nav.innerHTML = `
-      <a href="./login.html" class="px-4 py-2 rounded bg-slate-900 text-white">
+      <a href="./login.html"
+         class="px-4 py-2 rounded bg-slate-900 text-white font-semibold">
         Вход
       </a>
     `;
@@ -22,9 +24,10 @@ async function loadNav() {
   const email = session.user.email || "";
   const isAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
+  // === ВЛЯЗЪЛ ===
   nav.innerHTML = `
     <a href="${isAdmin ? "./admin/index.html" : "./dashboard.html"}"
-       class="px-4 py-2 rounded border font-semibold">
+       class="px-4 py-2 rounded border font-semibold hover:bg-white">
        Табло
     </a>
 
@@ -35,7 +38,9 @@ async function loadNav() {
       <a href="./admin/questions.html" class="px-4 py-2 rounded border">Въпроси</a>
       <a href="./admin/stats.html" class="px-4 py-2 rounded border">Статистика</a>
     ` : `
-      <a href="./results.html" class="px-4 py-2 rounded border">Моите резултати</a>
+      <a href="./results.html" class="px-4 py-2 rounded border">
+        Моите резултати
+      </a>
     `}
 
     <span class="ml-auto text-sm text-slate-600">${email}</span>
@@ -53,4 +58,3 @@ async function loadNav() {
 }
 
 document.addEventListener("DOMContentLoaded", loadNav);
-</script>
