@@ -1,144 +1,132 @@
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Вход | Обучителна платформа</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Tailwind (само визуално, warning-ът е без значение) -->
+  <!-- Tailwind (само визуално) -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="min-h-screen flex items-center justify-center bg-slate-100">
 
-  <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
-    <h1 class="text-2xl font-bold mb-6 text-center">Вход в платформата</h1>
+<div class="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
+  <h1 class="text-2xl font-bold mb-6 text-center">Вход в платформата</h1>
 
+  <button
+    id="googleLoginBtn"
+    class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700">
+    Вход с Google
+  </button>
+
+  <div id="codeSection" class="hidden mt-6">
+    <label class="block mb-2 font-semibold">Достъп код</label>
+    <input
+      id="accessCodeInput"
+      type="text"
+      class="w-full border rounded-lg px-3 py-2 mb-3"
+      placeholder="PW-AX9K-7Q2M">
     <button
-      id="googleLoginBtn"
-      class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700"
-    >
-      Вход с Google
+      id="submitCodeBtn"
+      class="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700">
+      Потвърди код
     </button>
-
-    <div id="codeSection" class="hidden mt-6">
-      <label class="block mb-2 font-semibold">Достъп код</label>
-      <input
-        id="accessCodeInput"
-        type="text"
-        class="w-full border rounded-lg px-3 py-2 mb-3"
-        placeholder="напр. PW-AX9K-7Q2M"
-      />
-      <button
-        id="submitCodeBtn"
-        class="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700"
-      >
-        Потвърди код
-      </button>
-    </div>
-
-    <p id="statusMsg" class="mt-4 text-center text-sm text-red-600"></p>
   </div>
 
-  <!-- CONFIG: задължително СЛЕД Supabase SDK -->
-  <script src="./config.js"></script>
+  <p id="statusMsg" class="mt-4 text-center text-sm text-red-600"></p>
+</div>
 
-  <script>
-    /* ===== ЗАЩИТА ===== */
-    if (typeof sb === "undefined") {
-      document.getElementById("statusMsg").textContent =
-        "Грешка: Supabase клиентът не е зареден.";
-      throw new Error("Supabase client (sb) not loaded");
+<!-- CONFIG -->
+<script src="./config.js"></script>
+
+<script>
+/* ================= INIT ================= */
+if (!window.APP_CONFIG) {
+  document.getElementById("statusMsg").textContent =
+    "Грешка: config.js не е зареден.";
+  throw new Error("APP_CONFIG missing");
+}
+
+const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
+
+/* ✅ ЕТО ТОВА ЛИПСВАШЕ ДО СЕГА */
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ================= ELEMENTS ================= */
+const googleLoginBtn = document.getElementById("googleLoginBtn");
+const codeSection = document.getElementById("codeSection");
+const submitCodeBtn = document.getElementById("submitCodeBtn");
+const accessCodeInput = document.getElementById("accessCodeInput");
+const statusMsg = document.getElementById("statusMsg");
+
+/* ================= GOOGLE LOGIN ================= */
+googleLoginBtn.onclick = async () => {
+  statusMsg.textContent = "";
+
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: location.origin + location.pathname
     }
+  });
 
-    const ADMIN_EMAIL = "uzunov.ange@gmail.com";
+  if (error) statusMsg.textContent = error.message;
+};
 
-    const googleLoginBtn = document.getElementById("googleLoginBtn");
-    const codeSection = document.getElementById("codeSection");
-    const submitCodeBtn = document.getElementById("submitCodeBtn");
-    const accessCodeInput = document.getElementById("accessCodeInput");
-    const statusMsg = document.getElementById("statusMsg");
+/* ================= SESSION CHECK ================= */
+async function handleSession() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
 
-    /* ===== GOOGLE LOGIN ===== */
-    googleLoginBtn.addEventListener("click", async () => {
-      statusMsg.textContent = "";
+  if (session.user.email === ADMIN_EMAIL) {
+    location.href = "./admin.html";
+    return;
+  }
 
-      const { error } = await sb.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          // КРИТИЧНО: без hash / token / unicode
-          redirectTo: location.origin + location.pathname
-        }
-      });
+  codeSection.classList.remove("hidden");
+}
+handleSession();
 
-      if (error) {
-        statusMsg.textContent = error.message;
-      }
-    });
+/* ================= CLAIM ACCESS CODE ================= */
+submitCodeBtn.onclick = async () => {
+  statusMsg.textContent = "";
 
-    /* ===== ПРОВЕРКА НА СЕСИЯ ===== */
-    async function handleSession() {
-      const { data: { session } } = await sb.auth.getSession();
-      if (!session || !session.user) return;
+  const code = accessCodeInput.value.trim();
+  if (!code) {
+    statusMsg.textContent = "Моля, въведи достъп код.";
+    return;
+  }
 
-      const email = session.user.email;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    statusMsg.textContent = "Няма активна сесия.";
+    return;
+  }
 
-      // Администратор
-      if (email === ADMIN_EMAIL) {
-        window.location.href = "./admin.html";
-        return;
-      }
-
-      // Курсист → показваме поле за код
-      codeSection.classList.remove("hidden");
+  const res = await fetch(
+    `${SUPABASE_URL}/functions/v1/claim_access_code`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + session.access_token
+      },
+      body: JSON.stringify({ code })
     }
+  );
 
-    /* ===== ПОТВЪРЖДАВАНЕ НА КОД ===== */
-    submitCodeBtn.addEventListener("click", async () => {
-      statusMsg.textContent = "";
+  if (!res.ok) {
+    statusMsg.textContent = await res.text();
+    return;
+  }
 
-      const code = accessCodeInput.value.trim();
-      if (!code) {
-        statusMsg.textContent = "Моля, въведи достъп код.";
-        return;
-      }
+  location.href = "./dashboard.html";
+};
+</script>
 
-      const { data: { session } } = await sb.auth.getSession();
-      if (!session) {
-        statusMsg.textContent = "Няма активна сесия.";
-        return;
-      }
-
-      try {
-        const res = await fetch(
-          `${SUPABASE_URL}/functions/v1/claim_access_code`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + session.access_token
-            },
-            body: JSON.stringify({ code })
-          }
-        );
-
-        if (!res.ok) {
-          statusMsg.textContent = await res.text();
-          return;
-        }
-
-        window.location.href = "./dashboard.html";
-
-      } catch (err) {
-        console.error(err);
-        statusMsg.textContent = "Грешка при връзка със сървъра.";
-      }
-    });
-
-    handleSession();
-  </script>
 </body>
 </html>
