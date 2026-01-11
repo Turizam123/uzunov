@@ -507,7 +507,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     // Реално време
     function subscribeRealtime() {
-      supabase.channel('rt:objects')
+      sb.channel('rt:objects')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'objects' }, async (payload) => {
           const obj = payload.new; await addMarker(obj);
         })
