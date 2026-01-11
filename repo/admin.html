@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Админ панел</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-extrabold">Админ панел</h1>
+        <p id="who" class="mt-1 text-slate-600 text-sm">…</p>
+      </div>
+      <div class="flex gap-2">
+        <a href="./dashboard.html" class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">Табло</a>
+        <button id="btnLogout" class="rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800">Изход</button>
+      </div>
+    </div>
+
+    <div class="mt-6 grid lg:grid-cols-2 gap-4">
+      <!-- Lessons upload -->
+      <div class="rounded-2xl border bg-white p-5 shadow-sm">
+        <h2 class="text-lg font-bold">Добави тема (PDF/Word)</h2>
+
+        <div class="mt-4 grid gap-3">
+          <label class="text-sm font-semibold">Модул</label>
+          <select id="moduleSel" class="rounded-xl border px-3 py-2"></select>
+
+          <label class="text-sm font-semibold">Заглавие</label>
+          <input id="lessonTitle" class="rounded-xl border px-3 py-2" placeholder="напр. Компас – основи" />
+
+          <label class="text-sm font-semibold">Описание</label>
+          <textarea id="lessonDesc" class="rounded-xl border px-3 py-2" rows="3" placeholder="Кратко описание…"></textarea>
+
+          <label class="text-sm font-semibold">Файл (PDF / DOC / DOCX)</label>
+          <input id="lessonFile" type="file" accept=".pdf,.doc,.docx" class="rounded-xl border px-3 py-2" />
+
+          <button id="btnAddLesson" class="rounded-xl bg-green-600 px-4 py-2.5 font-semibold text-white hover:bg-green-700">
+            Качи и публикувай
+          </button>
+
+          <p id="lessonMsg" class="text-sm"></p>
+        </div>
+      </div>
+
+      <!-- Access codes -->
+      <div class="rounded-2xl border bg-white p-5 shadow-sm">
+        <h2 class="text-lg font-bold">Достъп кодове</h2>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-2">
+          <input id="newCode" class="flex-1 rounded-xl border px-3 py-2" placeholder="напр. PW-2026-001" />
+          <button id="btnCreateCode" class="rounded-xl border px-4 py-2 font-semibold hover:bg-slate-50">Създай</button>
+        </div>
+        <p id="codeMsg" class="mt-2 text-sm"></p>
+
+        <div class="mt-4 overflow-auto rounded-xl border">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-100">
+              <tr>
+                <th class="p-3 text-left">Код</th>
+                <th class="p-3 text-left">Статус</th>
+                <th class="p-3 text-left">Имейл</th>
+                <th class="p-3 text-left">Действия</th>
+              </tr>
+            </thead>
+            <tbody id="codesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./config.js"></script>
+  <script>
+    const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const who = document.getElementById("who");
+    const lessonMsg = document.getElementById("lessonMsg");
+    const codeMsg = document.getElementById("codeMsg");
+
+    function setMsg(el, msg, ok=true){
+      el.textContent = msg;
+      el.className = "text-sm " + (ok ? "text-green-700" : "text-red-700");
+    }
+
+    async function guardAdmin(){
+      const { data: { session } } = await supabase.auth.getSession();
+      if(!session) return location.href = "./index.html";
+      const email = session.user?.email || "";
+      if(email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()){
+        alert("Нямаш админ достъп.");
+        return location.href = "./dashboard.html";
+      }
+      who.textContent = "Админ: " + email;
+    }
+
+    async function loadModules(){
+      const { data, error } = await supabase.from("modules").select("id,title").order("created_at",{ascending:true});
+      if(error) return alert(error.message);
+      const sel = document.getElementById("moduleSel");
+      sel.innerHTML = "";
+      (data||[]).forEach(m=>{
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.title;
+        sel.appendChild(opt);
+      });
+    }
+
+    async function uploadLesson(){
+      const module_id = document.getElementById("moduleSel").value;
+      const title = document.getElementById("lessonTitle").value.trim();
+      const description = document.getElementById("lessonDesc").value.trim();
+      const file = document.getElementById("lessonFile").files[0];
+
+      if(!module_id || !title || !file) return setMsg(lessonMsg, "Модул, заглавие и файл са задължителни.", false);
+
+      const ext = (file.name.split(".").pop() || "").toLowerCase();
+      if(!["pdf","doc","docx"].includes(ext)) return setMsg(lessonMsg, "Позволени формати: PDF/DOC/DOCX.", false);
+
+      setMsg(lessonMsg, "Качване…", true);
+
+      // 1) Insert lesson row (първо) за да получим id
+      const { data: inserted, error: insErr } = await supabase
+        .from("lessons")
+        .insert([{ module_id, title, description, file_url: null, file_type: ext === "pdf" ? "pdf" : "word" }])
+        .select("id")
+        .single();
+
+      if(insErr) return setMsg(lessonMsg, "Грешка при запис: " + insErr.message, false);
+
+      const lessonId = inserted.id;
+      const path = `${module_id}/${lessonId}.${ext}`;
+
+      // 2) Upload to storage
+      const { error: upErr } = await supabase.storage
+        .from("lesson_files")
+        .upload(path, file, { upsert: true, contentType: file.type || undefined });
+
+      if(upErr) return setMsg(lessonMsg, "Грешка при upload: " + upErr.message, false);
+
+      // 3) Get public URL (или signed URL – според настройките ти)
+      const { data: pub } = supabase.storage.from("lesson_files").getPublicUrl(path);
+      const file_url = pub?.publicUrl || null;
+
+      // 4) Update lesson row
+      const { error: updErr } = await supabase.from("lessons").update({ file_url }).eq("id", lessonId);
+      if(updErr) return setMsg(lessonMsg, "Грешка при update: " + updErr.message, false);
+
+      setMsg(lessonMsg, "Готово: Темата е публикувана.", true);
+      document.getElementById("lessonTitle").value = "";
+      document.getElementById("lessonDesc").value = "";
+      document.getElementById("lessonFile").value = "";
+    }
+
+    async function loadCodes(){
+      const { data, error } = await supabase
+        .from("access_codes")
+        .select("id,code,status,assigned_email")
+        .order("created_at", { ascending:false });
+
+      if(error) return alert(error.message);
+
+      const body = document.getElementById("codesBody");
+      body.innerHTML = "";
+      (data||[]).forEach(r=>{
+        const tr = document.createElement("tr");
+        tr.className = "border-t";
+        tr.innerHTML = `
+          <td class="p-3 font-semibold">${r.code}</td>
+          <td class="p-3">${r.status}</td>
+          <td class="p-3">${r.assigned_email || "—"}</td>
+          <td class="p-3">
+            <button class="mr-2 underline font-semibold" data-act="reset" data-code="${r.code}">Reset</button>
+            <button class="underline font-semibold" data-act="toggle" data-code="${r.code}" data-status="${r.status}">
+              ${r.status === "disabled" ? "Enable" : "Disable"}
+            </button>
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    async function createCode(){
+      const code = document.getElementById("newCode").value.trim();
+      if(!code) return setMsg(codeMsg, "Въведи код.", false);
+
+      const { error } = await supabase.from("access_codes").insert([{ code, status:"active" }]);
+      if(error) return setMsg(codeMsg, "Грешка: " + error.message, false);
+
+      setMsg(codeMsg, "Кодът е създаден.", true);
+      document.getElementById("newCode").value = "";
+      await loadCodes();
+    }
+
+    async function resetCode(code){
+      // Edge Function: reset_access_code (само админ)
+      const { data, error } = await supabase.functions.invoke("reset_access_code", { body: { code } });
+      if(error) return setMsg(codeMsg, "Грешка: " + error.message, false);
+      if(!data?.ok) return setMsg(codeMsg, data?.message || "Неуспех.", false);
+      setMsg(codeMsg, "Кодът е нулиран.", true);
+      await loadCodes();
+    }
+
+    async function toggleCode(code, status){
+      const next = status === "disabled" ? "active" : "disabled";
+      const { error } = await supabase.from("access_codes").update({ status: next }).eq("code", code);
+      if(error) return setMsg(codeMsg, "Грешка: " + error.message, false);
+      setMsg(codeMsg, "Статусът е обновен: " + next, true);
+      await loadCodes();
+    }
+
+    document.getElementById("btnAddLesson").addEventListener("click", uploadLesson);
+    document.getElementById("btnCreateCode").addEventListener("click", createCode);
+
+    document.getElementById("codesBody").addEventListener("click", async (e) => {
+      const btn = e.target.closest("button");
+      if(!btn) return;
+      const act = btn.dataset.act;
+      const code = btn.dataset.code;
+      if(act === "reset") await resetCode(code);
+      if(act === "toggle") await toggleCode(code, btn.dataset.status);
+    });
+
+    document.getElementById("btnLogout").addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      location.href = "./index.html";
+    });
+
+    (async () => {
+      await guardAdmin();
+      await loadModules();
+      await loadCodes();
+    })();
+  </script>
+</body>
+</html>
