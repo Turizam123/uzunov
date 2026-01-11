@@ -14,7 +14,9 @@
 
 <header class="bg-slate-900 text-white p-4 flex justify-between items-center">
   <h1 class="text-xl font-bold">Админ панел</h1>
-  <button id="logoutBtn" class="bg-red-600 px-3 py-1 rounded">Изход</button>
+  <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
+    Изход
+  </button>
 </header>
 
 <main class="max-w-6xl mx-auto p-6 space-y-10">
@@ -24,10 +26,11 @@
     <h2 class="text-lg font-bold mb-4">Достъп кодове</h2>
 
     <div class="flex gap-2 mb-4">
-      <input id="newCodeInput" placeholder="PW-AX9K-7Q2M"
+      <input id="newCodeInput"
+             placeholder="PW-AX9K-7Q2M"
              class="border px-3 py-2 rounded w-64">
       <button id="addCodeBtn"
-              class="bg-green-600 text-white px-4 py-2 rounded">
+              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
         Добави код
       </button>
     </div>
@@ -45,17 +48,23 @@
     </table>
   </section>
 
-  <!-- LESSONS -->
+  <!-- LESSON UPLOAD -->
   <section class="bg-white p-5 rounded-xl shadow">
     <h2 class="text-lg font-bold mb-4">Добавяне на тема (PDF / Word)</h2>
 
     <div class="grid md:grid-cols-2 gap-4">
-      <input id="lessonTitle" placeholder="Заглавие" class="border px-3 py-2 rounded">
-      <input id="lessonDesc" placeholder="Описание" class="border px-3 py-2 rounded">
-      <input type="file" id="lessonFile" accept=".pdf,.doc,.docx"
+      <input id="lessonTitle"
+             placeholder="Заглавие"
+             class="border px-3 py-2 rounded">
+      <input id="lessonDesc"
+             placeholder="Описание"
+             class="border px-3 py-2 rounded">
+      <input type="file"
+             id="lessonFile"
+             accept=".pdf,.doc,.docx"
              class="border px-3 py-2 rounded">
       <button id="uploadLessonBtn"
-              class="bg-blue-600 text-white px-4 py-2 rounded">
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
         Качи тема
       </button>
     </div>
@@ -67,112 +76,141 @@
 <script src="./config.js"></script>
 
 <script>
-  // ========= INIT =========
-  const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* ================= INIT ================= */
+const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const codesTable = document.getElementById("codesTable");
-  const newCodeInput = document.getElementById("newCodeInput");
-  const addCodeBtn = document.getElementById("addCodeBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
+const codesTable = document.getElementById("codesTable");
+const newCodeInput = document.getElementById("newCodeInput");
+const addCodeBtn = document.getElementById("addCodeBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 
-  const uploadLessonBtn = document.getElementById("uploadLessonBtn");
-  const lessonFile = document.getElementById("lessonFile");
-  const lessonTitle = document.getElementById("lessonTitle");
-  const lessonDesc = document.getElementById("lessonDesc");
+const uploadLessonBtn = document.getElementById("uploadLessonBtn");
+const lessonFile = document.getElementById("lessonFile");
+const lessonTitle = document.getElementById("lessonTitle");
+const lessonDesc = document.getElementById("lessonDesc");
 
-  // ========= ADMIN GUARD =========
-  (async () => {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session || session.user.email !== ADMIN_EMAIL) {
-      window.location.href = "./login.html";
-    }
-  })();
+/* ================= ADMIN GUARD ================= */
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session || session.user.email !== ADMIN_EMAIL) {
+    location.href = "./login.html";
+  }
+})();
 
-  // ========= LOGOUT =========
-  logoutBtn.onclick = async () => {
-    await sb.auth.signOut();
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.href = "./login.html";
-  };
+/* ================= LOGOUT ================= */
+logoutBtn.onclick = async () => {
+  await sb.auth.signOut();
+  localStorage.clear();
+  sessionStorage.clear();
+  location.href = "./login.html";
+};
 
-  // ========= LOAD CODES =========
-  async function loadCodes() {
-    const { data } = await sb
-      .from("access_codes")
-      .select("*")
-      .order("created_at", { ascending: false });
+/* ================= LOAD CODES ================= */
+async function loadCodes() {
+  const { data, error } = await sb
+    .from("access_codes")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-    codesTable.innerHTML = "";
-    (data || []).forEach(c => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  codesTable.innerHTML = "";
+  data.forEach(c => {
+    codesTable.innerHTML += `
+      <tr>
         <td class="border p-2">${c.code}</td>
         <td class="border p-2">${c.assigned_email || "-"}</td>
         <td class="border p-2">${c.status}</td>
         <td class="border p-2">
-          <button class="bg-yellow-500 text-white px-2 py-1 rounded"
-            onclick="resetCode('${c.code}')">Reset</button>
-        </td>`;
-      codesTable.appendChild(tr);
-    });
-  }
+          <button
+            class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded"
+            onclick="resetCode('${c.code}')">
+            Reset
+          </button>
+        </td>
+      </tr>`;
+  });
+}
+loadCodes();
+
+/* ================= ADD CODE ================= */
+addCodeBtn.onclick = async () => {
+  const code = newCodeInput.value.trim();
+  if (!code) return alert("Въведи код");
+
+  const { error } = await sb
+    .from("access_codes")
+    .insert({ code, status: "active" });
+
+  if (error) return alert(error.message);
+
+  newCodeInput.value = "";
   loadCodes();
+};
 
-  // ========= ADD CODE =========
-  addCodeBtn.onclick = async () => {
-    const code = newCodeInput.value.trim();
-    if (!code) return alert("Въведи код");
+/* ================= RESET CODE ================= */
+async function resetCode(code) {
+  const { data: { session } } = await sb.auth.getSession();
 
-    await sb.from("access_codes").insert({ code, status: "active" });
-    newCodeInput.value = "";
-    loadCodes();
-  };
-
-  // ========= RESET CODE =========
-  async function resetCode(code) {
-    const { data: { session } } = await sb.auth.getSession();
-
-    await fetch(`${SUPABASE_URL}/functions/v1/reset_access_code`, {
+  const res = await fetch(
+    `${SUPABASE_URL}/functions/v1/reset_access_code`,
+    {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + session.access_token
       },
       body: JSON.stringify({ code })
-    });
+    }
+  );
 
-    loadCodes();
+  if (!res.ok) {
+    alert(await res.text());
+    return;
   }
-  window.resetCode = resetCode;
 
-  // ========= UPLOAD LESSON =========
-  uploadLessonBtn.onclick = async () => {
-    if (!lessonFile.files.length) return alert("Избери файл");
+  loadCodes();
+}
+window.resetCode = resetCode;
 
-    const file = lessonFile.files[0];
-    const ext = file.name.split(".").pop().toLowerCase();
-    const fileName = crypto.randomUUID() + "." + ext;
+/* ================= UPLOAD LESSON (ПОПРАВЕНО) ================= */
+uploadLessonBtn.onclick = async () => {
+  if (!lessonFile.files.length) return alert("Избери файл");
 
-    const { data, error } = await sb.storage
-      .from("lesson_files")
-      .upload(fileName, file);
+  const file = lessonFile.files[0];
+  const ext = file.name.split(".").pop().toLowerCase();
+  const filePath = `lessons/${crypto.randomUUID()}.${ext}`;
 
-    if (error) return alert("Грешка при upload");
+  const upload = await sb.storage
+    .from("lesson_files")
+    .upload(filePath, file, { upsert: false });
 
-    await sb.from("lessons").insert({
-      title: lessonTitle.value,
-      description: lessonDesc.value,
-      file_url: data.path,
-      file_type: ext === "pdf" ? "pdf" : "word"
-    });
+  if (upload.error) {
+    alert("Грешка при upload: " + upload.error.message);
+    return;
+  }
 
-    lessonTitle.value = "";
-    lessonDesc.value = "";
-    lessonFile.value = "";
-    alert("Темата е качена успешно");
-  };
+  const insert = await sb.from("lessons").insert({
+    title: lessonTitle.value,
+    description: lessonDesc.value,
+    file_url: filePath,
+    file_type: ext
+  });
+
+  if (insert.error) {
+    alert("Грешка при запис: " + insert.error.message);
+    return;
+  }
+
+  lessonTitle.value = "";
+  lessonDesc.value = "";
+  lessonFile.value = "";
+  alert("Темата е качена успешно");
+};
 </script>
 
 </body>
