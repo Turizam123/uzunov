@@ -5,17 +5,17 @@
   <title>Вход | Обучителна платформа</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Supabase library -->
+  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Tailwind -->
+  <!-- Tailwind (само за визия) -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="min-h-screen flex items-center justify-center bg-slate-100">
 
   <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
-    <h1 class="text-2xl font-bold mb-4 text-center">Вход в платформата</h1>
+    <h1 class="text-2xl font-bold mb-6 text-center">Вход в платформата</h1>
 
     <button
       id="googleLoginBtn"
@@ -43,11 +43,11 @@
     <p id="statusMsg" class="mt-4 text-center text-sm text-red-600"></p>
   </div>
 
-  <!-- CONFIG (СЛЕД Supabase CDN) -->
+  <!-- CONFIG (ЗАДЪЛЖИТЕЛНО след Supabase CDN) -->
   <script src="./config.js"></script>
 
   <script>
-    // защита – ако config.js не се е заредил
+    // Проверка дали Supabase клиентът е наличен
     if (typeof sb === "undefined") {
       document.getElementById("statusMsg").textContent =
         "Грешка: Supabase клиентът не е зареден.";
@@ -62,7 +62,7 @@
     const accessCodeInput = document.getElementById("accessCodeInput");
     const statusMsg = document.getElementById("statusMsg");
 
-    // Google OAuth login
+    // Google OAuth вход
     googleLoginBtn.addEventListener("click", async () => {
       statusMsg.textContent = "";
 
@@ -85,15 +85,17 @@
 
       const email = session.user.email;
 
+      // Админ → директно в админ панела
       if (email === ADMIN_EMAIL) {
         window.location.href = "./admin.html";
         return;
       }
 
+      // Курсист → искаме код
       codeSection.classList.remove("hidden");
     }
 
-    // Потвърждаване на достъп код
+    // Потвърждение на достъп код
     submitCodeBtn.addEventListener("click", async () => {
       statusMsg.textContent = "";
 
