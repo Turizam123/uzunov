@@ -8,14 +8,17 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Tailwind (само визуално) -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="min-h-screen flex items-center justify-center bg-slate-100">
 
 <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
-  <h1 class="text-2xl font-bold mb-6 text-center">Вход в платформата</h1>
+
+  <h1 class="text-2xl font-bold mb-6 text-center">
+    Вход в платформата
+  </h1>
 
   <button
     id="googleLoginBtn"
@@ -46,14 +49,11 @@
 <script>
 /* ================= INIT ================= */
 if (!window.APP_CONFIG) {
-  document.getElementById("statusMsg").textContent =
-    "Грешка: config.js не е зареден.";
+  alert("config.js не е зареден");
   throw new Error("APP_CONFIG missing");
 }
 
-const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
-
-/* ✅ ЕТО ТОВА ЛИПСВАШЕ ДО СЕГА */
+const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ================= ELEMENTS ================= */
@@ -70,7 +70,8 @@ googleLoginBtn.onclick = async () => {
   const { error } = await sb.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: location.origin + location.pathname
+      // ⬅️ ВИНАГИ към dashboard
+      redirectTo: location.origin + "/dashboard.html"
     }
   });
 
@@ -82,11 +83,7 @@ async function handleSession() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
 
-  if (session.user.email === ADMIN_EMAIL) {
-    location.href = "./admin.html";
-    return;
-  }
-
+  // вече сме логнати → показваме код
   codeSection.classList.remove("hidden");
 }
 handleSession();
