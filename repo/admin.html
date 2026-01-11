@@ -5,20 +5,30 @@
   <title>Админ панел</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-slate-100 min-h-screen">
 
-<header class="bg-slate-900 text-white p-4 flex justify-between items-center">
+<!-- HEADER -->
+<header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
   <h1 class="text-xl font-bold">Админ панел</h1>
-  <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
+  <button id="logoutBtn"
+          class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-semibold">
     Изход
   </button>
 </header>
 
+<!-- APP NAVIGATION (ОБЩА) -->
+<nav id="appNav"
+     class="bg-white border-b px-6 py-3 flex flex-wrap gap-2 items-center">
+</nav>
+
+<!-- CONTENT -->
 <main class="max-w-6xl mx-auto p-6 space-y-10">
 
   <!-- ACCESS CODES -->
@@ -75,6 +85,9 @@
 <!-- CONFIG -->
 <script src="./config.js"></script>
 
+<!-- GLOBAL NAV -->
+<script src="./nav.js"></script>
+
 <script>
 /* ================= INIT ================= */
 const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
@@ -101,8 +114,6 @@ const lessonDesc = document.getElementById("lessonDesc");
 /* ================= LOGOUT ================= */
 logoutBtn.onclick = async () => {
   await sb.auth.signOut();
-  localStorage.clear();
-  sessionStorage.clear();
   location.href = "./login.html";
 };
 
@@ -113,10 +124,7 @@ async function loadCodes() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+  if (error) return alert(error.message);
 
   codesTable.innerHTML = "";
   data.forEach(c => {
@@ -168,16 +176,12 @@ async function resetCode(code) {
     }
   );
 
-  if (!res.ok) {
-    alert(await res.text());
-    return;
-  }
-
+  if (!res.ok) return alert(await res.text());
   loadCodes();
 }
 window.resetCode = resetCode;
 
-/* ================= UPLOAD LESSON (ПОПРАВЕНО) ================= */
+/* ================= UPLOAD LESSON ================= */
 uploadLessonBtn.onclick = async () => {
   if (!lessonFile.files.length) return alert("Избери файл");
 
@@ -187,7 +191,7 @@ uploadLessonBtn.onclick = async () => {
 
   const upload = await sb.storage
     .from("lesson_files")
-    .upload(filePath, file, { upsert: false });
+    .upload(filePath, file);
 
   if (upload.error) {
     alert("Грешка при upload: " + upload.error.message);
