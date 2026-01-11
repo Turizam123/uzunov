@@ -500,7 +500,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
 
     async function loadObjects() {
-      const { data, error } = await supabase.from('objects').select('*').order('created_at', { ascending: true });
+      const { data, error } = await sb.from('objects').select('*').order('created_at', { ascending: true });
       if (error) { console.error(error); return; }
       for (const obj of (data || [])) { await addMarker(obj); }
     }
