@@ -8,7 +8,7 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Tailwind (само за визия) -->
+  <!-- Tailwind (само визуално, warning-ът е без значение) -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -43,11 +43,11 @@
     <p id="statusMsg" class="mt-4 text-center text-sm text-red-600"></p>
   </div>
 
-  <!-- CONFIG (ЗАДЪЛЖИТЕЛНО след Supabase CDN) -->
+  <!-- CONFIG: задължително СЛЕД Supabase SDK -->
   <script src="./config.js"></script>
 
   <script>
-    // Проверка дали Supabase клиентът е наличен
+    /* ===== ЗАЩИТА ===== */
     if (typeof sb === "undefined") {
       document.getElementById("statusMsg").textContent =
         "Грешка: Supabase клиентът не е зареден.";
@@ -62,14 +62,15 @@
     const accessCodeInput = document.getElementById("accessCodeInput");
     const statusMsg = document.getElementById("statusMsg");
 
-    // Google OAuth вход
+    /* ===== GOOGLE LOGIN ===== */
     googleLoginBtn.addEventListener("click", async () => {
       statusMsg.textContent = "";
 
       const { error } = await sb.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.href
+          // КРИТИЧНО: без hash / token / unicode
+          redirectTo: location.origin + location.pathname
         }
       });
 
@@ -78,24 +79,24 @@
       }
     });
 
-    // Проверка на сесия след redirect
+    /* ===== ПРОВЕРКА НА СЕСИЯ ===== */
     async function handleSession() {
       const { data: { session } } = await sb.auth.getSession();
       if (!session || !session.user) return;
 
       const email = session.user.email;
 
-      // Админ → директно в админ панела
+      // Администратор
       if (email === ADMIN_EMAIL) {
         window.location.href = "./admin.html";
         return;
       }
 
-      // Курсист → искаме код
+      // Курсист → показваме поле за код
       codeSection.classList.remove("hidden");
     }
 
-    // Потвърждение на достъп код
+    /* ===== ПОТВЪРЖДАВАНЕ НА КОД ===== */
     submitCodeBtn.addEventListener("click", async () => {
       statusMsg.textContent = "";
 
