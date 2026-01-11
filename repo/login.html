@@ -71,7 +71,7 @@ googleLoginBtn.onclick = async () => {
     provider: "google",
     options: {
       // ⬅️ ВИНАГИ към dashboard
-      redirectTo: location.origin + "/dashboard.html"
+      redirectTo: location.origin + APP_CONFIG.BASE_PATH + "dashboard.html"
     }
   });
 
