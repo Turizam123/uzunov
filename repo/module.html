@@ -4,76 +4,176 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Модул</title>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 text-slate-900">
-  <div class="max-w-5xl mx-auto px-4 py-8">
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h1 id="title" class="text-2xl font-extrabold">Модул</h1>
-        <p id="desc" class="mt-1 text-slate-600 text-sm">Теми и файлове</p>
-      </div>
-      <div class="flex gap-2">
-        <a href="./dashboard.html" class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">Назад</a>
-      </div>
-    </div>
 
-    <div class="mt-6 rounded-2xl border bg-white p-5 shadow-sm">
-      <h2 class="text-lg font-bold">Теми</h2>
-      <div id="lessons" class="mt-4 space-y-3"></div>
+<body class="bg-slate-50 text-slate-900">
+
+<div class="max-w-5xl mx-auto px-4 py-8">
+
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h1 id="title" class="text-2xl font-extrabold">Модул</h1>
+      <p id="desc" class="mt-1 text-slate-600 text-sm">Теми и файлове</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="./dashboard.html"
+         class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
+        Назад
+      </a>
     </div>
   </div>
 
-  <script src="./config.js"></script>
-  <script>
-    const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG;
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  <div class="mt-6 rounded-2xl border bg-white p-5 shadow-sm">
+    <h2 class="text-lg font-bold">Теми</h2>
+    <div id="lessons" class="mt-4 space-y-3"></div>
+  </div>
 
-    const params = new URLSearchParams(location.search);
-    const moduleId = params.get("id");
+</div>
 
-    function lessonRow(l){
-      const el = document.createElement("div");
-      el.className = "rounded-xl border p-4 bg-slate-50";
-      const fileBtn = l.file_url
-        ? `<a class="inline-flex items-center rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700" target="_blank" rel="noopener" href="${l.file_url}">
-             Отвори файл (${l.file_type || "file"})
-           </a>`
-        : `<span class="text-sm text-slate-500">Няма прикачен файл</span>`;
-      el.innerHTML = `
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <div class="font-extrabold">${l.title}</div>
-            <div class="mt-1 text-sm text-slate-700">${l.description || ""}</div>
-          </div>
-          <div class="flex gap-2 items-center">
-            ${fileBtn}
-          </div>
+<!-- CONFIG -->
+<script src="./config.js"></script>
+
+<script>
+/* ================= INIT ================= */
+if (!window.APP_CONFIG) {
+  alert("config.js не е зареден");
+  throw new Error("APP_CONFIG missing");
+}
+
+const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const params = new URLSearchParams(location.search);
+const moduleId = params.get("id");
+
+/* ================= GUARD ================= */
+async function guard() {
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session) {
+    location.href = "./login.html";
+    return null;
+  }
+
+  const email = session.user.email || "";
+
+  if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    // админът може да гледа, не го пренасочваме
+    return session;
+  }
+
+  const { data: userRow } = await sb
+    .from("users")
+    .select("access_code")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (!userRow?.access_code) {
+    location.href = "./login.html";
+    return null;
+  }
+
+  return session;
+}
+
+/* ================= LESSON ROW ================= */
+function lessonRow(l) {
+  const el = document.createElement("div");
+  el.className = "rounded-xl border p-4 bg-slate-50";
+
+  let fileBtn = `<span class="text-sm text-slate-500">Няма прикачен файл</span>`;
+
+  if (l.file_url) {
+    const { data } = sb.storage
+      .from("lesson_files")
+      .getPublicUrl(l.file_url);
+
+    const publicUrl = data?.publicUrl;
+
+    if (publicUrl) {
+      fileBtn = `
+        <a class="inline-flex items-center rounded-xl bg-green-600 px-3 py-2
+                  text-sm font-semibold text-white hover:bg-green-700"
+           target="_blank" rel="noopener"
+           href="${publicUrl}">
+          Отвори файл (${l.file_type || "file"})
+        </a>`;
+    }
+  }
+
+  el.innerHTML = `
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="font-extrabold">${l.title}</div>
+        <div class="mt-1 text-sm text-slate-700">
+          ${l.description || ""}
         </div>
-      `;
-      return el;
-    }
+      </div>
+      <div class="flex gap-2 items-center">
+        ${fileBtn}
+      </div>
+    </div>
+  `;
+  return el;
+}
 
-    async function load(){
-      const { data: m } = await supabase.from("modules").select("title").eq("id", moduleId).maybeSingle();
-      if(m?.title) document.getElementById("title").textContent = m.title;
+/* ================= LOAD MODULE ================= */
+async function loadModule() {
+  if (!moduleId) {
+    alert("Липсва module id.");
+    location.href = "./dashboard.html";
+    return;
+  }
 
-      const { data, error } = await supabase
-        .from("lessons")
-        .select("id,title,description,file_url,file_type")
-        .eq("module_id", moduleId)
-        .order("created_at", { ascending: true });
+  const { data: moduleRow, error: modErr } = await sb
+    .from("modules")
+    .select("title")
+    .eq("id", moduleId)
+    .maybeSingle();
 
-      if(error) return alert(error.message);
+  if (modErr || !moduleRow) {
+    alert("Невалиден модул.");
+    location.href = "./dashboard.html";
+    return;
+  }
 
-      const box = document.getElementById("lessons");
-      box.innerHTML = "";
-      (data || []).forEach(l => box.appendChild(lessonRow(l)));
-    }
+  document.getElementById("title").textContent = moduleRow.title;
 
-    if(!moduleId) alert("Липсва module id.");
-    else load();
-  </script>
+  const { data, error } = await sb
+    .from("lessons")
+    .select("id,title,description,file_url,file_type")
+    .eq("module_id", moduleId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  const box = document.getElementById("lessons");
+  box.innerHTML = "";
+
+  if (!data || !data.length) {
+    box.innerHTML =
+      `<p class="text-sm text-slate-500">Няма добавени теми.</p>`;
+    return;
+  }
+
+  data.forEach(l => box.appendChild(lessonRow(l)));
+}
+
+/* ================= BOOT ================= */
+(async () => {
+  const ok = await guard();
+  if (ok) await loadModule();
+})();
+</script>
+
 </body>
 </html>
