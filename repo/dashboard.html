@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Табло – Курсист</title>
+  <title>Табло</title>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -16,35 +16,33 @@
 
 <div class="max-w-6xl mx-auto px-4 py-8">
 
+  <!-- NAV -->
+  <nav id="mainNav" class="mb-6 flex flex-wrap gap-2 items-center"></nav>
+
+  <!-- HEADER -->
   <div class="flex items-start justify-between gap-4">
     <div>
       <h1 class="text-2xl font-extrabold">Табло</h1>
       <p id="who" class="mt-1 text-slate-600 text-sm"></p>
     </div>
-    <div class="flex gap-2">
-      <a href="./modules.html"
-         class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
-        Модули
-      </a>
-      <button id="btnLogout"
-        class="rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800">
-        Изход
-      </button>
-    </div>
   </div>
 
+  <!-- CONTENT -->
   <div class="mt-6 grid lg:grid-cols-3 gap-4">
 
+    <!-- MODULES -->
     <div class="lg:col-span-2 rounded-2xl border bg-white p-5 shadow-sm">
       <h2 class="text-lg font-bold">Модули</h2>
       <div id="modules" class="mt-4 grid sm:grid-cols-2 gap-4"></div>
     </div>
 
+    <!-- INFO -->
     <div class="rounded-2xl border bg-white p-5 shadow-sm">
-      <h2 class="text-lg font-bold">Бързи действия</h2>
+      <h2 class="text-lg font-bold">Информация</h2>
       <div class="mt-4 space-y-2 text-sm text-slate-700">
         <p>• Отваряй темите от модулите и сваляй PDF / Word файловете.</p>
-        <p>• Когато модулът има активен изпит, ще се появи бутон „Изпит“.</p>
+        <p>• Ако модулът има активен изпит, ще видиш бутон „Изпит“.</p>
+        <p>• Резултатите се записват автоматично.</p>
       </div>
     </div>
 
@@ -64,6 +62,50 @@ if (!window.APP_CONFIG) {
 const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/* ================= NAV ================= */
+function renderNav({ isAdmin }) {
+  const nav = document.getElementById("mainNav");
+
+  nav.innerHTML = `
+    <a href="./dashboard.html"
+       class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
+       Табло
+    </a>
+
+    <a href="./modules.html"
+       class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
+       Модули
+    </a>
+
+    ${isAdmin ? `
+      <a href="./results.html"
+         class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
+         Резултати
+      </a>
+
+      <a href="./admin.html"
+         class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
+         Админ панел
+      </a>
+    ` : `
+      <a href="./results.html"
+         class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
+         Моите резултати
+      </a>
+    `}
+
+    <button id="btnLogout"
+      class="ml-auto rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800">
+      Изход
+    </button>
+  `;
+
+  document.getElementById("btnLogout").onclick = async () => {
+    await sb.auth.signOut();
+    location.href = "./login.html";
+  };
+}
+
 /* ================= GUARD ================= */
 async function guard() {
   const { data: { session } } = await sb.auth.getSession();
@@ -74,31 +116,34 @@ async function guard() {
   }
 
   const email = session.user.email || "";
+  const isAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-  if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    location.href = "./admin.html";
-    return null;
+  renderNav({ isAdmin });
+
+  if (isAdmin) {
+    document.getElementById("who").textContent =
+      "Администратор: " + email;
+  } else {
+    const { data: userRow, error } = await sb
+      .from("users")
+      .select("email")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (error || !userRow) {
+      location.href = "./login.html";
+      return null;
+    }
+
+    document.getElementById("who").textContent =
+      "Влязъл курсист: " + email;
   }
 
-  const { data: userRow, error } = await sb
-    .from("users")
-    .select("access_code")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (error || !userRow?.access_code) {
-    location.href = "./login.html";
-    return null;
-  }
-
-  document.getElementById("who").textContent =
-    "Влязъл курсист: " + email;
-
-  return session;
+  return { isAdmin };
 }
 
 /* ================= MODULE CARD ================= */
-function cardModule(m) {
+function cardModule(m, isAdmin) {
   const el = document.createElement("div");
   el.className = "rounded-2xl border p-4 bg-slate-50";
 
@@ -122,17 +167,19 @@ function cardModule(m) {
          Теми
       </a>
 
-      <a class="rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700"
-         href="./exam.html?module_id=${encodeURIComponent(m.id)}">
-         Изпит
-      </a>
+      ${isAdmin ? `` : `
+        <a class="rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700"
+           href="./exam.html?module_id=${encodeURIComponent(m.id)}">
+           Изпит
+        </a>
+      `}
     </div>
   `;
   return el;
 }
 
 /* ================= LOAD MODULES ================= */
-async function loadModules() {
+async function loadModules(isAdmin) {
   const { data, error } = await sb
     .from("modules")
     .select("id,title,type,is_mandatory")
@@ -147,20 +194,16 @@ async function loadModules() {
   box.innerHTML = "";
 
   (data || []).forEach(m => {
-    box.appendChild(cardModule(m));
+    box.appendChild(cardModule(m, isAdmin));
   });
 }
 
-/* ================= LOGOUT ================= */
-document.getElementById("btnLogout").onclick = async () => {
-  await sb.auth.signOut();
-  location.href = "./login.html";
-};
-
 /* ================= BOOT ================= */
 (async () => {
-  const ok = await guard();
-  if (ok) await loadModules();
+  const ctx = await guard();
+  if (!ctx) return;
+
+  await loadModules(ctx.isAdmin);
 })();
 </script>
 
