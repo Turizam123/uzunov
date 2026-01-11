@@ -412,7 +412,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       const username = currentUser.user_metadata?.full_name || currentUser.email || 'Потребител';
       const user_id = currentUser.id;
       const payload = { object_id: String(objectId), user_id, username, comment: text };
-      const { data, error } = await supabase.from('comments').insert([payload]).select().single();
+      const { data, error } = await sb.from('comments').insert([payload]).select().single();
       if (error) throw error; return data;
     }
     function renderComments(container, comments) {
