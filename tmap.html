@@ -197,7 +197,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       }
     }
     document.getElementById('signInBtn').addEventListener('click', async () => {
-      await supabase.auth.signInWithOAuth({
+      await sb.auth.signInWithOAuth({
         provider: 'google',
         options: { queryParams: { access_type: 'offline', prompt: 'consent' }, redirectTo: window.location.href }
       });
