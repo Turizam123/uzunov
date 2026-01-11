@@ -368,7 +368,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     async function getVisitCount(objectId) {
       const cached = visitCountCache.get(objectId);
       if (typeof cached === 'number') return cached;
-      const { count, error } = await supabase.from('visits').select('*', { count: 'exact', head: true }).eq('object_id', objectId);
+      const { count, error } = await sb.from('visits').select('*', { count: 'exact', head: true }).eq('object_id', objectId);
       const safe = error ? 0 : (count || 0);
       visitCountCache.set(objectId, safe);
       return safe;
