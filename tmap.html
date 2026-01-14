@@ -366,36 +366,72 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const openCommentContainers = new Map(); // objectId -> wrapEl
 
     async function getVisitCount(objectId) {
-      const cached = visitCountCache.get(objectId);
-      if (typeof cached === 'number') return cached;
-      const { count, error } = await sb.from('visits').select('*', { count: 'exact', head: true }).eq('object_id', objectId);
-      const safe = error ? 0 : (count || 0);
-      visitCountCache.set(objectId, safe);
-      return safe;
-    }
-    async function markVisit(objectId) {
-      const { error } = await supabase.from('visits').insert([{ object_id: objectId, client_id: getClientId() }]);
-      if (error) return { ok:false, reason:'already_marked' };
-      const next = (visitCountCache.get(objectId) || 0) + 1;
-      visitCountCache.set(objectId, next);
-      updateBadge(objectId, next);
-      return { ok:true };
-    }
-    function createBadgeMarker(lat, lng, initial) {
-      const html = '<span class="badge">' + initial + '</span>';
-      const icon = L.divIcon({ className: 'visit-badge', html, iconSize: [1,1], iconAnchor: [42, 20] });
-      return L.marker([lat, lng], { icon, interactive: false, zIndexOffset: 250 });
-    }
-    function updateBadge(objectId, value) { const ref = badgeRefs.get(objectId); if (ref) { const el = ref.getElement(); if (!el) return; const span = el.querySelector('.badge'); if (span) span.textContent = String(value); } }
+  const cached = visitCountCache.get(objectId);
+  if (typeof cached === 'number') return cached;
 
-    function getClientId() {
-      const k = 'tmap_client_id';
-      let id = localStorage.getItem(k);
-      if (!id) {
-        id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
-        localStorage.setItem(k, id);
-      }
-      return id;
+  const { count, error } = await sb
+    .from('visits')
+    .select('*', { count: 'exact', head: true })
+    .eq('object_id', objectId);
+
+  const safe = error ? 0 : (count || 0);
+  visitCountCache.set(objectId, safe);
+  return safe;
+}
+
+async function markVisit(objectId) {
+  const { error } = await sb
+    .from('visits')
+    .insert([{ 
+      object_id: objectId, 
+      client_id: getClientId() 
+    }]);
+
+  if (error) {
+    return { ok: false, reason: 'already_marked' };
+  }
+
+  const next = (visitCountCache.get(objectId) || 0) + 1;
+  visitCountCache.set(objectId, next);
+  updateBadge(objectId, next);
+
+  return { ok: true };
+}
+
+function createBadgeMarker(lat, lng, initial) {
+  const html = '<span class="badge">' + initial + '</span>';
+  const icon = L.divIcon({
+    className: 'visit-badge',
+    html,
+    iconSize: [1, 1],
+    iconAnchor: [42, 20]
+  });
+  return L.marker([lat, lng], {
+    icon,
+    interactive: false,
+    zIndexOffset: 250
+  });
+}
+
+function updateBadge(objectId, value) {
+  const ref = badgeRefs.get(objectId);
+  if (!ref) return;
+  const el = ref.getElement();
+  if (!el) return;
+  const span = el.querySelector('.badge');
+  if (span) span.textContent = String(value);
+}
+
+function getClientId() {
+  const key = 'tmap_client_id';
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = (crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Date.now() + '-' + Math.random();
+    localStorage.setItem(key, id);
+  }
+  return id;
     }
 
     // Коментари
