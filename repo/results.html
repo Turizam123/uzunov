@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Резултати</title>
+  <title>Моите резултати</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,17 +13,20 @@
 
 <div class="mx-auto max-w-4xl px-4 py-8 space-y-6">
 
+  <!-- HEADER -->
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-extrabold">Резултати</h1>
+      <h1 class="text-2xl font-extrabold">Моите резултати</h1>
       <p id="who" class="text-sm text-slate-600"></p>
     </div>
+
     <a href="./dashboard.html"
        class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
-      Назад
+      Табло
     </a>
   </div>
 
+  <!-- RESULTS -->
   <div id="resultsBox"
        class="rounded-2xl border bg-white p-6 shadow-sm space-y-4">
     <p class="text-slate-600">Зареждане…</p>
@@ -32,40 +35,68 @@
 </div>
 
 <script src="./config.js"></script>
+
 <script>
+
 /* ================= INIT ================= */
-const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG;
+
+const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = APP_CONFIG;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const box = document.getElementById("resultsBox");
 const who = document.getElementById("who");
 
+/* ================= GUARD ================= */
+
 async function guard(){
-  const { data: { session } } = await sb.auth.getSession();
+
+  const { data:{ session } } = await sb.auth.getSession();
+
   if(!session){
-    location.href = "./login.html";
+    location.href="./login.html";
     return null;
   }
 
   const email = session.user.email;
 
-  const { data: userRow } = await sb
+  if(email.toLowerCase() === ADMIN_EMAIL.toLowerCase()){
+    location.href="./admin/index.html";
+    return null;
+  }
+
+  const { data:userRow } = await sb
     .from("users")
     .select("access_code")
     .eq("email", email)
     .maybeSingle();
 
   if(!userRow?.access_code){
-    location.href = "./login.html";
+    location.href="./login.html";
     return null;
   }
 
   who.textContent = "Курсист: " + email;
+
   return userRow.access_code;
 }
 
+/* ================= UI HELPERS ================= */
+
+function formatDate(d){
+  const dt = new Date(d);
+  return dt.toLocaleDateString() + " " + dt.toLocaleTimeString().slice(0,5);
+}
+
+function badge(ok){
+  return ok
+    ? `<span class="px-2 py-1 text-xs rounded bg-green-100 text-green-800 font-semibold">ИЗДЪРЖАН</span>`
+    : `<span class="px-2 py-1 text-xs rounded bg-red-100 text-red-800 font-semibold">НЕИЗДЪРЖАН</span>`;
+}
+
 /* ================= LOAD RESULTS ================= */
+
 async function loadResults(accessCode){
+
   const { data, error } = await sb
     .from("exam_results")
     .select(`
@@ -74,10 +105,15 @@ async function loadResults(accessCode){
       passed,
       attempt,
       created_at,
-      exams(title, min_score_percent)
+      exam_id,
+      exams (
+        title,
+        min_score_percent,
+        module_id
+      )
     `)
     .eq("access_code", accessCode)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending:false });
 
   if(error){
     box.innerHTML = `<p class="text-red-600">${error.message}</p>`;
@@ -85,52 +121,70 @@ async function loadResults(accessCode){
   }
 
   if(!data || data.length === 0){
-    box.innerHTML = `<p>Все още нямаш резултати.</p>`;
+    box.innerHTML = `<p class="text-slate-600">Все още нямаш положени изпити.</p>`;
     return;
   }
 
   box.innerHTML = "";
 
   data.forEach(r => {
+
     const el = document.createElement("div");
     el.className = "rounded-xl border p-4 bg-slate-50";
 
     el.innerHTML = `
-      <div class="flex items-start justify-between gap-4">
+
+      <div class="flex justify-between items-start gap-4">
+
         <div>
-          <div class="font-bold">${r.exams?.title || "Изпит"}</div>
+          <div class="font-bold text-lg">
+            ${r.exams?.title || "Изпит"}
+          </div>
+
           <div class="text-sm text-slate-600">
-            Опит №${r.attempt} • ${new Date(r.created_at).toLocaleString()}
+            Опит №${r.attempt}
+            • ${formatDate(r.created_at)}
+          </div>
+
+          <div class="text-xs text-slate-500 mt-1">
+            Минимум: ${r.exams?.min_score_percent || 0}%
           </div>
         </div>
+
         <div class="text-right">
-          <div class="text-xl font-extrabold">
+          <div class="text-2xl font-extrabold">
             ${r.score_percent}%
           </div>
-          <div class="${r.passed ? "text-green-700" : "text-red-700"} font-semibold">
-            ${r.passed ? "ИЗДЪРЖАН" : "НЕИЗДЪРЖАН"}
-          </div>
+          ${badge(r.passed)}
         </div>
+
       </div>
 
       ${
         !r.passed
-        ? `<a href="./exam.html?module_id=${r.exams?.module_id || ""}"
-             class="inline-block mt-3 rounded-xl bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700">
+        ? `
+          <a href="./exam.html?module_id=${r.exams?.module_id}"
+             class="inline-block mt-3 rounded-xl bg-orange-600 px-4 py-2
+                    text-sm font-semibold text-white hover:bg-orange-700">
              Повторно явяване
-           </a>`
-        : ``
+          </a>
+        `
+        : ""
       }
+
     `;
+
     box.appendChild(el);
   });
 }
 
 /* ================= BOOT ================= */
+
 (async ()=>{
-  const accessCode = await guard();
-  if(accessCode) loadResults(accessCode);
+  const code = await guard();
+  if(code) loadResults(code);
 })();
+
 </script>
 
 </body>
