@@ -15,15 +15,13 @@
 
 <body class="bg-slate-50 text-slate-900">
 
-<!-- ================= CONFIG ================= -->
+<!-- CONFIG -->
 <script src="../config.js"></script>
 
-<!-- ================= ADMIN NAV CONTAINER ================= -->
-<nav id="appNav"
-     class="bg-white border-b px-6 py-3 flex flex-wrap gap-2 items-center">
-</nav>
+<!-- ADMIN NAV + GUARD (инжектира header автоматично) -->
+<script src="./_admin-nav.js"></script>
 
-<!-- ================= PAGE ================= -->
+<!-- PAGE -->
 <main class="mx-auto max-w-7xl px-4 py-8 space-y-6">
 
   <!-- HEADER -->
@@ -40,59 +38,63 @@
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Модули</div>
-      <div id="statModules" class="text-2xl font-extrabold">—</div>
+      <div id="statModules" class="text-2xl font-extrabold">0</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Теми</div>
-      <div id="statLessons" class="text-2xl font-extrabold">—</div>
+      <div id="statLessons" class="text-2xl font-extrabold">0</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Изпити</div>
-      <div id="statExams" class="text-2xl font-extrabold">—</div>
+      <div id="statExams" class="text-2xl font-extrabold">0</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Резултати</div>
-      <div id="statResults" class="text-2xl font-extrabold">—</div>
+      <div id="statResults" class="text-2xl font-extrabold">0</div>
     </div>
 
   </section>
 
 </main>
 
-<!-- ================= ADMIN NAV SCRIPT ================= -->
-<script src="./_admin-nav.js"></script>
-
-<!-- ================= STATS SCRIPT ================= -->
 <script>
-async function loadStats(){
+(async () => {
 
-  // Изчакваме admin client-а от _admin-nav.js
-  while(!window.__sb_admin){
+  // чакаме admin клиента от _admin-nav.js
+  while (!window.__sb_admin) {
     await new Promise(r => setTimeout(r, 50));
   }
 
   const sb = window.__sb_admin;
 
-  const statModules = document.getElementById("statModules");
-  const statLessons = document.getElementById("statLessons");
-  const statExams = document.getElementById("statExams");
-  const statResults = document.getElementById("statResults");
+  const [
+    modules,
+    lessons,
+    exams,
+    results
+  ] = await Promise.all([
+    sb.from("modules").select("id"),
+    sb.from("lessons").select("id"),
+    sb.from("exams").select("id"),
+    sb.from("exam_results").select("id")
+  ]);
 
-  const modules = await sb.from("modules").select("id");
-  const lessons = await sb.from("lessons").select("id");
-  const exams = await sb.from("exams").select("id");
-  const results = await sb.from("exam_results").select("id");
+  document.getElementById("statModules").textContent =
+    modules.data?.length || 0;
 
-  statModules.textContent = modules.data?.length || 0;
-  statLessons.textContent = lessons.data?.length || 0;
-  statExams.textContent = exams.data?.length || 0;
-  statResults.textContent = results.data?.length || 0;
-}
+  document.getElementById("statLessons").textContent =
+    lessons.data?.length || 0;
 
-loadStats();
+  document.getElementById("statExams").textContent =
+    exams.data?.length || 0;
+
+  document.getElementById("statResults").textContent =
+    results.data?.length || 0;
+
+})();
 </script>
 
 </body>
