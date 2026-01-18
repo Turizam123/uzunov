@@ -2,27 +2,8 @@
 
 (async function () {
 
-  console.log("ADMIN NAV INIT");
-
-  /* ================= WAIT DOM ================= */
-
-  if (document.readyState === "loading") {
-    await new Promise(r => {
-      document.addEventListener("DOMContentLoaded", r, { once: true });
-    });
-  }
-
-  /* ================= CONFIG CHECK ================= */
-
-  if (!window.APP_CONFIG) {
-    console.error("APP_CONFIG missing");
-    alert("CONFIG не е зареден");
-    return;
-  }
-
-  if (!window.supabase) {
-    console.error("Supabase SDK missing");
-    alert("Supabase SDK липсва");
+  if (!window.APP_CONFIG || !window.supabase) {
+    alert("CONFIG или Supabase липсва");
     return;
   }
 
@@ -33,19 +14,16 @@
     BASE_PATH
   } = window.APP_CONFIG;
 
-  /* ================= CLIENT ================= */
-
   const sb = supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
 
-  /* ================= AUTH GUARD ================= */
+  /* ===== AUTH GUARD ===== */
 
-  const { data, error } = await sb.auth.getSession();
+  const { data } = await sb.auth.getSession();
 
-  if (error || !data?.session) {
-    console.warn("No admin session");
+  if (!data?.session) {
     location.href = (BASE_PATH || "/") + "login.html";
     return;
   }
@@ -53,52 +31,46 @@
   const email = (data.session.user.email || "").toLowerCase();
 
   if (email !== ADMIN_EMAIL.toLowerCase()) {
-    console.warn("Not admin:", email);
     location.href = (BASE_PATH || "/") + "login.html";
     return;
   }
 
-  /* ================= EXPORT ADMIN CLIENT ================= */
+  /* ===== EXPORT ADMIN CLIENT ===== */
 
   window.__sb_admin = sb;
 
-  /* ================= PATH NORMALIZER ================= */
+  /* ===== PATH BUILDER ===== */
 
-  function normalizeBase() {
-    if (!BASE_PATH) return "/";
-    if (!BASE_PATH.endsWith("/")) return BASE_PATH + "/";
-    return BASE_PATH;
-  }
+  const base =
+    (BASE_PATH || "/").endsWith("/")
+      ? (BASE_PATH || "/")
+      : BASE_PATH + "/";
 
-  const BASE = normalizeBase();
+  const p = file => base + "admin/" + file;
 
-  const adminPath = file => BASE + "admin/" + file;
-
-  /* ================= NAV RENDER ================= */
+  /* ===== NAV RENDER ===== */
 
   const header = document.createElement("header");
-
-  header.className =
-    "sticky top-0 z-50 bg-white border-b shadow-sm";
+  header.className = "sticky top-0 z-50 bg-white border-b shadow-sm";
 
   header.innerHTML = `
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
 
       <div class="flex items-center gap-3">
-        <div class="font-extrabold text-slate-900">ADMIN</div>
+        <div class="font-extrabold">ADMIN</div>
         <div class="hidden sm:block text-xs text-slate-500">${email}</div>
       </div>
 
-      <nav class="flex flex-wrap items-center gap-2 text-sm">
+      <nav class="flex flex-wrap gap-2 text-sm">
 
-        <a data-link href="${adminPath("index.html")}">Табло</a>
-        <a data-link href="${adminPath("modules.html")}">Модули</a>
-        <a data-link href="${adminPath("lessons.html")}">Теми</a>
-        <a data-link href="${adminPath("exams.html")}">Изпити</a>
-        <a data-link href="${adminPath("stats.html")}">Статистика</a>
+        <a href="${p("index.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Табло</a>
+        <a href="${p("modules.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Модули</a>
+        <a href="${p("lessons.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Теми</a>
+        <a href="${p("exams.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Изпити</a>
+        <a href="${p("stats.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Статистика</a>
 
         <button id="adminLogout"
-          class="ml-2 px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800">
+          class="ml-2 px-3 py-2 rounded bg-slate-900 text-white hover:bg-slate-800">
           Изход
         </button>
 
@@ -108,39 +80,13 @@
 
   document.body.prepend(header);
 
-  /* ================= STYLE LINKS ================= */
-
-  document.querySelectorAll("[data-link]").forEach(a => {
-    a.className =
-      "px-3 py-2 rounded-lg hover:bg-slate-100 transition";
-  });
-
-  /* ================= ACTIVE PAGE ================= */
-
-  const current = location.pathname.split("/").pop();
-
-  document.querySelectorAll("[data-link]").forEach(a => {
-    if (a.getAttribute("href").endsWith(current)) {
-      a.classList.add("bg-slate-100", "font-semibold");
-    }
-  });
-
-  /* ================= LOGOUT ================= */
+  /* ===== LOGOUT ===== */
 
   document.getElementById("adminLogout").onclick = async () => {
-
-    try {
-      await sb.auth.signOut();
-    } catch (e) {
-      console.warn("Logout error", e);
-    }
-
+    await sb.auth.signOut();
     localStorage.clear();
     sessionStorage.clear();
-
-    location.href = BASE + "login.html";
+    location.href = (BASE_PATH || "/") + "login.html";
   };
-
-  console.log("ADMIN NAV READY");
 
 })();
