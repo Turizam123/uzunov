@@ -1,11 +1,15 @@
-/* admin/_admin-nav.js */
+// admin/_admin-nav.js
+(async function () {
 
-document.addEventListener("DOMContentLoaded", async () => {
-
-  console.log("ADMIN NAV START");
+  console.log("ADMIN NAV INIT");
 
   if (!window.APP_CONFIG) {
-    alert("APP_CONFIG missing");
+    alert("APP_CONFIG липсва");
+    return;
+  }
+
+  if (!window.supabase) {
+    alert("Supabase SDK не е зареден");
     return;
   }
 
@@ -16,85 +20,83 @@ document.addEventListener("DOMContentLoaded", async () => {
     BASE_PATH
   } = window.APP_CONFIG;
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
 
-  const BASE = (BASE_PATH || "/").endsWith("/")
-    ? (BASE_PATH || "/")
-    : (BASE_PATH + "/");
+  // ================= AUTH GUARD =================
 
-  function adminPath(p) {
-    return BASE + "admin/" + p;
-  }
+  const { data, error } = await sb.auth.getSession();
 
-  /* ================= ADMIN GUARD ================= */
-
-  const { data: { session } } = await sb.auth.getSession();
-
-  if (!session?.user?.email) {
-    location.href = BASE + "login.html";
+  if (error || !data?.session) {
+    location.href = (BASE_PATH || "/") + "login.html";
     return;
   }
 
-  const email = session.user.email.toLowerCase();
+  const email = (data.session.user.email || "").toLowerCase();
 
   if (email !== ADMIN_EMAIL.toLowerCase()) {
-    location.href = BASE + "dashboard.html";
+    location.href = (BASE_PATH || "/") + "login.html";
     return;
   }
 
-  /* ================= EXPORT CLIENT ================= */
+  // ================= EXPORT CLIENT =================
 
   window.__sb_admin = sb;
 
-  /* ================= RENDER NAV ================= */
+  // ================= PATH HELPER =================
 
-  const nav = document.getElementById("appNav");
+  const base =
+    (BASE_PATH || "/").endsWith("/")
+      ? (BASE_PATH || "/")
+      : BASE_PATH + "/";
 
-  if (!nav) {
-    console.error("NAV CONTAINER NOT FOUND");
-    return;
-  }
+  const p = name => base + "admin/" + name;
 
-  nav.innerHTML = `
-    <div class="mx-auto max-w-7xl flex flex-wrap items-center gap-3">
+  // ================= RENDER NAV =================
 
-      <div class="font-extrabold text-slate-900">
-        ADMIN PANEL
+  const header = document.createElement("header");
+
+  header.className =
+    "sticky top-0 z-50 bg-white border-b shadow-sm";
+
+  header.innerHTML = `
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+
+      <div class="flex items-center gap-3">
+        <div class="font-extrabold">ADMIN</div>
+        <div class="hidden sm:block text-xs text-slate-500">${email}</div>
       </div>
 
-      <span class="hidden md:block text-xs text-slate-500">
-        ${session.user.email}
-      </span>
+      <nav class="flex flex-wrap items-center gap-2 text-sm">
 
-      <a href="${adminPath("index.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Табло</a>
-      <a href="${adminPath("modules.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Модули</a>
-      <a href="${adminPath("lessons.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Теми</a>
-      <a href="${adminPath("exams.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Изпити</a>
-      <a href="${adminPath("results.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Резултати</a>
-      <a href="${adminPath("statistics.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Статистика</a>
+        <a href="${p("index.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Табло</a>
+        <a href="${p("modules.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Модули</a>
+        <a href="${p("lessons.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Теми</a>
+        <a href="${p("exams.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Изпити</a>
+        <a href="${p("stats.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Статистика</a>
 
-      <button id="adminLogoutBtn"
-        class="ml-auto bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800">
-        Изход
-      </button>
+        <button id="adminLogout"
+          class="ml-2 px-3 py-2 rounded bg-slate-900 text-white hover:bg-slate-800">
+          Изход
+        </button>
 
+      </nav>
     </div>
   `;
 
-  document.getElementById("adminLogoutBtn").onclick = async () => {
+  document.body.prepend(header);
+
+  // ================= LOGOUT =================
+
+  document.getElementById("adminLogout").onclick = async () => {
     await sb.auth.signOut();
-    location.href = BASE + "login.html";
+    localStorage.clear();
+    sessionStorage.clear();
+    location.href = (BASE_PATH || "/") + "login.html";
   };
-
-  // Active page highlight
-  const current = location.pathname.split("/").pop();
-
-  nav.querySelectorAll("a").forEach(a => {
-    if (a.href.endsWith(current)) {
-      a.classList.add("bg-slate-200", "font-semibold");
-    }
-  });
 
   console.log("ADMIN NAV READY");
 
-});
+})();
