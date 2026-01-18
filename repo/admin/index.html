@@ -3,21 +3,99 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+
   <title>Админ – Табло</title>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 text-slate-900">
-  <script src="../config.js"></script>
-  <script src="./_admin-nav.js"></script>
 
-  <main class="mx-auto max-w-7xl px-4 py-8">
-    <div class="rounded-2xl border bg-white p-6 shadow-sm">
-      <h1 class="text-2xl font-extrabold">Админ табло</h1>
-      <p class="mt-2 text-slate-600 text-sm">
-        Ако виждаш това и менюто горе – guard + навигацията работят.
-      </p>
+<body class="bg-slate-50 text-slate-900">
+
+<!-- CONFIG -->
+<script src="../config.js"></script>
+
+<!-- ADMIN NAV + GUARD -->
+<script src="./_admin-nav.js"></script>
+
+<!-- PAGE -->
+<main class="mx-auto max-w-7xl px-4 py-8 space-y-6">
+
+  <!-- HEADER -->
+  <section class="rounded-2xl border bg-white p-6 shadow-sm">
+    <h1 class="text-2xl font-extrabold">Админ табло</h1>
+
+    <p class="mt-2 text-slate-600 text-sm">
+      Ако виждаш това и менюто горе – guard + навигацията работят коректно.
+    </p>
+  </section>
+
+  <!-- QUICK STATS -->
+  <section class="grid md:grid-cols-4 gap-4">
+
+    <div class="rounded-xl border bg-white p-4 shadow-sm">
+      <div class="text-sm text-slate-500">Модули</div>
+      <div id="statModules" class="text-2xl font-extrabold">—</div>
     </div>
-  </main>
+
+    <div class="rounded-xl border bg-white p-4 shadow-sm">
+      <div class="text-sm text-slate-500">Теми</div>
+      <div id="statLessons" class="text-2xl font-extrabold">—</div>
+    </div>
+
+    <div class="rounded-xl border bg-white p-4 shadow-sm">
+      <div class="text-sm text-slate-500">Изпити</div>
+      <div id="statExams" class="text-2xl font-extrabold">—</div>
+    </div>
+
+    <div class="rounded-xl border bg-white p-4 shadow-sm">
+      <div class="text-sm text-slate-500">Резултати</div>
+      <div id="statResults" class="text-2xl font-extrabold">—</div>
+    </div>
+
+  </section>
+
+</main>
+
+<script>
+/* ================= INIT ================= */
+
+const sb = window.__sb_admin;
+
+const statModules = document.getElementById("statModules");
+const statLessons = document.getElementById("statLessons");
+const statExams = document.getElementById("statExams");
+const statResults = document.getElementById("statResults");
+
+/* ================= LOAD STATS ================= */
+
+async function loadStats(){
+
+  const [{ count: modules },
+         { count: lessons },
+         { count: exams },
+         { count: results }] = await Promise.all([
+
+    sb.from("modules").select("*", { count: "exact", head: true }),
+    sb.from("lessons").select("*", { count: "exact", head: true }),
+    sb.from("exams").select("*", { count: "exact", head: true }),
+    sb.from("exam_results").select("*", { count: "exact", head: true })
+
+  ]);
+
+  statModules.textContent = modules ?? 0;
+  statLessons.textContent = lessons ?? 0;
+  statExams.textContent = exams ?? 0;
+  statResults.textContent = results ?? 0;
+}
+
+/* ================= BOOT ================= */
+
+loadStats();
+</script>
+
 </body>
 </html>
