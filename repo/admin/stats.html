@@ -15,13 +15,21 @@
 <script src="../config.js"></script>
 <script src="./_admin-nav.js"></script>
 
-<main class="mx-auto max-w-7xl px-4 py-8 space-y-6">
+<main class="mx-auto max-w-7xl px-4 py-8 space-y-8">
 
   <h1 class="text-2xl font-extrabold">Статистика</h1>
 
+  <!-- KPI -->
+  <section id="kpiBox"
+    class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  </section>
+
   <!-- FILTERS -->
-  <section class="rounded-2xl border bg-white p-4 shadow-sm grid md:grid-cols-4 gap-4">
-    <input id="fCode" placeholder="Достъп код"
+  <section
+    class="rounded-2xl border bg-white p-4 shadow-sm grid md:grid-cols-4 gap-4">
+
+    <input id="fCode"
+      placeholder="Достъп код"
       class="border rounded-xl px-3 py-2" />
 
     <select id="fModule" class="border rounded-xl px-3 py-2">
@@ -36,10 +44,13 @@
       class="rounded-xl bg-slate-900 text-white px-4 py-2 font-semibold">
       Филтрирай
     </button>
+
   </section>
 
   <!-- TABLE -->
-  <section class="rounded-2xl border bg-white p-4 shadow-sm overflow-auto">
+  <section
+    class="rounded-2xl border bg-white p-4 shadow-sm overflow-auto">
+
     <table class="w-full text-sm border">
       <thead class="bg-slate-100">
         <tr>
@@ -54,11 +65,13 @@
       </thead>
       <tbody id="rows"></tbody>
     </table>
+
   </section>
 
 </main>
 
 <script>
+
 const sb = window.__sb_admin;
 
 const fCode = document.getElementById("fCode");
@@ -66,66 +79,154 @@ const fModule = document.getElementById("fModule");
 const fExam = document.getElementById("fExam");
 const rows = document.getElementById("rows");
 const btnFilter = document.getElementById("btnFilter");
+const kpiBox = document.getElementById("kpiBox");
 
-// LOAD FILTER DATA
+/* ================= HELPERS ================= */
+
+function badge(ok){
+  return ok
+    ? `<span class="text-green-700 font-semibold">ИЗДЪРЖАН</span>`
+    : `<span class="text-red-700 font-semibold">НЕИЗДЪРЖАН</span>`;
+}
+
+/* ================= LOAD FILTER DATA ================= */
+
 async function loadFilters(){
-  const { data: modules } = await sb.from("modules").select("id,title");
+
+  const { data: modules } = await sb
+    .from("modules")
+    .select("id,title")
+    .order("created_at");
+
   modules?.forEach(m=>{
-    fModule.innerHTML += `<option value="${m.id}">${m.title}</option>`;
+    fModule.innerHTML +=
+      `<option value="${m.id}">${m.title}</option>`;
   });
 
-  const { data: exams } = await sb.from("exams").select("id,title");
+  const { data: exams } = await sb
+    .from("exams")
+    .select("id,title,module_id")
+    .order("created_at");
+
   exams?.forEach(e=>{
-    fExam.innerHTML += `<option value="${e.id}">${e.title}</option>`;
+    fExam.innerHTML +=
+      `<option value="${e.id}">${e.title}</option>`;
   });
 }
 
-// LOAD STATS
+/* ================= KPI ================= */
+
+function renderKPI(stats){
+
+  const passed = stats.filter(r=>r.passed).length;
+  const failed = stats.length - passed;
+
+  const avg =
+    stats.length
+    ? Math.round(stats.reduce((s,r)=>s+r.score_percent,0)/stats.length)
+    : 0;
+
+  kpiBox.innerHTML = `
+
+    <div class="rounded-xl bg-white border p-4">
+      <div class="text-sm text-slate-500">Общо опити</div>
+      <div class="text-2xl font-extrabold">${stats.length}</div>
+    </div>
+
+    <div class="rounded-xl bg-white border p-4">
+      <div class="text-sm text-slate-500">Издържани</div>
+      <div class="text-2xl font-extrabold text-green-700">${passed}</div>
+    </div>
+
+    <div class="rounded-xl bg-white border p-4">
+      <div class="text-sm text-slate-500">Неиздържани</div>
+      <div class="text-2xl font-extrabold text-red-700">${failed}</div>
+    </div>
+
+    <div class="rounded-xl bg-white border p-4">
+      <div class="text-sm text-slate-500">Среден резултат</div>
+      <div class="text-2xl font-extrabold">${avg}%</div>
+    </div>
+
+  `;
+}
+
+/* ================= LOAD STATS ================= */
+
 async function loadStats(){
+
   rows.innerHTML = "";
 
-  let q = sb.from("exam_results")
+  let examIds = null;
+
+  if(fModule.value){
+    const { data: exams } = await sb
+      .from("exams")
+      .select("id")
+      .eq("module_id", fModule.value);
+
+    examIds = exams?.map(e=>e.id) || [];
+  }
+
+  let q = sb
+    .from("exam_results")
     .select(`
       access_code,
       attempt,
       score_percent,
       passed,
       created_at,
-      exams(id,title,modules(title))
+      exams(
+        title,
+        module_id,
+        modules(title)
+      )
     `)
-    .order("created_at", { ascending:false });
+    .order("created_at",{ ascending:false });
 
   if(fCode.value) q = q.eq("access_code", fCode.value);
   if(fExam.value) q = q.eq("exam_id", fExam.value);
-  if(fModule.value) q = q.eq("exams.module_id", fModule.value);
+  if(examIds) q = q.in("exam_id", examIds);
 
   const { data, error } = await q;
-  if(error){ alert(error.message); return; }
 
-  data.forEach(r=>{
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  renderKPI(data || []);
+
+  (data || []).forEach(r=>{
+
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td class="border p-2">${r.access_code}</td>
       <td class="border p-2">${r.exams?.modules?.title || "-"}</td>
       <td class="border p-2">${r.exams?.title || "-"}</td>
       <td class="border p-2 text-center">${r.attempt}</td>
       <td class="border p-2 text-center">${r.score_percent}%</td>
-      <td class="border p-2 text-center ${r.passed?"text-green-700":"text-red-700"}">
-        ${r.passed?"ИЗДЪРЖАН":"НЕИЗДЪРЖАН"}
+      <td class="border p-2 text-center">
+        ${badge(r.passed)}
       </td>
       <td class="border p-2 text-xs">
         ${new Date(r.created_at).toLocaleString()}
       </td>
     `;
+
     rows.appendChild(tr);
   });
+
 }
 
 btnFilter.onclick = loadStats;
 
-// INIT
+/* ================= INIT ================= */
+
 loadFilters();
 loadStats();
+
 </script>
 
 </body>
