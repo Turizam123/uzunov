@@ -18,7 +18,12 @@
 <!-- CONFIG -->
 <script src="../config.js"></script>
 
-<!-- ADMIN NAV + GUARD -->
+<!-- ADMIN NAV CONTAINER -->
+<nav id="appNav"
+     class="bg-white border-b px-6 py-3 flex flex-wrap gap-2 items-center">
+</nav>
+
+<!-- ADMIN NAV + AUTH GUARD -->
 <script src="./_admin-nav.js"></script>
 
 <!-- PAGE -->
@@ -74,10 +79,12 @@ const statResults = document.getElementById("statResults");
 
 async function loadStats(){
 
-  const [{ count: modules },
-         { count: lessons },
-         { count: exams },
-         { count: results }] = await Promise.all([
+  const [
+    { count: modules },
+    { count: lessons },
+    { count: exams },
+    { count: results }
+  ] = await Promise.all([
 
     sb.from("modules").select("*", { count: "exact", head: true }),
     sb.from("lessons").select("*", { count: "exact", head: true }),
