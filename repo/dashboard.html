@@ -1,210 +1,235 @@
 <!doctype html>
 <html lang="bg">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Табло</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Табло</title>
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- CONFIG -->
-  <script src="./config.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-900">
 
-<!-- ================= NAVIGATION ================= -->
-<nav id="mainNav" class="mb-6 flex flex-wrap gap-2 items-center max-w-6xl mx-auto px-4 pt-6"></nav>
+<nav id="mainNav"
+class="mb-6 flex flex-wrap gap-2 items-center max-w-6xl mx-auto px-4 pt-6">
+</nav>
 
-<!-- ================= PAGE ================= -->
 <div class="max-w-6xl mx-auto px-4 py-8">
 
-  <!-- HEADER -->
-  <div class="flex items-start justify-between gap-4">
-    <div>
-      <h1 class="text-2xl font-extrabold">Табло</h1>
-      <p id="who" class="mt-1 text-slate-600 text-sm"></p>
-    </div>
-  </div>
+<div class="flex justify-between items-start">
+<div>
+<h1 class="text-2xl font-extrabold">Табло</h1>
+<p id="who" class="text-sm text-slate-600"></p>
+</div>
+</div>
 
-  <!-- CONTENT -->
-  <div class="mt-6 grid lg:grid-cols-3 gap-4">
+<div class="mt-6 grid lg:grid-cols-3 gap-4">
 
-    <!-- MODULES -->
-    <div class="lg:col-span-2 rounded-2xl border bg-white p-5 shadow-sm">
-      <h2 class="text-lg font-bold">Модули</h2>
-      <div id="modules" class="mt-4 grid sm:grid-cols-2 gap-4"></div>
-    </div>
+<div class="lg:col-span-2 bg-white rounded-2xl border p-5 shadow">
+<h2 class="font-bold mb-4">Модули</h2>
+<div id="modules" class="grid sm:grid-cols-2 gap-4"></div>
+</div>
 
-    <!-- INFO -->
-    <div class="rounded-2xl border bg-white p-5 shadow-sm">
-      <h2 class="text-lg font-bold">Информация</h2>
-      <div class="mt-4 space-y-2 text-sm text-slate-700">
-        <p>• Бутон „Изпит“ се показва само когато е позволено.</p>
-        <p>• При неуспешен опит има заключване.</p>
-        <p>• Резултатите се записват автоматично.</p>
-      </div>
-    </div>
+<div class="bg-white rounded-2xl border p-5 shadow">
+<h2 class="font-bold mb-3">Информация</h2>
+<p class="text-sm">• Изпитът се отключва автоматично</p>
+<p class="text-sm">• Заключване при неуспешен опит</p>
+<p class="text-sm">• Резултатите се пазят</p>
+</div>
 
-  </div>
+</div>
 </div>
 
 <script>
-/* ================= INIT ================= */
-if (!window.APP_CONFIG) {
-  alert("config.js не е зареден");
-  throw new Error("APP_CONFIG missing");
-}
 
-const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
+/* ================= INIT ================= */
+
+const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = APP_CONFIG;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ================= NAV ================= */
-function renderNav(isAdmin){
-  const nav = document.getElementById("mainNav");
-  nav.innerHTML = `
-    <a href="./dashboard.html" class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
-      Табло
-    </a>
+/* ================= ROLE GUARD ================= */
 
-    <a href="./results.html" class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
-      ${isAdmin ? "Всички резултати" : "Моите резултати"}
-    </a>
+async function guard(){
 
-    ${isAdmin ? `
-      <a href="./admin.html" class="rounded-xl border px-4 py-2 font-semibold hover:bg-white">
-        Админ
-      </a>
-    ` : ``}
+const accessCode = localStorage.getItem("access_code");
 
-    <button id="btnLogout"
-      class="ml-auto rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800">
-      Изход
-    </button>
-  `;
+const { data:{ session }} = await sb.auth.getSession();
 
-  document.getElementById("btnLogout").onclick = async () => {
-    await sb.auth.signOut();
-    location.href = "./login.html";
-  };
+// ===== ADMIN =====
+if(session && session.user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()){
+
+document.getElementById("who").textContent =
+"Администратор: " + session.user.email;
+
+renderNav(true);
+return { isAdmin:true };
+
 }
 
-/* ================= GUARD ================= */
-async function guard(){
-  const { data:{ session } } = await sb.auth.getSession();
-  if(!session){
-    location.href="./login.html";
-    return null;
-  }
+// ===== STUDENT =====
+if(!accessCode){
+location.href="./login.html";
+return null;
+}
 
-  const email = session.user.email;
-  const isAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+// validate code
+const { data } = await sb
+.from("access_codes")
+.select("status")
+.eq("code",accessCode)
+.maybeSingle();
 
-  renderNav(isAdmin);
+if(!data || data.status !== "active"){
+localStorage.removeItem("access_code");
+location.href="./login.html";
+return null;
+}
 
-  document.getElementById("who").textContent =
-    isAdmin ? `Администратор: ${email}` : `Курсист: ${email}`;
+document.getElementById("who").textContent =
+"Курсист код: " + accessCode;
 
-  let accessCode = null;
-  if(!isAdmin){
-    const { data } = await sb
-      .from("users")
-      .select("access_code")
-      .eq("email", email)
-      .maybeSingle();
-    accessCode = data?.access_code || null;
-  }
+renderNav(false);
+return { isAdmin:false, accessCode };
 
-  return { isAdmin, accessCode };
+}
+
+/* ================= NAV ================= */
+
+function renderNav(isAdmin){
+
+const nav = document.getElementById("mainNav");
+
+nav.innerHTML = `
+<a href="./dashboard.html"
+class="border px-4 py-2 rounded-xl font-semibold">
+Табло
+</a>
+
+<a href="./results.html"
+class="border px-4 py-2 rounded-xl font-semibold">
+${isAdmin ? "Всички резултати" : "Моите резултати"}
+</a>
+
+${isAdmin ? `
+<a href="./admin/index.html"
+class="border px-4 py-2 rounded-xl font-semibold">
+Админ
+</a>
+` : ""}
+
+<button id="logoutBtn"
+class="ml-auto bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold">
+Изход
+</button>
+`;
+
+document.getElementById("logoutBtn").onclick = async () => {
+
+await sb.auth.signOut();
+localStorage.removeItem("access_code");
+location.href="./login.html";
+
+};
+
 }
 
 /* ================= MODULE CARD ================= */
+
 async function cardModule(m, ctx){
-  const el = document.createElement("div");
-  el.className = "rounded-2xl border p-4 bg-slate-50";
 
-  let examBlock = `<div class="text-sm text-slate-500">Няма активен изпит</div>`;
+const el = document.createElement("div");
+el.className = "border rounded-xl p-4 bg-slate-50";
 
-  if(!ctx.isAdmin){
-    const { data: exam } = await sb
-      .from("exams")
-      .select("id")
-      .eq("module_id", m.id)
-      .eq("is_active", true)
-      .maybeSingle();
+let examUI = `<div class="text-sm text-slate-500">Няма активен изпит</div>`;
 
-    if(exam){
-      const res = await fetch(
-        `${SUPABASE_URL}/functions/v1/check_exam_lock`,
-        {
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({
-            exam_id: exam.id,
-            access_code: ctx.accessCode
-          })
-        }
-      );
-      const lock = await res.json();
+if(!ctx.isAdmin){
 
-      if(lock.allowed){
-        examBlock = `
-          <a class="rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700"
-             href="./exam.html?module_id=${m.id}">
-             Изпит
-          </a>`;
-      } else if(lock.reason === "passed"){
-        examBlock = `<div class="text-sm text-green-700 font-semibold">Издържан</div>`;
-      } else if(lock.reason === "cooldown"){
-        examBlock = `<div class="text-sm text-orange-600">
-          Изчакай ${lock.wait_minutes} мин.
-        </div>`;
-      } else {
-        examBlock = `<div class="text-sm text-red-600">Блокиран</div>`;
-      }
-    }
-  }
+const { data: exam } = await sb
+.from("exams")
+.select("id")
+.eq("module_id",m.id)
+.eq("is_active",true)
+.maybeSingle();
 
-  el.innerHTML = `
-    <div class="flex justify-between gap-3">
-      <div>
-        <div class="font-extrabold">${m.title}</div>
-        <div class="text-xs text-slate-600">${m.type || ""}</div>
-      </div>
-      <a class="underline text-sm" href="./module.html?id=${m.id}">
-        Теми
-      </a>
-    </div>
-    <div class="mt-3">${examBlock}</div>
-  `;
+if(exam){
 
-  return el;
+const res = await fetch(
+`${SUPABASE_URL}/functions/v1/check_exam_lock`,
+{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({
+exam_id:exam.id,
+access_code:ctx.accessCode
+})
+}
+);
+
+const lock = await res.json();
+
+if(lock.allowed){
+examUI = `
+<a href="./exam.html?module_id=${m.id}"
+class="bg-green-600 text-white px-3 py-2 rounded-xl text-sm">
+Изпит
+</a>`;
+}
+else if(lock.reason==="passed"){
+examUI = `<div class="text-green-700 font-semibold">Издържан</div>`;
+}
+else{
+examUI = `<div class="text-red-600">Заключен</div>`;
+}
+
+}
+
+}
+
+el.innerHTML = `
+<div class="flex justify-between">
+<div>
+<div class="font-bold">${m.title}</div>
+</div>
+<a class="underline text-sm" href="./module.html?id=${m.id}">
+Теми
+</a>
+</div>
+<div class="mt-3">${examUI}</div>
+`;
+
+return el;
+
 }
 
 /* ================= LOAD MODULES ================= */
+
 async function loadModules(ctx){
-  const { data } = await sb
-    .from("modules")
-    .select("id,title,type")
-    .order("created_at");
 
-  const box = document.getElementById("modules");
-  box.innerHTML = "";
+const { data } = await sb
+.from("modules")
+.select("id,title")
+.order("created_at");
 
-  for(const m of (data || [])){
-    box.appendChild(await cardModule(m, ctx));
-  }
+const box = document.getElementById("modules");
+box.innerHTML="";
+
+for(const m of (data||[])){
+box.appendChild(await cardModule(m,ctx));
+}
+
 }
 
 /* ================= BOOT ================= */
+
 (async()=>{
-  const ctx = await guard();
-  if(ctx) await loadModules(ctx);
+
+const ctx = await guard();
+if(ctx) loadModules(ctx);
+
 })();
+
 </script>
 
 </body>
