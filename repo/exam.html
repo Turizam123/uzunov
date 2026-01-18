@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Изпит</title>
 
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -13,6 +16,7 @@
 
 <div class="max-w-3xl mx-auto px-4 py-8">
 
+  <!-- HEADER -->
   <div class="flex items-start justify-between gap-4">
     <div>
       <h1 id="examTitle" class="text-2xl font-extrabold">Изпит</h1>
@@ -25,6 +29,7 @@
     </a>
   </div>
 
+  <!-- EXAM BOX -->
   <div class="mt-6 rounded-2xl border bg-white p-5 shadow-sm">
 
     <div class="flex items-center justify-between">
@@ -45,6 +50,7 @@
   </div>
 </div>
 
+<!-- CONFIG -->
 <script src="./config.js"></script>
 
 <script>
@@ -245,23 +251,27 @@ async function submitExam(auto=false){
 
   const answers = collectAnswers();
 
-  const { data, error } = await sb.functions.invoke("submit_exam", {
-    body:{
-      exam_id: exam.id,
-      answers
+  const { data:{ session } } = await sb.auth.getSession();
+
+  const res = await fetch(
+    `${SUPABASE_URL}/functions/v1/submit_exam`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + session.access_token
+      },
+      body: JSON.stringify({
+        exam_id: exam.id,
+        answers
+      })
     }
-  });
+  );
 
-  if(error){
-    setMsg("Грешка: "+error.message, false);
-    btnSubmit.disabled = false;
-    btnSubmit.textContent = "Изпрати изпита";
-    submitted = false;
-    return;
-  }
+  const data = await res.json();
 
-  if(!data?.ok){
-    setMsg(data?.message || "Неуспешно изпращане", false);
+  if(!res.ok || !data?.ok){
+    setMsg(data?.message || "Грешка при изпращане", false);
     btnSubmit.disabled = false;
     btnSubmit.textContent = "Изпрати изпита";
     submitted = false;
