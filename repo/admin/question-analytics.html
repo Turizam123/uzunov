@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Админ – Анализ на въпроси</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+
+<!-- CONFIG + NAV -->
+<script src="../config.js"></script>
+<script src="./_admin-nav.js"></script>
+
+<main class="mx-auto max-w-7xl px-4 py-8 space-y-8">
+
+  <h1 class="text-2xl font-extrabold">
+    Анализ на въпроси (Hardest Questions)
+  </h1>
+
+  <!-- FILTER -->
+  <section
+    class="rounded-2xl border bg-white p-4 shadow-sm grid md:grid-cols-3 gap-4">
+
+    <select id="fModule" class="border rounded-xl px-3 py-2">
+      <option value="">Всички модули</option>
+    </select>
+
+    <select id="fExam" class="border rounded-xl px-3 py-2">
+      <option value="">Всички изпити</option>
+    </select>
+
+    <button id="btnLoad"
+      class="rounded-xl bg-slate-900 text-white px-4 py-2 font-semibold">
+      Зареди анализ
+    </button>
+
+  </section>
+
+  <!-- TABLE -->
+  <section
+    class="rounded-2xl border bg-white p-4 shadow-sm overflow-auto">
+
+    <table class="w-full text-sm border">
+      <thead class="bg-slate-100">
+        <tr>
+          <th class="border p-2">Модул</th>
+          <th class="border p-2">Изпит</th>
+          <th class="border p-2">Въпрос</th>
+          <th class="border p-2">Опити</th>
+          <th class="border p-2">Грешки</th>
+          <th class="border p-2">% Грешки</th>
+          <th class="border p-2">Статус</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+  </section>
+
+</main>
+
+<script>
+
+const sb = window.__sb_admin;
+
+const fModule = document.getElementById("fModule");
+const fExam = document.getElementById("fExam");
+const btnLoad = document.getElementById("btnLoad");
+const rows = document.getElementById("rows");
+
+/* ================= LOAD FILTERS ================= */
+
+async function loadFilters(){
+
+  const { data: modules } = await sb
+    .from("modules")
+    .select("id,title")
+    .order("created_at");
+
+  modules?.forEach(m=>{
+    fModule.innerHTML +=
+      `<option value="${m.id}">${m.title}</option>`;
+  });
+
+  const { data: exams } = await sb
+    .from("exams")
+    .select("id,title,module_id")
+    .order("created_at");
+
+  exams?.forEach(e=>{
+    fExam.innerHTML +=
+      `<option value="${e.id}">${e.title}</option>`;
+  });
+
+}
+
+/* ================= HELPERS ================= */
+
+function difficultyBadge(percent){
+
+  if(percent >= 70){
+    return `<span class="text-red-700 font-semibold">МНОГО ТРУДЕН</span>`;
+  }
+
+  if(percent >= 40){
+    return `<span class="text-orange-600 font-semibold">СРЕДЕН</span>`;
+  }
+
+  return `<span class="text-green-700 font-semibold">ЛЕСЕН</span>`;
+}
+
+/* ================= LOAD ANALYTICS ================= */
+
+async function loadAnalytics(){
+
+  rows.innerHTML = "";
+
+  let examIds = null;
+
+  if(fModule.value){
+
+    const { data: exams } = await sb
+      .from("exams")
+      .select("id")
+      .eq("module_id", fModule.value);
+
+    examIds = exams?.map(e=>e.id) || [];
+
+    if(examIds.length === 0){
+      rows.innerHTML =
+        `<tr><td colspan="7" class="p-4 text-center">Няма данни</td></tr>`;
+      return;
+    }
+  }
+
+  let q = sb
+    .from("exam_answers")
+    .select(`
+      question_id,
+      is_correct,
+      questions(
+        question,
+        exams(
+          title,
+          modules(title)
+        )
+      )
+    `);
+
+  if(fExam.value) q = q.eq("exam_id", fExam.value);
+  if(examIds) q = q.in("exam_id", examIds);
+
+  const { data, error } = await q;
+
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  // GROUP BY QUESTION
+  const map = {};
+
+  data.forEach(r=>{
+
+    const qid = r.question_id;
+
+    if(!map[qid]){
+      map[qid] = {
+        text: r.questions?.question,
+        exam: r.questions?.exams?.title,
+        module: r.questions?.exams?.modules?.title,
+        total: 0,
+        wrong: 0
+      };
+    }
+
+    map[qid].total++;
+
+    if(!r.is_correct){
+      map[qid].wrong++;
+    }
+
+  });
+
+  // SORT HARDEST FIRST
+  const sorted = Object.values(map)
+    .map(q=>{
+      q.percent = Math.round((q.wrong / q.total) * 100);
+      return q;
+    })
+    .sort((a,b)=> b.percent - a.percent);
+
+  sorted.forEach(q=>{
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td class="border p-2">${q.module || "-"}</td>
+      <td class="border p-2">${q.exam || "-"}</td>
+      <td class="border p-2 text-sm">${q.text}</td>
+      <td class="border p-2 text-center">${q.total}</td>
+      <td class="border p-2 text-center">${q.wrong}</td>
+      <td class="border p-2 text-center font-semibold">
+        ${q.percent}%
+      </td>
+      <td class="border p-2 text-center">
+        ${difficultyBadge(q.percent)}
+      </td>
+    `;
+
+    rows.appendChild(tr);
+
+  });
+
+}
+
+/* ================= EVENTS ================= */
+
+btnLoad.onclick = loadAnalytics;
+
+/* ================= INIT ================= */
+
+loadFilters();
+loadAnalytics();
+
+</script>
+
+</body>
+</html>
