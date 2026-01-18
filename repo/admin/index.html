@@ -11,20 +11,19 @@
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CONFIG -->
+  <script src="../config.js"></script>
+
+  <!-- ADMIN NAV + GUARD -->
+  <script defer src="./_admin-nav.js"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-900">
 
-<!-- CONFIG -->
-<script src="../config.js"></script>
-
-<!-- ADMIN NAV + AUTH GUARD -->
-<script src="./_admin-nav.js"></script>
-
 <!-- PAGE -->
 <main class="mx-auto max-w-7xl px-4 py-8 space-y-6">
 
-  <!-- HEADER -->
   <section class="rounded-2xl border bg-white p-6 shadow-sm">
     <h1 class="text-2xl font-extrabold">Админ табло</h1>
 
@@ -33,27 +32,26 @@
     </p>
   </section>
 
-  <!-- QUICK STATS -->
   <section class="grid md:grid-cols-4 gap-4">
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Модули</div>
-      <div id="statModules" class="text-2xl font-extrabold">—</div>
+      <div id="statModules" class="text-2xl font-extrabold">0</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Теми</div>
-      <div id="statLessons" class="text-2xl font-extrabold">—</div>
+      <div id="statLessons" class="text-2xl font-extrabold">0</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Изпити</div>
-      <div id="statExams" class="text-2xl font-extrabold">—</div>
+      <div id="statExams" class="text-2xl font-extrabold">0</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Резултати</div>
-      <div id="statResults" class="text-2xl font-extrabold">—</div>
+      <div id="statResults" class="text-2xl font-extrabold">0</div>
     </div>
 
   </section>
@@ -61,61 +59,32 @@
 </main>
 
 <script>
-document.addEventListener("DOMContentLoaded", async () => {
+(async () => {
 
-  /* ================= WAIT ADMIN CLIENT ================= */
-
-  let tries = 0;
-
-  while (!window.__sb_admin && tries < 40) {
+  while (!window.__sb_admin) {
     await new Promise(r => setTimeout(r, 50));
-    tries++;
-  }
-
-  if (!window.__sb_admin) {
-    console.error("Admin client not initialized");
-    return;
   }
 
   const sb = window.__sb_admin;
 
-  /* ================= LOAD STATS ================= */
+  const [
+    modules,
+    lessons,
+    exams,
+    results
+  ] = await Promise.all([
+    sb.from("modules").select("id"),
+    sb.from("lessons").select("id"),
+    sb.from("exams").select("id"),
+    sb.from("exam_results").select("id")
+  ]);
 
-  try {
+  statModules.textContent = modules.data?.length || 0;
+  statLessons.textContent = lessons.data?.length || 0;
+  statExams.textContent = exams.data?.length || 0;
+  statResults.textContent = results.data?.length || 0;
 
-    const [
-      modules,
-      lessons,
-      exams,
-      results
-    ] = await Promise.all([
-
-      sb.from("modules").select("id"),
-      sb.from("lessons").select("id"),
-      sb.from("exams").select("id"),
-      sb.from("exam_results").select("id")
-
-    ]);
-
-    document.getElementById("statModules").textContent =
-      modules.data?.length || 0;
-
-    document.getElementById("statLessons").textContent =
-      lessons.data?.length || 0;
-
-    document.getElementById("statExams").textContent =
-      exams.data?.length || 0;
-
-    document.getElementById("statResults").textContent =
-      results.data?.length || 0;
-
-  } catch (err) {
-
-    console.error("Stats load error", err);
-
-  }
-
-});
+})();
 </script>
 
 </body>
