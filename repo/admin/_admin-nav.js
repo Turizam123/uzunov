@@ -1,15 +1,28 @@
 // admin/_admin-nav.js
+
 (async function () {
 
   console.log("ADMIN NAV INIT");
 
+  /* ================= WAIT DOM ================= */
+
+  if (document.readyState === "loading") {
+    await new Promise(r => {
+      document.addEventListener("DOMContentLoaded", r, { once: true });
+    });
+  }
+
+  /* ================= CONFIG CHECK ================= */
+
   if (!window.APP_CONFIG) {
-    alert("APP_CONFIG липсва");
+    console.error("APP_CONFIG missing");
+    alert("CONFIG не е зареден");
     return;
   }
 
   if (!window.supabase) {
-    alert("Supabase SDK не е зареден");
+    console.error("Supabase SDK missing");
+    alert("Supabase SDK липсва");
     return;
   }
 
@@ -20,16 +33,19 @@
     BASE_PATH
   } = window.APP_CONFIG;
 
+  /* ================= CLIENT ================= */
+
   const sb = supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
 
-  // ================= AUTH GUARD =================
+  /* ================= AUTH GUARD ================= */
 
   const { data, error } = await sb.auth.getSession();
 
   if (error || !data?.session) {
+    console.warn("No admin session");
     location.href = (BASE_PATH || "/") + "login.html";
     return;
   }
@@ -37,24 +53,28 @@
   const email = (data.session.user.email || "").toLowerCase();
 
   if (email !== ADMIN_EMAIL.toLowerCase()) {
+    console.warn("Not admin:", email);
     location.href = (BASE_PATH || "/") + "login.html";
     return;
   }
 
-  // ================= EXPORT CLIENT =================
+  /* ================= EXPORT ADMIN CLIENT ================= */
 
   window.__sb_admin = sb;
 
-  // ================= PATH HELPER =================
+  /* ================= PATH NORMALIZER ================= */
 
-  const base =
-    (BASE_PATH || "/").endsWith("/")
-      ? (BASE_PATH || "/")
-      : BASE_PATH + "/";
+  function normalizeBase() {
+    if (!BASE_PATH) return "/";
+    if (!BASE_PATH.endsWith("/")) return BASE_PATH + "/";
+    return BASE_PATH;
+  }
 
-  const p = name => base + "admin/" + name;
+  const BASE = normalizeBase();
 
-  // ================= RENDER NAV =================
+  const adminPath = file => BASE + "admin/" + file;
+
+  /* ================= NAV RENDER ================= */
 
   const header = document.createElement("header");
 
@@ -65,20 +85,20 @@
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
 
       <div class="flex items-center gap-3">
-        <div class="font-extrabold">ADMIN</div>
+        <div class="font-extrabold text-slate-900">ADMIN</div>
         <div class="hidden sm:block text-xs text-slate-500">${email}</div>
       </div>
 
       <nav class="flex flex-wrap items-center gap-2 text-sm">
 
-        <a href="${p("index.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Табло</a>
-        <a href="${p("modules.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Модули</a>
-        <a href="${p("lessons.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Теми</a>
-        <a href="${p("exams.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Изпити</a>
-        <a href="${p("stats.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Статистика</a>
+        <a data-link href="${adminPath("index.html")}">Табло</a>
+        <a data-link href="${adminPath("modules.html")}">Модули</a>
+        <a data-link href="${adminPath("lessons.html")}">Теми</a>
+        <a data-link href="${adminPath("exams.html")}">Изпити</a>
+        <a data-link href="${adminPath("stats.html")}">Статистика</a>
 
         <button id="adminLogout"
-          class="ml-2 px-3 py-2 rounded bg-slate-900 text-white hover:bg-slate-800">
+          class="ml-2 px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800">
           Изход
         </button>
 
@@ -88,13 +108,37 @@
 
   document.body.prepend(header);
 
-  // ================= LOGOUT =================
+  /* ================= STYLE LINKS ================= */
+
+  document.querySelectorAll("[data-link]").forEach(a => {
+    a.className =
+      "px-3 py-2 rounded-lg hover:bg-slate-100 transition";
+  });
+
+  /* ================= ACTIVE PAGE ================= */
+
+  const current = location.pathname.split("/").pop();
+
+  document.querySelectorAll("[data-link]").forEach(a => {
+    if (a.getAttribute("href").endsWith(current)) {
+      a.classList.add("bg-slate-100", "font-semibold");
+    }
+  });
+
+  /* ================= LOGOUT ================= */
 
   document.getElementById("adminLogout").onclick = async () => {
-    await sb.auth.signOut();
+
+    try {
+      await sb.auth.signOut();
+    } catch (e) {
+      console.warn("Logout error", e);
+    }
+
     localStorage.clear();
     sessionStorage.clear();
-    location.href = (BASE_PATH || "/") + "login.html";
+
+    location.href = BASE + "login.html";
   };
 
   console.log("ADMIN NAV READY");
