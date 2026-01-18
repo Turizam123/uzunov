@@ -1,11 +1,11 @@
 /* admin/_admin-nav.js */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
-  console.log("ADMIN NAV BOOT");
+  console.log("ADMIN NAV START");
 
   if (!window.APP_CONFIG) {
-    alert("APP_CONFIG липсва");
+    alert("APP_CONFIG missing");
     return;
   }
 
@@ -28,89 +28,73 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ================= ADMIN GUARD ================= */
 
-  async function guardAdmin() {
+  const { data: { session } } = await sb.auth.getSession();
 
-    const { data: { session } } = await sb.auth.getSession();
-
-    if (!session?.user?.email) {
-      location.href = BASE + "login.html";
-      return null;
-    }
-
-    const email = session.user.email.toLowerCase();
-
-    if (email !== ADMIN_EMAIL.toLowerCase()) {
-      location.href = BASE + "dashboard.html";
-      return null;
-    }
-
-    return session;
+  if (!session?.user?.email) {
+    location.href = BASE + "login.html";
+    return;
   }
+
+  const email = session.user.email.toLowerCase();
+
+  if (email !== ADMIN_EMAIL.toLowerCase()) {
+    location.href = BASE + "dashboard.html";
+    return;
+  }
+
+  /* ================= EXPORT CLIENT ================= */
+
+  window.__sb_admin = sb;
 
   /* ================= RENDER NAV ================= */
 
-  function renderNav(session) {
+  const nav = document.getElementById("appNav");
 
-    const nav = document.getElementById("appNav");
-
-    if (!nav) {
-      console.error("NAV CONTAINER NOT FOUND");
-      return;
-    }
-
-    nav.innerHTML = `
-      <div class="mx-auto max-w-7xl flex flex-wrap gap-3 items-center">
-
-        <div class="font-extrabold text-slate-900">
-          ADMIN PANEL
-        </div>
-
-        <span class="text-xs text-slate-500 hidden md:block">
-          ${session.user.email}
-        </span>
-
-        <a href="${adminPath("index.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Табло</a>
-        <a href="${adminPath("modules.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Модули</a>
-        <a href="${adminPath("lessons.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Теми</a>
-        <a href="${adminPath("exams.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Изпити</a>
-        <a href="${adminPath("results.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Резултати</a>
-        <a href="${adminPath("statistics.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Статистика</a>
-
-        <button id="adminLogoutBtn"
-          class="ml-auto bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800">
-          Изход
-        </button>
-
-      </div>
-    `;
-
-    document.getElementById("adminLogoutBtn").onclick = async () => {
-      await sb.auth.signOut();
-      location.href = BASE + "login.html";
-    };
-
-    // active page highlight
-    const current = location.pathname.split("/").pop();
-    nav.querySelectorAll("a").forEach(a => {
-      if (a.href.endsWith(current)) {
-        a.classList.add("bg-slate-200", "font-semibold");
-      }
-    });
+  if (!nav) {
+    console.error("NAV CONTAINER NOT FOUND");
+    return;
   }
 
-  /* ================= BOOT ================= */
+  nav.innerHTML = `
+    <div class="mx-auto max-w-7xl flex flex-wrap items-center gap-3">
 
-  (async () => {
+      <div class="font-extrabold text-slate-900">
+        ADMIN PANEL
+      </div>
 
-    const session = await guardAdmin();
-    if (!session) return;
+      <span class="hidden md:block text-xs text-slate-500">
+        ${session.user.email}
+      </span>
 
-    renderNav(session);
+      <a href="${adminPath("index.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Табло</a>
+      <a href="${adminPath("modules.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Модули</a>
+      <a href="${adminPath("lessons.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Теми</a>
+      <a href="${adminPath("exams.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Изпити</a>
+      <a href="${adminPath("results.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Резултати</a>
+      <a href="${adminPath("statistics.html")}" class="px-3 py-2 rounded hover:bg-slate-100">Статистика</a>
 
-    window.__sb_admin = sb;
+      <button id="adminLogoutBtn"
+        class="ml-auto bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800">
+        Изход
+      </button>
 
-    console.log("ADMIN NAV READY");
+    </div>
+  `;
 
-  })();
+  document.getElementById("adminLogoutBtn").onclick = async () => {
+    await sb.auth.signOut();
+    location.href = BASE + "login.html";
+  };
+
+  // Active page highlight
+  const current = location.pathname.split("/").pop();
+
+  nav.querySelectorAll("a").forEach(a => {
+    if (a.href.endsWith(current)) {
+      a.classList.add("bg-slate-200", "font-semibold");
+    }
+  });
+
+  console.log("ADMIN NAV READY");
 
 });
