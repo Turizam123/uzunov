@@ -14,12 +14,12 @@
 
 <body class="bg-slate-100 min-h-screen">
 
-<!-- GLOBAL APP NAV (ЕДИНСТВЕНА НАВИГАЦИЯ) -->
+<!-- GLOBAL NAV -->
 <nav id="appNav"
      class="bg-white border-b px-6 py-3 flex flex-wrap gap-2 items-center">
 </nav>
 
-<!-- PAGE CONTENT -->
+<!-- CONTENT -->
 <main class="max-w-6xl mx-auto p-6 space-y-10">
 
   <!-- ACCESS CODES -->
@@ -30,8 +30,9 @@
       <input id="newCodeInput"
              placeholder="PW-AX9K-7Q2M"
              class="border px-3 py-2 rounded w-64">
+
       <button id="addCodeBtn"
-              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold">
         Добави код
       </button>
     </div>
@@ -51,23 +52,28 @@
 
   <!-- LESSON UPLOAD -->
   <section class="bg-white p-5 rounded-xl shadow">
-    <h2 class="text-lg font-bold mb-4">Добавяне на тема (PDF / Word)</h2>
+    <h2 class="text-lg font-bold mb-4">Добавяне на тема</h2>
 
     <div class="grid md:grid-cols-2 gap-4">
+
       <input id="lessonTitle"
              placeholder="Заглавие"
              class="border px-3 py-2 rounded">
+
       <input id="lessonDesc"
              placeholder="Описание"
              class="border px-3 py-2 rounded">
+
       <input type="file"
              id="lessonFile"
              accept=".pdf,.doc,.docx"
              class="border px-3 py-2 rounded">
+
       <button id="uploadLessonBtn"
-              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-        Качи тема
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold">
+        Качи файл
       </button>
+
     </div>
   </section>
 
@@ -76,13 +82,21 @@
 <!-- CONFIG -->
 <script src="./config.js"></script>
 
-<!-- GLOBAL NAV LOGIC -->
+<!-- GLOBAL NAV -->
 <script src="./nav.js"></script>
 
 <script>
-/* ================= INIT ================= */
-const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = window.APP_CONFIG;
+/* ================= SAFE INIT ================= */
+
+if (!window.APP_CONFIG) {
+  alert("CONFIG липсва");
+  throw new Error("APP_CONFIG missing");
+}
+
+const { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAIL } = APP_CONFIG;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ================= ELEMENTS ================= */
 
 const codesTable = document.getElementById("codesTable");
 const newCodeInput = document.getElementById("newCodeInput");
@@ -94,23 +108,40 @@ const lessonTitle = document.getElementById("lessonTitle");
 const lessonDesc = document.getElementById("lessonDesc");
 
 /* ================= ADMIN GUARD ================= */
-(async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session || session.user.email !== ADMIN_EMAIL) {
-    location.href = "./login.html";
-  }
-})();
 
-/* ================= LOAD CODES ================= */
+async function adminGuard() {
+
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session) {
+    location.href = "./login.html";
+    return false;
+  }
+
+  if (session.user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    location.href = "./dashboard.html";
+    return false;
+  }
+
+  return true;
+}
+
+/* ================= LOAD ACCESS CODES ================= */
+
 async function loadCodes() {
+
   const { data, error } = await sb
     .from("access_codes")
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) return alert(error.message);
+  if (error) {
+    alert(error.message);
+    return;
+  }
 
   codesTable.innerHTML = "";
+
   data.forEach(c => {
     codesTable.innerHTML += `
       <tr>
@@ -119,18 +150,20 @@ async function loadCodes() {
         <td class="border p-2">${c.status}</td>
         <td class="border p-2">
           <button
-            class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded"
-            onclick="resetCode('${c.code}')">
+            onclick="resetCode('${c.code}')"
+            class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded">
             Reset
           </button>
         </td>
-      </tr>`;
+      </tr>
+    `;
   });
 }
-loadCodes();
 
 /* ================= ADD CODE ================= */
+
 addCodeBtn.onclick = async () => {
+
   const code = newCodeInput.value.trim();
   if (!code) return alert("Въведи код");
 
@@ -145,7 +178,9 @@ addCodeBtn.onclick = async () => {
 };
 
 /* ================= RESET CODE ================= */
+
 async function resetCode(code) {
+
   const { data: { session } } = await sb.auth.getSession();
 
   const res = await fetch(
@@ -161,13 +196,20 @@ async function resetCode(code) {
   );
 
   if (!res.ok) return alert(await res.text());
+
   loadCodes();
 }
+
 window.resetCode = resetCode;
 
 /* ================= UPLOAD LESSON ================= */
+
 uploadLessonBtn.onclick = async () => {
+
   if (!lessonFile.files.length) return alert("Избери файл");
+
+  uploadLessonBtn.disabled = true;
+  uploadLessonBtn.textContent = "Качване...";
 
   const file = lessonFile.files[0];
   const ext = file.name.split(".").pop().toLowerCase();
@@ -178,8 +220,9 @@ uploadLessonBtn.onclick = async () => {
     .upload(filePath, file);
 
   if (upload.error) {
-    alert("Грешка при upload: " + upload.error.message);
-    return;
+    uploadLessonBtn.disabled = false;
+    uploadLessonBtn.textContent = "Качи файл";
+    return alert(upload.error.message);
   }
 
   const insert = await sb.from("lessons").insert({
@@ -189,16 +232,24 @@ uploadLessonBtn.onclick = async () => {
     file_type: ext
   });
 
-  if (insert.error) {
-    alert("Грешка при запис: " + insert.error.message);
-    return;
-  }
+  uploadLessonBtn.disabled = false;
+  uploadLessonBtn.textContent = "Качи файл";
+
+  if (insert.error) return alert(insert.error.message);
 
   lessonTitle.value = "";
   lessonDesc.value = "";
   lessonFile.value = "";
+
   alert("Темата е качена успешно");
 };
+
+/* ================= BOOT ================= */
+
+(async () => {
+  const ok = await adminGuard();
+  if (ok) loadCodes();
+})();
 </script>
 
 </body>
