@@ -1,45 +1,60 @@
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-  <meta charset="UTF-8">
-  <title>Вход | Обучителна платформа</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Вход | Платформа</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body class="min-h-screen flex items-center justify-center bg-slate-100">
 
-<div class="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
+<div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-3xl grid md:grid-cols-2 gap-6">
 
-  <h1 class="text-2xl font-bold mb-4 text-center">
-    Вход в платформата
-  </h1>
+<!-- ================= ADMIN LOGIN ================= -->
 
-  <p class="text-sm text-slate-600 mb-4 text-center">
-    Въведи достъп код
-  </p>
+<div class="border rounded-xl p-5">
 
-  <input
-    id="accessCodeInput"
-    type="text"
-    class="w-full border rounded-lg px-3 py-2 mb-3"
-    placeholder="PW-AX9K-7Q2M">
+<h2 class="text-lg font-bold mb-3">Администратор</h2>
 
-  <button
-    id="loginBtn"
-    class="w-full bg-slate-900 text-white py-2 rounded-lg font-semibold hover:bg-slate-800">
-    Вход
-  </button>
+<p class="text-sm text-slate-600 mb-4">
+Вход с имейл (Google)
+</p>
 
-  <p id="statusMsg"
-     class="mt-4 text-center text-sm"></p>
+<button id="adminLoginBtn"
+class="w-full bg-slate-900 text-white py-2 rounded-lg font-semibold hover:bg-slate-800">
+Вход като Админ
+</button>
 
 </div>
+
+<!-- ================= STUDENT LOGIN ================= -->
+
+<div class="border rounded-xl p-5">
+
+<h2 class="text-lg font-bold mb-3">Курсист</h2>
+
+<p class="text-sm text-slate-600 mb-2">
+Въведи достъп код
+</p>
+
+<input id="codeInput"
+type="text"
+placeholder="PW-AX9K-7Q2M"
+class="w-full border rounded-lg px-3 py-2 mb-3">
+
+<button id="studentLoginBtn"
+class="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700">
+Вход като Курсист
+</button>
+
+</div>
+
+</div>
+
+<p id="msg" class="mt-4 text-center text-sm"></p>
 
 <!-- CONFIG -->
 <script src="./config.js"></script>
@@ -48,98 +63,112 @@
 
 /* ================= INIT ================= */
 
-if (!window.APP_CONFIG) {
-  alert("config.js не е зареден");
-  throw new Error("APP_CONFIG missing");
+if(!window.APP_CONFIG){
+alert("config.js missing");
+throw new Error("config missing");
 }
 
 const {
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  BASE_PATH
+SUPABASE_URL,
+SUPABASE_ANON_KEY,
+ADMIN_EMAIL,
+BASE_PATH
 } = APP_CONFIG;
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ================= ELEMENTS ================= */
 
-const input = document.getElementById("accessCodeInput");
-const btn = document.getElementById("loginBtn");
-const msg = document.getElementById("statusMsg");
+const adminBtn = document.getElementById("adminLoginBtn");
+const studentBtn = document.getElementById("studentLoginBtn");
+const codeInput = document.getElementById("codeInput");
+const msg = document.getElementById("msg");
 
 /* ================= UI ================= */
 
 function setMsg(text, ok=true){
-  msg.textContent = text;
-  msg.className =
-    "mt-4 text-center text-sm " +
-    (ok ? "text-green-700" : "text-red-700");
+msg.textContent = text;
+msg.className =
+"text-center text-sm mt-4 " +
+(ok ? "text-green-700" : "text-red-700");
 }
 
-/* ================= AUTO LOGIN CHECK ================= */
+/* ================= ADMIN LOGIN ================= */
 
-const savedCode = localStorage.getItem("access_code");
-const savedRole = localStorage.getItem("role");
+adminBtn.onclick = async () => {
 
-if(savedCode && savedRole){
-  if(savedRole === "admin"){
-    location.href = BASE_PATH + "admin/index.html";
-  } else {
-    location.href = BASE_PATH + "dashboard.html";
-  }
+const { error } = await sb.auth.signInWithOAuth({
+provider: "google",
+options: {
+redirectTo: location.origin + BASE_PATH + "login.html"
 }
+});
 
-/* ================= LOGIN ================= */
+if(error) setMsg(error.message,false);
 
-btn.onclick = async () => {
-
-  const code = input.value.trim().toUpperCase();
-
-  if(!code){
-    setMsg("Моля въведи код", false);
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = "Проверка...";
-
-  const { data, error } = await sb
-    .from("access_codes")
-    .select("code,role,status")
-    .eq("code", code)
-    .maybeSingle();
-
-  if(error || !data){
-    setMsg("Невалиден код", false);
-    btn.disabled = false;
-    btn.textContent = "Вход";
-    return;
-  }
-
-  if(data.status !== "active"){
-    setMsg("Кодът е неактивен", false);
-    btn.disabled = false;
-    btn.textContent = "Вход";
-    return;
-  }
-
-  // SAVE SESSION
-  localStorage.setItem("access_code", data.code);
-  localStorage.setItem("role", data.role);
-
-  // UPDATE LOGIN TIME
-  await sb
-    .from("access_codes")
-    .update({ last_login_at: new Date() })
-    .eq("code", data.code);
-
-  // REDIRECT
-  if(data.role === "admin"){
-    location.href = BASE_PATH + "admin/index.html";
-  } else {
-    location.href = BASE_PATH + "dashboard.html";
-  }
 };
+
+/* ================= ADMIN SESSION CHECK ================= */
+
+async function checkAdminSession(){
+
+const { data:{ session } } = await sb.auth.getSession();
+if(!session) return;
+
+const email = session.user.email || "";
+
+if(email.toLowerCase() === ADMIN_EMAIL.toLowerCase()){
+location.href = BASE_PATH + "admin/index.html";
+}
+
+}
+
+checkAdminSession();
+
+/* ================= STUDENT LOGIN ================= */
+
+studentBtn.onclick = async () => {
+
+const code = codeInput.value.trim().toUpperCase();
+
+if(!code){
+setMsg("Въведи код",false);
+return;
+}
+
+studentBtn.disabled = true;
+studentBtn.textContent = "Проверка...";
+
+const { data, error } = await sb
+.from("access_codes")
+.select("code,status")
+.eq("code",code)
+.maybeSingle();
+
+if(error || !data){
+setMsg("Невалиден код",false);
+resetBtn();
+return;
+}
+
+if(data.status !== "active"){
+setMsg("Кодът е неактивен",false);
+resetBtn();
+return;
+}
+
+// SAVE SESSION
+localStorage.setItem("access_code", data.code);
+
+// REDIRECT
+location.href = BASE_PATH + "dashboard.html";
+
+};
+
+function resetBtn(){
+studentBtn.disabled=false;
+studentBtn.textContent="Вход като Курсист";
+}
 
 </script>
 
