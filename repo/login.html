@@ -5,49 +5,49 @@
   <title>Вход | Обучителна платформа</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Supabase SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body class="min-h-screen flex items-center justify-center bg-slate-100">
 
 <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
 
-  <h1 class="text-2xl font-bold mb-6 text-center">
+  <h1 class="text-2xl font-bold mb-4 text-center">
     Вход в платформата
   </h1>
 
+  <p class="text-sm text-slate-600 mb-4 text-center">
+    Въведи достъп код
+  </p>
+
+  <input
+    id="accessCodeInput"
+    type="text"
+    class="w-full border rounded-lg px-3 py-2 mb-3"
+    placeholder="PW-AX9K-7Q2M">
+
   <button
-    id="googleLoginBtn"
-    class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700">
-    Вход с Google
+    id="loginBtn"
+    class="w-full bg-slate-900 text-white py-2 rounded-lg font-semibold hover:bg-slate-800">
+    Вход
   </button>
 
-  <div id="codeSection" class="hidden mt-6">
-    <label class="block mb-2 font-semibold">Достъп код</label>
-    <input
-      id="accessCodeInput"
-      type="text"
-      class="w-full border rounded-lg px-3 py-2 mb-3"
-      placeholder="PW-AX9K-7Q2M">
-    <button
-      id="submitCodeBtn"
-      class="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700">
-      Потвърди код
-    </button>
-  </div>
+  <p id="statusMsg"
+     class="mt-4 text-center text-sm"></p>
 
-  <p id="statusMsg" class="mt-4 text-center text-sm text-red-600"></p>
 </div>
 
 <!-- CONFIG -->
 <script src="./config.js"></script>
 
 <script>
+
 /* ================= INIT ================= */
+
 if (!window.APP_CONFIG) {
   alert("config.js не е зареден");
   throw new Error("APP_CONFIG missing");
@@ -56,87 +56,91 @@ if (!window.APP_CONFIG) {
 const {
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
-  ADMIN_EMAIL,
   BASE_PATH
-} = window.APP_CONFIG;
+} = APP_CONFIG;
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ================= ELEMENTS ================= */
-const googleLoginBtn = document.getElementById("googleLoginBtn");
-const codeSection = document.getElementById("codeSection");
-const submitCodeBtn = document.getElementById("submitCodeBtn");
-const accessCodeInput = document.getElementById("accessCodeInput");
-const statusMsg = document.getElementById("statusMsg");
 
-/* ================= GOOGLE LOGIN ================= */
-googleLoginBtn.onclick = async () => {
-  statusMsg.textContent = "";
+const input = document.getElementById("accessCodeInput");
+const btn = document.getElementById("loginBtn");
+const msg = document.getElementById("statusMsg");
 
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: location.origin + BASE_PATH + "login.html"
-    }
-  });
+/* ================= UI ================= */
 
-  if (error) statusMsg.textContent = error.message;
-};
-
-/* ================= SESSION CHECK ================= */
-async function handleSession() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) return;
-
-  const email = session.user.email || "";
-
-  // ✅ АДМИН → директно в админ панела
-  if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    location.href = BASE_PATH + "admin.html";
-    return;
-  }
-
-  // ✅ КУРСИСТ → показваме полето за код
-  codeSection.classList.remove("hidden");
+function setMsg(text, ok=true){
+  msg.textContent = text;
+  msg.className =
+    "mt-4 text-center text-sm " +
+    (ok ? "text-green-700" : "text-red-700");
 }
-handleSession();
 
-/* ================= CLAIM ACCESS CODE ================= */
-submitCodeBtn.onclick = async () => {
-  statusMsg.textContent = "";
+/* ================= AUTO LOGIN CHECK ================= */
 
-  const code = accessCodeInput.value.trim();
-  if (!code) {
-    statusMsg.textContent = "Моля, въведи достъп код.";
+const savedCode = localStorage.getItem("access_code");
+const savedRole = localStorage.getItem("role");
+
+if(savedCode && savedRole){
+  if(savedRole === "admin"){
+    location.href = BASE_PATH + "admin/index.html";
+  } else {
+    location.href = BASE_PATH + "dashboard.html";
+  }
+}
+
+/* ================= LOGIN ================= */
+
+btn.onclick = async () => {
+
+  const code = input.value.trim().toUpperCase();
+
+  if(!code){
+    setMsg("Моля въведи код", false);
     return;
   }
 
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) {
-    statusMsg.textContent = "Няма активна сесия.";
+  btn.disabled = true;
+  btn.textContent = "Проверка...";
+
+  const { data, error } = await sb
+    .from("access_codes")
+    .select("code,role,status")
+    .eq("code", code)
+    .maybeSingle();
+
+  if(error || !data){
+    setMsg("Невалиден код", false);
+    btn.disabled = false;
+    btn.textContent = "Вход";
     return;
   }
 
-  const res = await fetch(
-    `${SUPABASE_URL}/functions/v1/claim_access_code`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + session.access_token
-      },
-      body: JSON.stringify({ code })
-    }
-  );
-
-  if (!res.ok) {
-    statusMsg.textContent = await res.text();
+  if(data.status !== "active"){
+    setMsg("Кодът е неактивен", false);
+    btn.disabled = false;
+    btn.textContent = "Вход";
     return;
   }
 
-  // ✅ УСПЕХ → табло
-  location.href = BASE_PATH + "dashboard.html";
+  // SAVE SESSION
+  localStorage.setItem("access_code", data.code);
+  localStorage.setItem("role", data.role);
+
+  // UPDATE LOGIN TIME
+  await sb
+    .from("access_codes")
+    .update({ last_login_at: new Date() })
+    .eq("code", data.code);
+
+  // REDIRECT
+  if(data.role === "admin"){
+    location.href = BASE_PATH + "admin/index.html";
+  } else {
+    location.href = BASE_PATH + "dashboard.html";
+  }
 };
+
 </script>
 
 </body>
