@@ -18,7 +18,7 @@
 <!-- CONFIG -->
 <script src="../config.js"></script>
 
-<!-- ADMIN NAV + GUARD (инжектира header автоматично) -->
+<!-- ADMIN NAV + AUTH GUARD -->
 <script src="./_admin-nav.js"></script>
 
 <!-- PAGE -->
@@ -38,22 +38,22 @@
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Модули</div>
-      <div id="statModules" class="text-2xl font-extrabold">0</div>
+      <div id="statModules" class="text-2xl font-extrabold">—</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Теми</div>
-      <div id="statLessons" class="text-2xl font-extrabold">0</div>
+      <div id="statLessons" class="text-2xl font-extrabold">—</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Изпити</div>
-      <div id="statExams" class="text-2xl font-extrabold">0</div>
+      <div id="statExams" class="text-2xl font-extrabold">—</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Резултати</div>
-      <div id="statResults" class="text-2xl font-extrabold">0</div>
+      <div id="statResults" class="text-2xl font-extrabold">—</div>
     </div>
 
   </section>
@@ -61,40 +61,61 @@
 </main>
 
 <script>
-(async () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
-  // чакаме admin клиента от _admin-nav.js
-  while (!window.__sb_admin) {
+  /* ================= WAIT ADMIN CLIENT ================= */
+
+  let tries = 0;
+
+  while (!window.__sb_admin && tries < 40) {
     await new Promise(r => setTimeout(r, 50));
+    tries++;
+  }
+
+  if (!window.__sb_admin) {
+    console.error("Admin client not initialized");
+    return;
   }
 
   const sb = window.__sb_admin;
 
-  const [
-    modules,
-    lessons,
-    exams,
-    results
-  ] = await Promise.all([
-    sb.from("modules").select("id"),
-    sb.from("lessons").select("id"),
-    sb.from("exams").select("id"),
-    sb.from("exam_results").select("id")
-  ]);
+  /* ================= LOAD STATS ================= */
 
-  document.getElementById("statModules").textContent =
-    modules.data?.length || 0;
+  try {
 
-  document.getElementById("statLessons").textContent =
-    lessons.data?.length || 0;
+    const [
+      modules,
+      lessons,
+      exams,
+      results
+    ] = await Promise.all([
 
-  document.getElementById("statExams").textContent =
-    exams.data?.length || 0;
+      sb.from("modules").select("id"),
+      sb.from("lessons").select("id"),
+      sb.from("exams").select("id"),
+      sb.from("exam_results").select("id")
 
-  document.getElementById("statResults").textContent =
-    results.data?.length || 0;
+    ]);
 
-})();
+    document.getElementById("statModules").textContent =
+      modules.data?.length || 0;
+
+    document.getElementById("statLessons").textContent =
+      lessons.data?.length || 0;
+
+    document.getElementById("statExams").textContent =
+      exams.data?.length || 0;
+
+    document.getElementById("statResults").textContent =
+      results.data?.length || 0;
+
+  } catch (err) {
+
+    console.error("Stats load error", err);
+
+  }
+
+});
 </script>
 
 </body>
