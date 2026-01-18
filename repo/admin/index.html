@@ -15,18 +15,18 @@
 
 <body class="bg-slate-50 text-slate-900">
 
-<!-- CONFIG -->
+<!-- ================= CONFIG ================= -->
 <script src="../config.js"></script>
 
-<!-- ADMIN NAV CONTAINER -->
+<!-- ================= NAV CONTAINER ================= -->
 <nav id="appNav"
      class="bg-white border-b px-6 py-3 flex flex-wrap gap-2 items-center">
 </nav>
 
-<!-- ADMIN NAV + AUTH GUARD -->
+<!-- ================= ADMIN NAV + GUARD ================= -->
 <script src="./_admin-nav.js"></script>
 
-<!-- PAGE -->
+<!-- ================= PAGE ================= -->
 <main class="mx-auto max-w-7xl px-4 py-8 space-y-6">
 
   <!-- HEADER -->
@@ -43,22 +43,22 @@
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Модули</div>
-      <div id="statModules" class="text-2xl font-extrabold">—</div>
+      <div id="statModules" class="text-2xl font-extrabold">0</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Теми</div>
-      <div id="statLessons" class="text-2xl font-extrabold">—</div>
+      <div id="statLessons" class="text-2xl font-extrabold">0</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Изпити</div>
-      <div id="statExams" class="text-2xl font-extrabold">—</div>
+      <div id="statExams" class="text-2xl font-extrabold">0</div>
     </div>
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
       <div class="text-sm text-slate-500">Резултати</div>
-      <div id="statResults" class="text-2xl font-extrabold">—</div>
+      <div id="statResults" class="text-2xl font-extrabold">0</div>
     </div>
 
   </section>
@@ -66,42 +66,47 @@
 </main>
 
 <script>
-/* ================= INIT ================= */
+/* ================= SAFE INIT ================= */
 
-const sb = window.__sb_admin;
+document.addEventListener("DOMContentLoaded", () => {
 
-const statModules = document.getElementById("statModules");
-const statLessons = document.getElementById("statLessons");
-const statExams = document.getElementById("statExams");
-const statResults = document.getElementById("statResults");
+  if (!window.__sb_admin) {
+    console.error("Admin client missing");
+    return;
+  }
 
-/* ================= LOAD STATS ================= */
+  const sb = window.__sb_admin;
 
-async function loadStats(){
+  const statModules = document.getElementById("statModules");
+  const statLessons = document.getElementById("statLessons");
+  const statExams = document.getElementById("statExams");
+  const statResults = document.getElementById("statResults");
 
-  const [
-    { count: modules },
-    { count: lessons },
-    { count: exams },
-    { count: results }
-  ] = await Promise.all([
+  /* ================= LOAD STATS (RLS SAFE) ================= */
 
-    sb.from("modules").select("*", { count: "exact", head: true }),
-    sb.from("lessons").select("*", { count: "exact", head: true }),
-    sb.from("exams").select("*", { count: "exact", head: true }),
-    sb.from("exam_results").select("*", { count: "exact", head: true })
+  async function loadStats(){
 
-  ]);
+    try {
 
-  statModules.textContent = modules ?? 0;
-  statLessons.textContent = lessons ?? 0;
-  statExams.textContent = exams ?? 0;
-  statResults.textContent = results ?? 0;
-}
+      const modulesReq = await sb.from("modules").select("id");
+      const lessonsReq = await sb.from("lessons").select("id");
+      const examsReq = await sb.from("exams").select("id");
+      const resultsReq = await sb.from("exam_results").select("id");
 
-/* ================= BOOT ================= */
+      statModules.textContent = modulesReq.data?.length || 0;
+      statLessons.textContent = lessonsReq.data?.length || 0;
+      statExams.textContent = examsReq.data?.length || 0;
+      statResults.textContent = resultsReq.data?.length || 0;
 
-loadStats();
+    } catch (err) {
+      console.error(err);
+    }
+
+  }
+
+  loadStats();
+
+});
 </script>
 
 </body>
