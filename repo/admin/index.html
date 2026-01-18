@@ -18,18 +18,14 @@
 <!-- ================= CONFIG ================= -->
 <script src="../config.js"></script>
 
-<!-- ================= NAV CONTAINER ================= -->
+<!-- ================= NAV ================= -->
 <nav id="appNav"
      class="bg-white border-b px-6 py-3 flex flex-wrap gap-2 items-center">
 </nav>
 
-<!-- ================= ADMIN NAV + GUARD ================= -->
-<script src="./_admin-nav.js"></script>
-
 <!-- ================= PAGE ================= -->
 <main class="mx-auto max-w-7xl px-4 py-8 space-y-6">
 
-  <!-- HEADER -->
   <section class="rounded-2xl border bg-white p-6 shadow-sm">
     <h1 class="text-2xl font-extrabold">Админ табло</h1>
 
@@ -38,7 +34,6 @@
     </p>
   </section>
 
-  <!-- QUICK STATS -->
   <section class="grid md:grid-cols-4 gap-4">
 
     <div class="rounded-xl border bg-white p-4 shadow-sm">
@@ -65,10 +60,11 @@
 
 </main>
 
-<script>
-/* ================= SAFE INIT ================= */
+<!-- ================= ADMIN NAV + STATS ================= -->
+<script src="./_admin-nav.js"></script>
 
-document.addEventListener("DOMContentLoaded", () => {
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
 
   if (!window.__sb_admin) {
     console.error("Admin client missing");
@@ -82,29 +78,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const statExams = document.getElementById("statExams");
   const statResults = document.getElementById("statResults");
 
-  /* ================= LOAD STATS (RLS SAFE) ================= */
+  const modules = await sb.from("modules").select("id");
+  const lessons = await sb.from("lessons").select("id");
+  const exams = await sb.from("exams").select("id");
+  const results = await sb.from("exam_results").select("id");
 
-  async function loadStats(){
-
-    try {
-
-      const modulesReq = await sb.from("modules").select("id");
-      const lessonsReq = await sb.from("lessons").select("id");
-      const examsReq = await sb.from("exams").select("id");
-      const resultsReq = await sb.from("exam_results").select("id");
-
-      statModules.textContent = modulesReq.data?.length || 0;
-      statLessons.textContent = lessonsReq.data?.length || 0;
-      statExams.textContent = examsReq.data?.length || 0;
-      statResults.textContent = resultsReq.data?.length || 0;
-
-    } catch (err) {
-      console.error(err);
-    }
-
-  }
-
-  loadStats();
+  statModules.textContent = modules.data?.length || 0;
+  statLessons.textContent = lessons.data?.length || 0;
+  statExams.textContent = exams.data?.length || 0;
+  statResults.textContent = results.data?.length || 0;
 
 });
 </script>
