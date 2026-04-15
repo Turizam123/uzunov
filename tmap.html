@@ -4,9 +4,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>T-MAP – Скрити/показани слоеве + детайлни карти + коментари</title>
 
-  
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<!-- Leaflet -->
+
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
@@ -65,7 +65,6 @@
     .cmt-form button { justify-self: end; }
     .muted { color:#94a3b8; font-size:12px; }
 
-    /* Контрол за скриване/показване на панела със слоевете */
     .leaflet-control.tmap-layers-toggle button {
       background: rgba(255,255,255,0.92);
       border: 1px solid rgba(0,0,0,0.08);
@@ -81,8 +80,7 @@
       transform: translateY(6px);
       opacity: 0; pointer-events: none;
     }
-  
-    /* === Температурен бадж върху маркерите (не пипа логото) === */
+
     .temp-badge-ico { background: transparent !important; border: none !important; }
     .temp-badge-ico .t-badge{
       display:inline-block; min-width:20px; height:20px; padding:0 6px;
@@ -92,8 +90,6 @@
       user-select:none; pointer-events:none;
     }
 
-  
-    /* === Weather card (popup) === */
     .wx-card { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; font-size: 14px; line-height: 1.35; background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 10px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); margin-top: 10px; }
     .wx-header { font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
     .wx-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 2px 0; }
@@ -102,14 +98,12 @@
     .wx-error { color: #b42318; font-weight: 600; }
     .wx-loading { opacity: .7; }
 
-  
-    /* === Scrollable Leaflet popup === */
     .leaflet-popup-content {
-      max-height: 55vh;         /* мобилни устройства */
+      max-height: 55vh;
       overflow-y: auto;
       overscroll-behavior: contain;
-      padding-right: 8px;       /* място за скролбара */
-      word-break: break-word;   /* дълги линкове/думи да не чупят layout-а */
+      padding-right: 8px;
+      word-break: break-word;
       scrollbar-gutter: stable;
     }
     @media (min-width: 768px) {
@@ -118,14 +112,10 @@
     @media (min-width: 1024px) {
       .leaflet-popup-content { max-height: 420px; }
     }
-    /* по-деликатен скролбар (поддържан в WebKit) */
     .leaflet-popup-content::-webkit-scrollbar { width: 8px; }
     .leaflet-popup-content::-webkit-scrollbar-thumb { background: rgba(0,0,0,.28); border-radius: 8px; }
     .leaflet-popup-content::-webkit-scrollbar-track { background: rgba(0,0,0,.06); }
 
-  
-    
-    /* === Marker visibility (outline + shadow) === */
     .leaflet-marker-icon.tmap-pin--favicon {
       filter: drop-shadow(0 0 2px #ffffff) drop-shadow(0 2px 6px rgba(0,0,0,.45));
       -webkit-filter: drop-shadow(0 0 2px #ffffff) drop-shadow(0 2px 6px rgba(0,0,0,.45));
@@ -138,20 +128,17 @@
       }
     }
 
-  
-    /* === Popup: scrollable content with invisible scrollbars === */
     .leaflet-popup-content {
-      max-height: 55vh;           /* mobile */
+      max-height: 55vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      -ms-overflow-style: none;   /* IE/Edge */
-      scrollbar-width: none;      /* Firefox */
-      padding-right: 0;           /* no extra space for scrollbar */
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+      padding-right: 0;
     }
-    .leaflet-popup-content::-webkit-scrollbar { width: 0; height: 0; } /* WebKit */
+    .leaflet-popup-content::-webkit-scrollbar { width: 0; height: 0; }
     @media (min-width: 768px) { .leaflet-popup-content { max-height: 48vh; } }
     @media (min-width: 1024px) { .leaflet-popup-content { max-height: 420px; } }
-
   </style>
 </head>
 <body>
@@ -168,25 +155,31 @@
     const SUPABASE_URL = "https://cmiylzpmpwqbacjoqtkx.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8";
     const { createClient } = window.supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-  realtime: { headers: {} }
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      realtime: { headers: {} }
     });
 
-    // ---------- Auth UI ----------
     let currentUser = null;
+
     async function refreshAuthUI() {
-      const { data: { user } } = await await sb.auth.getUser();
+      const { data: { user } } = await sb.auth.getUser();
       currentUser = user || null;
       const status = document.getElementById('authStatus');
       const avatar = document.getElementById('authAvatar');
       const signInBtn = document.getElementById('signInBtn');
       const signOutBtn = document.getElementById('signOutBtn');
+
       if (currentUser) {
         const name = currentUser.user_metadata?.full_name || currentUser.email || 'Потребител';
         const img = currentUser.user_metadata?.avatar_url;
         status.textContent = 'Влязохте като ' + name;
-        if (img) { avatar.src = img; avatar.style.display = 'block'; } else { avatar.style.display = 'none'; }
+        if (img) {
+          avatar.src = img;
+          avatar.style.display = 'block';
+        } else {
+          avatar.style.display = 'none';
+        }
         signInBtn.style.display = 'none';
         signOutBtn.style.display = 'inline-block';
       } else {
@@ -196,40 +189,41 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         signOutBtn.style.display = 'none';
       }
     }
+
     document.getElementById('signInBtn').addEventListener('click', async () => {
       await sb.auth.signInWithOAuth({
         provider: 'google',
         options: { queryParams: { access_type: 'offline', prompt: 'consent' }, redirectTo: window.location.href }
       });
     });
+
     document.getElementById('signOutBtn').addEventListener('click', async () => {
-      try { await sb.auth.signOut(); } finally {
+      try {
+        await sb.auth.signOut();
+      } finally {
         window.location.href = 'tmap_home.html';
       }
     });
+
     sb.auth.onAuthStateChange((_event, _session) => { refreshAuthUI(); });
 
-    // ---------- Base layers ----------
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
     const positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap contributors &copy; CARTO' });
     const opentopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)' });
     const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, GIS User Community' });
     const cyclOSM = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', { attribution: 'Map data: &copy; OpenStreetMap contributors | Style: CyclOSM' });
 
-    // ---------- Overlay thematic layers ----------
     const hiking = L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png', { opacity: 0.9, attribution: 'Hiking overlay &copy; waymarkedtrails.org' });
     const hillshade = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', { opacity: 0.55, attribution: 'Hillshade &copy; Esri' });
     const railways = L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { opacity: 0.6, attribution: '&copy; OpenRailwayMap contributors' });
     const ski = L.tileLayer('https://tiles.openskimap.org/openskimap/{z}/{x}/{y}.png', { opacity: 0.8, attribution: '&copy; OpenSkiMap' });
 
-    // ---------- Map init ----------
     const map = L.map('map', {
       center: [42.7339, 25.4858],
       zoom: 7,
-      layers: [opentopo] // по подразбиране детайлен терен
+      layers: [opentopo]
     });
 
-    // Scale control
     L.control.scale({ metric: true, imperial: false }).addTo(map);
 
     const baseLayers = {
@@ -239,15 +233,16 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       'Carto Positron (светъл)': positron,
       'CyclOSM (колоездене)': cyclOSM
     };
+
     const overlays = {
       'Туристически пътеки (Waymarked Trails)': hiking,
       'Релеф (Hillshade)': hillshade,
       'ЖП линии (OpenRailwayMap)': railways,
       'Ски курорти (OpenSkiMap)': ski
     };
-    const layerCtl = L.control.layers(baseLayers, overlays, { collapsed: true, position: 'bottomright' }).addTo(map);
 
-    // Достъп до елемента и анимационно скриване/показване + запомняне в localStorage
+    L.control.layers(baseLayers, overlays, { collapsed: true, position: 'bottomright' }).addTo(map);
+
     function getLayersPanelEl() {
       const el = document.querySelector('.leaflet-control-layers');
       if (el && !el.classList.contains('tmap-layers-panel')) {
@@ -255,22 +250,22 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       }
       return el;
     }
+
     function applyLayersVisibilityFromStorage() {
       const el = getLayersPanelEl();
       if (!el) return;
       const hidden = localStorage.getItem('tmap_layers_hidden') === '1';
       el.classList.toggle('tmap-hidden', hidden);
     }
+
     function toggleLayersVisibility() {
       const el = getLayersPanelEl();
       if (!el) return;
-      const nowHidden = !el.classList.toggle('tmap-hidden'); // toggle returns boolean if class present after op; we want inverse
-      // Correction of logic: compute hidden = el.classList.contains('tmap-hidden')
+      el.classList.toggle('tmap-hidden');
       const hidden = el.classList.contains('tmap-hidden');
       localStorage.setItem('tmap_layers_hidden', hidden ? '1' : '0');
     }
 
-    // Контрол – бутон „Слоеве“ за show/hide
     const LayersToggle = L.Control.extend({
       options: { position: 'bottomright' },
       onAdd: function(map) {
@@ -286,64 +281,74 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     });
     map.addControl(new LayersToggle());
 
-    // ---------- Останалите функции (маркери, посещения, коментари, realtime) ----------
-    // === Температурни функции (лилаво студено → червено горещо) ===
-    const TEMP_TTL_MS = 10 * 60 * 1000;    // кеш 10 мин
-    const TEMP_REFRESH_MS = 10 * 60 * 1000; // авто-обновяване
+    const TEMP_TTL_MS = 10 * 60 * 1000;
+    const TEMP_REFRESH_MS = 10 * 60 * 1000;
     const tempCache = new Map();
-    const tempOverlays = new Map(); // objectId -> overlay marker
+    const tempOverlays = new Map();
 
     function tempColor(t){
       if (t == null || Number.isNaN(t)) return '#d9d9d9';
-      const stops=[
+      const stops = [
         {temp:-40,color:[106,0,255]},{temp:-20,color:[0,87,255]},{temp:0,color:[0,200,255]},
         {temp:15,color:[255,230,0]},{temp:30,color:[255,120,0]},{temp:40,color:[230,0,0]},{temp:45,color:[139,0,0]}
       ];
-      if (t<=stops[0].temp) return rgb(stops[0].color);
-      if (t>=stops[stops.length-1].temp) return rgb(stops[stops.length-1].color);
-      for (let i=0;i<stops.length-1;i++){
-        const a=stops[i], b=stops[i+1];
-        if (t>=a.temp && t<=b.temp){
-          const k=(t-a.temp)/(b.temp-a.temp);
-          const r=Math.round(a.color[0]+(b.color[0]-a.color[0])*k);
-          const g=Math.round(a.color[1]+(b.color[1]-a.color[1])*k);
-          const bl=Math.round(a.color[2]+(b.color[2]-a.color[2])*k);
+      if (t <= stops[0].temp) return rgb(stops[0].color);
+      if (t >= stops[stops.length-1].temp) return rgb(stops[stops.length-1].color);
+      for (let i = 0; i < stops.length - 1; i++) {
+        const a = stops[i], b = stops[i+1];
+        if (t >= a.temp && t <= b.temp) {
+          const k = (t - a.temp) / (b.temp - a.temp);
+          const r = Math.round(a.color[0] + (b.color[0] - a.color[0]) * k);
+          const g = Math.round(a.color[1] + (b.color[1] - a.color[1]) * k);
+          const bl = Math.round(a.color[2] + (b.color[2] - a.color[2]) * k);
           return rgb([r,g,bl]);
         }
       }
-      function rgb([r,g,b]){ const hx=v=>v.toString(16).padStart(2,'0'); return `#${hx(r)}${hx(g)}${hx(b)}`; }
+      function rgb([r,g,b]) {
+        const hx = v => v.toString(16).padStart(2,'0');
+        return `#${hx(r)}${hx(g)}${hx(b)}`;
+      }
     }
 
     function tempKey(lat, lon){ return `${lat.toFixed(2)},${lon.toFixed(2)}`; }
+
     async function fetchTemp(lat, lon){
-      const k=tempKey(lat,lon); const c=tempCache.get(k);
-      if (c && (Date.now()-c.t)<TEMP_TTL_MS) return c.v;
-      const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`;
-      const r=await fetch(url); if(!r.ok) throw new Error('weather');
-      const d=await r.json(); const v=d?.current?.temperature_2m ?? null;
-      tempCache.set(k,{v,t:Date.now()}); return v;
+      const k = tempKey(lat,lon);
+      const c = tempCache.get(k);
+      if (c && (Date.now() - c.t) < TEMP_TTL_MS) return c.v;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('weather');
+      const d = await r.json();
+      const v = d?.current?.temperature_2m ?? null;
+      tempCache.set(k, { v, t: Date.now() });
+      return v;
     }
 
     function createTempOverlay(lat,lng,temp){
-      const txt=(temp==null||Number.isNaN(temp))?'—':`${Math.round(temp)}°`;
-      const html=`<span class="t-badge" style="background:${tempColor(temp)}">${txt}</span>`;
-      // позиция горе вдясно спрямо иконата 52x52 (anchor [26,48]) → приблизително [50,6]
-      const icon=L.divIcon({ className:'temp-badge-ico', html, iconSize:[1,1], iconAnchor:[50,6] });
+      const txt = (temp == null || Number.isNaN(temp)) ? '—' : `${Math.round(temp)}°`;
+      const html = `<span class="t-badge" style="background:${tempColor(temp)}">${txt}</span>`;
+      const icon = L.divIcon({ className:'temp-badge-ico', html, iconSize:[1,1], iconAnchor:[50,6] });
       return L.marker([lat,lng], { icon, interactive:false, zIndexOffset:260 });
     }
 
     function updateTempOverlay(objectId, temp){
-      const ref=tempOverlays.get(objectId);
-      if(!ref) return;
-      const el=ref.getElement(); if(!el) return;
-      const span=el.querySelector('.t-badge');
-      if(span){ span.textContent=(temp==null||Number.isNaN(temp))?'—':`${Math.round(temp)}°`; span.style.background=tempColor(temp); }
+      const ref = tempOverlays.get(objectId);
+      if (!ref) return;
+      const el = ref.getElement();
+      if (!el) return;
+      const span = el.querySelector('.t-badge');
+      if (span) {
+        span.textContent = (temp == null || Number.isNaN(temp)) ? '—' : `${Math.round(temp)}°`;
+        span.style.background = tempColor(temp);
+      }
     }
 
     async function ensureTempOverlay(objectId, lat, lng){
-      let t=null; try{ t=await fetchTemp(lat,lng); }catch{}
-      if(!tempOverlays.has(objectId)){
-        const m=createTempOverlay(lat,lng,t).addTo(map);
+      let t = null;
+      try { t = await fetchTemp(lat,lng); } catch {}
+      if (!tempOverlays.has(objectId)) {
+        const m = createTempOverlay(lat,lng,t).addTo(map);
         tempOverlays.set(objectId,m);
       } else {
         updateTempOverlay(objectId, t);
@@ -351,125 +356,158 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
 
     async function refreshVisibleTemps(){
-      const b=map.getBounds();
-      for(const [oid, m] of markersById.entries()){
-        const pos=m.getLatLng();
-        if(!b.contains(pos)) continue;
-        let t=null; try{ t=await fetchTemp(pos.lat,pos.lng); }catch{}
+      const b = map.getBounds();
+      for (const [oid, m] of markersById.entries()) {
+        const pos = m.getLatLng();
+        if (!b.contains(pos)) continue;
+        let t = null;
+        try { t = await fetchTemp(pos.lat,pos.lng); } catch {}
         updateTempOverlay(oid, t);
       }
     }
 
-    let ICON_URL = null;let customIcon = null;const markersById = new Map();
+    let ICON_URL = null;
+    let customIcon = null;
+    const markersById = new Map();
     const badgeRefs = new Map();
     const visitCountCache = new Map();
-    const openCommentContainers = new Map(); // objectId -> wrapEl
+    const openCommentContainers = new Map();
 
     async function getVisitCount(objectId) {
-  const cached = visitCountCache.get(objectId);
-  if (typeof cached === 'number') return cached;
+      const cached = visitCountCache.get(objectId);
+      if (typeof cached === 'number') return cached;
 
-  const { count, error } = await sb
-    .from('visits')
-    .select('*', { count: 'exact', head: true })
-    .eq('object_id', objectId);
+      const { count, error } = await sb
+        .from('visits')
+        .select('*', { count: 'exact', head: true })
+        .eq('object_id', objectId);
 
-  const safe = error ? 0 : (count || 0);
-  visitCountCache.set(objectId, safe);
-  return safe;
-}
-
-async function markVisit(objectId) {
-  const { error } = await sb
-    .from('visits')
-    .insert([{ 
-      object_id: objectId, 
-      client_id: getClientId() 
-    }]);
-
-  if (error) {
-    return { ok: false, reason: 'already_marked' };
-  }
-
-  const next = (visitCountCache.get(objectId) || 0) + 1;
-  visitCountCache.set(objectId, next);
-  updateBadge(objectId, next);
-
-  return { ok: true };
-}
-
-function createBadgeMarker(lat, lng, initial) {
-  const html = '<span class="badge">' + initial + '</span>';
-  const icon = L.divIcon({
-    className: 'visit-badge',
-    html,
-    iconSize: [1, 1],
-    iconAnchor: [42, 20]
-  });
-  return L.marker([lat, lng], {
-    icon,
-    interactive: false,
-    zIndexOffset: 250
-  });
-}
-
-function updateBadge(objectId, value) {
-  const ref = badgeRefs.get(objectId);
-  if (!ref) return;
-  const el = ref.getElement();
-  if (!el) return;
-  const span = el.querySelector('.badge');
-  if (span) span.textContent = String(value);
-}
-
-function getClientId() {
-  const key = 'tmap_client_id';
-  let id = localStorage.getItem(key);
-  if (!id) {
-    id = (crypto.randomUUID)
-      ? crypto.randomUUID()
-      : Date.now() + '-' + Math.random();
-    localStorage.setItem(key, id);
-  }
-  return id;
+      const safe = error ? 0 : (count || 0);
+      visitCountCache.set(objectId, safe);
+      return safe;
     }
 
-    // Коментари
-    function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-    function initials(name) { const parts = String(name || '??').trim().split(/\s+/).slice(0,2); return parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U'; }
-    function fmtDate(iso) { try { const d = new Date(iso); return d.toLocaleString('bg-BG', { dateStyle:'short', timeStyle:'short' }); } catch { return ''; } }
+    async function markVisit(objectId) {
+      const { error } = await sb
+        .from('visits')
+        .insert([{ object_id: objectId, client_id: getClientId() }]);
+
+      if (error) {
+        return { ok: false, reason: 'already_marked' };
+      }
+
+      const next = (visitCountCache.get(objectId) || 0) + 1;
+      visitCountCache.set(objectId, next);
+      updateBadge(objectId, next);
+
+      return { ok: true };
+    }
+
+    function createBadgeMarker(lat, lng, initial) {
+      const html = '<span class="badge">' + initial + '</span>';
+      const icon = L.divIcon({
+        className: 'visit-badge',
+        html,
+        iconSize: [1, 1],
+        iconAnchor: [42, 20]
+      });
+      return L.marker([lat, lng], {
+        icon,
+        interactive: false,
+        zIndexOffset: 250
+      });
+    }
+
+    function updateBadge(objectId, value) {
+      const ref = badgeRefs.get(objectId);
+      if (!ref) return;
+      const el = ref.getElement();
+      if (!el) return;
+      const span = el.querySelector('.badge');
+      if (span) span.textContent = String(value);
+    }
+
+    function getClientId() {
+      const key = 'tmap_client_id';
+      let id = localStorage.getItem(key);
+      if (!id) {
+        id = crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random();
+        localStorage.setItem(key, id);
+      }
+      return id;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#039;');
+    }
+
+    function initials(name) {
+      const parts = String(name || '??').trim().split(/\s+/).slice(0,2);
+      return parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U';
+    }
+
+    function fmtDate(iso) {
+      try {
+        const d = new Date(iso);
+        return d.toLocaleString('bg-BG', { dateStyle:'short', timeStyle:'short' });
+      } catch {
+        return '';
+      }
+    }
 
     async function loadComments(objectId) {
-      const { data, error } = await supabase.from('comments').select('*').eq('object_id', objectId).order('created_at', { ascending: true });
-      if (error) return []; return data || [];
+      const { data, error } = await sb
+        .from('comments')
+        .select('*')
+        .eq('object_id', objectId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Грешка при зареждане на коментарите:', error);
+        return [];
+      }
+      return data || [];
     }
+
     async function addComment(objectId, text) {
       if (!currentUser) throw new Error('not-auth');
       const username = currentUser.user_metadata?.full_name || currentUser.email || 'Потребител';
       const user_id = currentUser.id;
       const payload = { object_id: String(objectId), user_id, username, comment: text };
       const { data, error } = await sb.from('comments').insert([payload]).select().single();
-      if (error) throw error; return data;
+      if (error) throw error;
+      return data;
     }
+
     function renderComments(container, comments) {
       const list = container.querySelector('.cmt-list');
       if (!list) return;
-      if (!comments.length) { list.innerHTML = '<div class="muted">Все още няма коментари.</div>'; return; }
+      if (!comments.length) {
+        list.innerHTML = '<div class="muted">Все още няма коментари.</div>';
+        return;
+      }
       list.innerHTML = comments.map(c => {
         const name = escapeHtml(c.username || 'Потребител');
         const when = c.created_at ? fmtDate(c.created_at) : '';
         const txt = escapeHtml(c.comment || '');
         return '<div class="cmt-item">\
-          <div class="cmt-avatar">'+ initials(name) +'</div>\
+          <div class="cmt-avatar">' + initials(name) + '</div>\
           <div>\
-            <div class="cmt-meta">'+ name +' · '+ when +'</div>\
-            <div class="cmt-content">'+ txt +'</div>\
+            <div class="cmt-meta">' + name + ' · ' + when + '</div>\
+            <div class="cmt-content">' + txt + '</div>\
           </div>\
         </div>';
       }).join('');
     }
+
     async function attachCommentsUI(containerEl, objectId) {
       if (containerEl.querySelector('.cmt-wrap')) return;
+
       const wrap = document.createElement('div');
       wrap.className = 'cmt-wrap';
       wrap.dataset.oid = objectId;
@@ -483,21 +521,29 @@ function getClientId() {
 
       const block = wrap.querySelector('.cmt-form-block');
       if (currentUser) {
-        block.innerHTML = '<form class="cmt-form" data-oid="'+objectId+'">\
+        block.innerHTML = '<form class="cmt-form" data-oid="' + objectId + '">\
           <textarea name="content" maxlength="1000" placeholder="Напишете коментар... (до 1000 знака)"></textarea>\
           <button type="submit" class="btn-primary">Публикувай</button>\
           <div class="muted cmt-msg"></div>\
         </form>';
+
         const form = block.querySelector('form');
         const msg = block.querySelector('.cmt-msg');
+
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
           const text = (form.content.value || '').trim();
           if (!text) { msg.textContent = 'Коментарът е празен.'; return; }
           if (text.length > 1000) { msg.textContent = 'Прекалено дълъг коментар.'; return; }
           msg.textContent = 'Публикуване...';
-          try { await addComment(String(objectId), text); form.reset(); msg.textContent = 'Публикувано.'; }
-          catch (err) { msg.textContent = 'Грешка при публикуване.'; }
+          try {
+            await addComment(String(objectId), text);
+            form.reset();
+            msg.textContent = 'Публикувано.';
+          } catch (err) {
+            console.error('Грешка при публикуване на коментар:', err);
+            msg.textContent = 'Грешка при публикуване.';
+          }
         });
       } else {
         block.innerHTML = '<div class="muted">За да коментирате, влезте с Gmail отгоре вдясно.</div>';
@@ -506,17 +552,17 @@ function getClientId() {
       openCommentContainers.set(String(objectId), wrap);
     }
 
-    // Попъпи и маркери
     function bindPopupToMarker(marker, obj) {
-      marker.bindPopup('<div id="popup-'+obj.id+'">\
-        <div class="popup-title">'+ (obj.title ? escapeHtml(obj.title) : 'Без заглавие') +'</div>\
-        '+ (obj.description ? '<div>'+ escapeHtml(obj.description) +'</div>' : '') +'\
-        '+ (obj.image_url ? '<img class="popup-img" src="'+ escapeHtml(String(obj.image_url)) +'" alt="">' : '') +'\
+      marker.bindPopup('<div id="popup-' + obj.id + '">\
+        <div class="popup-title">' + (obj.title ? escapeHtml(obj.title) : 'Без заглавие') + '</div>\
+        ' + (obj.description ? '<div>' + escapeHtml(obj.description) + '</div>' : '') + '\
+        ' + (obj.image_url ? '<img class="popup-img" src="' + escapeHtml(String(obj.image_url)) + '" alt="">' : '') + '\
       </div>');
+
       marker.on('popupopen', async () => {
         const container = document.getElementById('popup-' + obj.id);
         if (!container) return;
-                await attachWeatherUI(container, Number(obj.latitude), Number(obj.longitude), obj.title);
+        await attachWeatherUI(container, Number(obj.latitude), Number(obj.longitude), obj.title);
         await attachVisitUIToPopup(container, String(obj.id));
         await attachCommentsUI(container, String(obj.id));
       });
@@ -525,64 +571,81 @@ function getClientId() {
     async function addMarker(obj) {
       const lat = Number(obj.latitude), lng = Number(obj.longitude);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
       const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
       markersById.set(String(obj.id), marker);
       bindPopupToMarker(marker, obj);
+
       const initial = await getVisitCount(String(obj.id));
       const badge = createBadgeMarker(lat, lng, initial).addTo(map);
       badgeRefs.set(String(obj.id), badge);
-      // Температурен бадж (отделен overlay, не променя логото)
+
       ensureTempOverlay(String(obj.id), lat, lng);
     }
 
     async function loadObjects() {
       const { data, error } = await sb.from('objects').select('*').order('created_at', { ascending: true });
       if (error) { console.error(error); return; }
-      for (const obj of (data || [])) { await addMarker(obj); }
+      for (const obj of (data || [])) {
+        await addMarker(obj);
+      }
     }
 
-    // Реално време
     function subscribeRealtime() {
       sb.channel('rt:objects')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'objects' }, async (payload) => {
-          const obj = payload.new; await addMarker(obj);
+          const obj = payload.new;
+          await addMarker(obj);
         })
         .subscribe();
 
       sb.channel('rt:comments')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, async (payload) => {
-          const row = payload.new; const oid = String(row.object_id);
+          const row = payload.new;
+          const oid = String(row.object_id);
           const wrap = openCommentContainers.get(oid);
-          if (wrap) { const now = await loadComments(oid); renderComments(wrap, now); }
+          if (wrap) {
+            const now = await loadComments(oid);
+            renderComments(wrap, now);
+          }
         })
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'comments' }, async (payload) => {
-          const row = payload.old; const oid = String(row.object_id);
+          const row = payload.old;
+          const oid = String(row.object_id);
           const wrap = openCommentContainers.get(oid);
-          if (wrap) { const now = await loadComments(oid); renderComments(wrap, now); }
+          if (wrap) {
+            const now = await loadComments(oid);
+            renderComments(wrap, now);
+          }
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'comments' }, async (payload) => {
-          const row = payload.new; const oid = String(row.object_id);
+          const row = payload.new;
+          const oid = String(row.object_id);
           const wrap = openCommentContainers.get(oid);
-          if (wrap) { const now = await loadComments(oid); renderComments(wrap, now); }
+          if (wrap) {
+            const now = await loadComments(oid);
+            renderComments(wrap, now);
+          }
         })
         .subscribe();
     }
 
-    // Visits UI
     async function attachVisitUIToPopup(containerEl, objectId) {
       if (containerEl.querySelector('.tmap-visit')) return;
       const count = await getVisitCount(objectId);
       containerEl.insertAdjacentHTML('beforeend',
         '<div class="tmap-visit" data-oid="' + objectId + '">\
-            <div class="tmap-visit-row" style="margin-bottom:6px;">Посетили: <strong>' + count + '</strong> души</div>\
-            <button class="btn-ghost tmap-visit-btn">Отбележи се</button>\
-            <div class="muted tmap-visit-msg"></div>\
-          </div>'
+          <div class="tmap-visit-row" style="margin-bottom:6px;">Посетили: <strong>' + count + '</strong> души</div>\
+          <button class="btn-ghost tmap-visit-btn">Отбележи се</button>\
+          <div class="muted tmap-visit-msg"></div>\
+        </div>'
       );
+
       const root = containerEl.querySelector('.tmap-visit[data-oid="' + objectId + '"]');
-      const btn  = root.querySelector('.tmap-visit-btn');
-      const msg  = root.querySelector('.tmap-visit-msg');
-      const cntEl= root.querySelector('.tmap-visit-row strong');
+      const btn = root.querySelector('.tmap-visit-btn');
+      const msg = root.querySelector('.tmap-visit-msg');
+      const cntEl = root.querySelector('.tmap-visit-row strong');
+
       btn.addEventListener('click', async () => {
         btn.disabled = true;
         msg.textContent = 'Обработвам...';
@@ -599,13 +662,8 @@ function getClientId() {
       }, { passive: true });
     }
 
-    
-    
-    // === Popup logo injection ===
-    // Задай собствено лого преди инициализацията: window.TMAP_LOGO_URL = "logo.png";
-    // === Weather-in-Popup (Open-Meteo) ===
-    const WX_TTL_MS = 5 * 60 * 1000; // 5 мин кеш
-    const wxCache = new Map(); // key -> { t, data }
+    const WX_TTL_MS = 5 * 60 * 1000;
+    const wxCache = new Map();
 
     function wxKey(lat, lon){ return `${lat.toFixed(3)},${lon.toFixed(3)}`; }
     function wxFresh(e){ return e && (Date.now() - e.t) < WX_TTL_MS; }
@@ -648,9 +706,14 @@ function getClientId() {
       try {
         const d = new Date(timeISO);
         return new Intl.DateTimeFormat("bg-BG", { timeZone: tz || undefined, dateStyle: "medium", timeStyle: "short" }).format(d);
-      } catch (_) { return timeISO; }
+      } catch (_) {
+        return timeISO;
+      }
     }
-    function safeNum(n, digits = 0) { return (typeof n === "number" && isFinite(n)) ? n.toFixed(digits) : "—"; }
+
+    function safeNum(n, digits = 0) {
+      return (typeof n === "number" && isFinite(n)) ? n.toFixed(digits) : "—";
+    }
 
     async function fetchWeatherFull(lat, lon){
       const k = wxKey(lat, lon);
@@ -668,6 +731,7 @@ function getClientId() {
       const json = await fetchWeatherFull(lat, lon);
       const cw = json.current_weather;
       let feelsLike = null, pop = null;
+
       try {
         const idx = json.hourly.time.indexOf(cw.time);
         if (idx >= 0) {
@@ -677,8 +741,10 @@ function getClientId() {
           if (typeof p === "number") pop = p;
         }
       } catch (_) {}
+
       const [desc, emoji] = weatherCodeToDescEmojiBg(cw.weathercode);
       const local = formatLocal(cw.time, json.timezone);
+
       return (
         '<div class="wx-card" role="group" aria-label="Текущо време">' +
           '<div class="wx-header">' + emoji + ' ' + desc + '</div>' +
@@ -692,13 +758,12 @@ function getClientId() {
     }
 
     async function attachWeatherUI(containerEl, lat, lon, title){
-      // ако вече е вкаран блокът, не правим нищо
       if (containerEl.querySelector('.wx-card, .wx-error, .wx-loading')) return;
+
       const block = document.createElement('div');
       block.className = 'wx-loading';
       block.textContent = 'Зареждане на време…';
 
-      // Вкарваме блока след заглавие или след снимката, ако има
       const img = containerEl.querySelector('.popup-img');
       const titleEl = containerEl.querySelector('.popup-title');
       if (img) img.insertAdjacentElement('afterend', block);
@@ -713,13 +778,12 @@ function getClientId() {
       }
     }
 
-    
-    // === Marker icon via favicon with robust fallback ===
-    const TMAP_ICON_FALLBACK_DATAURI = "data:image/png;base64,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"; // embedded fallback
+    const TMAP_ICON_FALLBACK_DATAURI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAZAElEQVR4nO16eZhU1Z32+zvn3Fq7qnpfoeluGoSWvV0RbBg0ioIbVqtRNKMzMDESE+PyaZKp1MQZR2NMjCuYoMYtodRxwwVUaBYRZV9a2bsBaXrv2pd7zznfH9UoMjqC4nzP9zy8z3Ofrqquuuf3vuf9/c5yD3ACJ3ACJ3ACJ3AC/79Ba01aa/Zd70PHI5hjgyYEQGgOEfx+YOvSbAwnT9IIhYC6rRrBoAagj+puWnMAioiO6vtH4n9HgIBmwFIGTFIIkjqq3yzQPCvOUoVg8PPfaK2JiHS71jm2VKooz+ncc/jnR96m3yWErxFJfGtS3whNaPgNR1PQ6ietGICr5jzo3WhUlPcqZ3lYKV+OJ1dkGCltl6liX057nifdtmrhHw6yRpKfRxvQDCeHCI2Nqp+MTrUffKqwqGialPKhZcuW3QlAHi7CofQg+p8F/34c4F/AEWqUAMAJOOn6507r4J6pluE42/Tk1Em3rYR8OaTtDjDDBuIAtAZJEyTNBGnsE4JtsJFeUilii9ZcO2aPyrIiNIbYf/prcqaO8baOqinxgXshpXydcz4DgOq/GBFJAEilUifZ7fYqAKuIKHKkU46vAIEAQ/A3GiB9/W33et5uq74mbsu5IVPgrbcGVAL5LigXhzYIxEgR0xoaIAJIaZBSjIOIMwZBHFoBMhpNCiv9XoEZntvyT2PesDRw6aPvFN98ZtknDcNK81IKGYeryK6Uup9zftuWLVtsI0aMyES6DtQ5vLl3c8OYyiAcUsobhBDztdaCiKzjL0B/r3MGFF31zOwo891uDayskQMKoPMMrew2CQbS0Axg/W1nax3pwyqeUpoIWmipDTMDw7K4ZjlQ6Qzs3e0rB4T3/XrT3Zcu+dvSD/f5T68ZEI7FJSeCK7cCCZOP8Dro077O1tluX97vheFxK6QUU4LSycg0R07Bm1prfsgdwPGqAQ0BgVCjNer6R0fsSRQ93FtQ2aBqiiALHZYmYlBgOm0KcAIYAUwDQgCcZ99rDVgSsCzANElnMmRmLFjpDJK9Ma0jOxUko5gz96xIu3w/f/rd98RNeTCZygwQgtOObVvU2NNKhcfOp7Tu2jzEV5j3OKwMrMR+kznyhJmO97V3x1cdkvjw0L+7AA0BQU1Bq/KK+T/ckSh63Kyt9uiBOZYyGNNpS4AzECOAGCDsYA4nGBQoHgeLxaBjUcA0NRgjMmyQNjs0t0Gn01Dt3UBfLxWzDM/lClzFrB7DFO0bP5790abKbZNrclBVmoeOtr2sZcsyvT/h/MdkOlFRmsdVtLcLdreXclzFlEx0vDVoUE3vkb3/3QXoJ198ybzb2nnZfXJYOXShQypTCq0UIDigJeB2wGa3gzo7gU82a72jWamD+7QVCzOVyTBoRWAEJpgid44yKqooUzmS1VaV0sOX12FshQ9etwPEhIimgY9nVHpeXb995NKNO3EZK2Y6FcFbb76DJYkB9WdXCBRbB5FKxzB85CmQkX3oiyYe1loLAExrrY5PETxE/sJHbg/nVN8r68qlzBFMgYgEh2YEGAaExw1xsBNq9UotN32kZLSTw+YEd3pAQoOThoaWWlpcyQyQSUKlYtDxGKp+fKt84ccT2OmeDEU0BywJw+Bw5RYD4Ai9+x7aNjTh0vKV2OutwNrFe/Xls0dg6TInlXoK5eCTR/DPIuIPZzVceMvhoR8+efp2DsgWPGvgBQ/P7DDK75W1xZYlNEfSJNgEtAKYQ8AOQL27AubHy6VM9HCeW8pdRdUJw86XuezGElipjTZutrvd9li4+6ArE4uVCnIOjyWMSaZOTm55Yb7v+sJS/OWCMnl6KXja7UI4ksSna1fDSke1ylj04od7cWHRcowoywM72E1Fi3eiQI7Cmsho/nG8PXHl+RPt2ux9XrGcqNbiI87xJhG1fXsHBAIMwaCqnXHP2M9iZavk8CHC8tqYAogEB0Agtx0OBVhLVyGza4tkHh93eH29nvySRwdWFM1f98dzd/9PsxMCcLr/5xW7lzRd11Nc9bOaq2YX/du5FfKCQYJ78gpgkg2bmjfhuXmP459/0As62I4evR6Vk07HgflbMbiqDPuGjceOttE4f8p4eAoqAFseACeUUr1K4XEhWBCAeawCEPx+9uCECeKXr7A1mephI2SZR0pLcxgM0ATmMuAER6pprZbd+7Qtt4j5vN4FNZXld6x+cHJLv4oMDWAobtaoq8vmY3MzIVSn4T+Z0PEIoanJAoCG/PwBH/tOecB+5nn+y86rV1eO8NDoIjvtOnAQf77v3/Fvw9dgPbMhdVY3Zpx3DnoOHsT+W7YgM3AIVlVchyED8uXg2pN0SWkpnG4PDJubwchnMhN5Rdh9lx6bAP1jfeHk3/0q6h38W1lbZFka2eGNGJjB4M5xI/nhp9rq7lB2j4cXeZ23Hfi7/34FAA1LBCZ9eW5/WKfrubNmGbPnzZMAVNZpSxnQZHEAXt+oW8NFVb/LHzYYY06u1XYVpRXLN+OOnGUYc7Yby2UrRoxJolwBQ8MjsM19JpyusRg9aoh2FgyWSjNSSnGtCdGURDKWvGdA7ci7jqEGBBhCjWr8lfeWr29z3a6L3EpZFidN0CBAS3h8XmS2tWsraSlbYQkv9WRuaH3GPx8NAYFJUAhOttD0Fa4CaPz48Tl3Lvtk+YXX35a86PTaKbMPHEhBL5UgYhJ+CsdevN8Vbm3Ncyf/OueOK2wN9cPw/LNPEi18FVOrGfreNRDxVmDHhl6MqtwPV9EavNBdgj7mpbJyh0imgb5IImFptiTc2fXINddc9ZbWmo5egAYwNMH6tI3drPJKPdLBLZXOCDI4kCE4vC7IPhPJvpQSuXm8iLrvbH3m6vmon2ugabb5FcQP3ZgTNVlbD9Kj0URitMnseGfjgYfxaPD6BkA0AdaCBX7e2BiiwK4DLZcUKtR6cwCYSKVSeHlPAVbcF8MoZwa3N3qwqM+F6c/14Mc3T9UTzp1Ob67d1iZ2t/3N43Bv3teVbHryzst3A9nFEhGpo00BAqAvuv42z+LtZTtk9dBi0yU0tGaacRAH3EVFSOyNSJic+5IHXg+/2HiRqp9rYO1sC1+3tm9oEGhqssrrzr2usy/8lGXGzR9dPxPtYdOwYpHZi5793bz6WXONNXNnWZOWtth/UYjN04cX1CoFmU728Z6+sN61a7u+/o/vsOS21ZiZ24LcCReh/JyrUekhPWncSA1nWQTAPxDR+kPEQ6EQNTZmF2tHt6PSEOAA8HGL7xztyi/RdlLaTDNoBWRM2Fw2yBRppW1k16no4JzOnyhowrQD8mvJI8DQ1GSNmnDF0N5E4mEz0i0nTTpbTJlwpqgpy5O9GfnQRbPuOmXtvNkmEekpNjXt5DJPrZWKS6UsbncXqorKETSkbiyrLS/Sl878Ef6ad6W5jg1X155VrSed1UD72/ugrWhuxpKvbd/e5V2wYAEHoA+RP3oBkLVAPEXTtdOtlTI1LAlICVIS3JGDTBqSO3OYC31/XPPUT/ahYSn/imJ32O2aKbBgga2lo+OFZF9PTtXwk3Dx9AupNxyj+lHDqLIk37anM/23e+55Lg8IME8qdkm5C6awcZPJtJLpGGve+Qnuf/bd3+QNrN59yxUNuHRM0dqP9idef/mjNlLhA2ZpZRWL9HVZNsEHDBlScGk/cX54IEcjAKEpaCkdYBaM07UNpDMmgyWhTROcMyjh0JIMYchweCg6HgY0oWnp1w/1DQ2cEJKP3z3/vng0Os7htFlXXXk537NnDx577C/YsXsfO3/iOOlxuwc/sXrHfEJQNXckh21qN40Nu3sdi9a1sicXbfrkjy8uv/yBW2cFTV+5YQgH7CVDeOunPTff90Fv66sb2w3Rt990O+2QKq5NMzmtv/UvOfIoBAgQAAy7OFEqwapBEsoyiZQCMhZIcEhuk3A54GTmwg+fvbEDC0IMCKKhISAA/eU64/dzNDVZFadddklfJHqzjPdaF0y/UDhsBl566SU0b/tEzX/6OZ0yNb9w/FArIzOX5E+68yd7bc5Zv35542/vf2PLT+e+u2vi7EvvGP3EnbNfqq+vd235LC73phxqR5hyaP2jratbYufdsjy+9pcfpIwDHWHGEZdWOlINAOyIxdA3C+BvJgCIJXyVxOxOLU0NSxGUApQFcA7FBAQTMDje0tCE0FYOQDU1BS3g8H24AEMopOqnzars6Q3/Jd3bperq69nYsaPx2quvobevRxWXlbKO9g568pm/o3JgJZ9SVyCtZNtDn/zyNlr0i/P/9blbZzz0SvDqFYS1pn/BFtvatWsTB7p7Pnhit4Pt6Ey9qhFgbP7MbS0bN078y5bYE3MW9SaX79JiX3fKk+3+L3fIUTjADwDQyl6kDBcAKEgJaJVdwxNBGZxzK67KhFgPEBAKZspGThw3ZPovrnvwwTft2Z3gAAOCpLXGzt37/poMd+f7ivL11PPOZatXr8Kn27Yrp9vHyMo05+bmxNatWatfeX0Rzp1wCo0bWoSoJ++16TfcWVLnD9gaAgGhAQqFmiUA2DNy7suLVu7cu23jQ0BQqUBAUOgXye47x8/6tPOzkfcu2nHri+u7ggAQCPzmSwJ88zygYysBgCbyajAoZWlIldVRKSCd1rDZiUQiZe1ZHQGgK4eNq+/sTS3NPW14zh82dFxEoBl69RwbAemS+umBWDTSoGXaOufc6byns1N/sGIlbK4c5mB61bxZ4ybf9OSWGWlfznOvvvGGVV1TKS4/v0F2hReVr94d/nPX0kenN58dEAD0oX3HrqduXH4GMOpDIAkACAYtDU2WP8S2/7pxz3bg9wv76QSPKMxHPQpoYgyaQP3WJ2kBSkKZaS0kh2hpjfo62/umTLmkoK099iKcvhxhs6U6UXhZof+x3+Lth9JVZ/hPi/T2BWSsR44eO5YX5OXS0vfeJSgynQbbO7zceckFNz+U2b1hyfMFLtu9jLiY//TzViSR4hdPHmMZLs+08hn3346moIWGgDg8uiz5w+1NGqFGGQgEWENgiegfAv8bjloAQTpGpEBSE5QFLS1AS01JSxnL3odn46LZH666P7pqc+uL5PBVjT91lJwwQDmK3Rmrm5X+quqiP1xbHfukVUUjEqZERUU5ursOticiHdOGDcqvK89zTli8eHEHAgEC/Hz/lhX/J9cj3u7p6BJPP/N3WVpcxCcNL7LCidQ9Q/5p3kQ0BS34/fxzsgB9ud5kEQwGVVNwsnX42H9sAhQ3awAgbnZCpqGVYqQ1oC0w4lL0ZYSne9tdBzc+8Iq39JS5SYlJ404daRV4nbyndRvOKejkhY6E3NvT+3R7/uhKj03fBUvzXdt3UI7bE+ts2brwgyVv71qzfNE+AJSdO4S00poGD/Re5/G5Dn66cTP/r9fe0WeMGcJGlmh2oD387A8CC/IRqtNA4BCHb/Vk6JsFCGWXqzZ7tJUsM0VaEJTSDLBExi5c6YPPdyz/13sKqxtu6kvLWbVDK618j1vEYnGkTIXeA7voB2XdlG9P6O37Di4aVl24SBi0sXV3CyKx+OBrZt86GYEAq581yziMhAL8bNXixR2luY5Gh8dpvvfO+1i9djNNra+WJbZE5QerNz/GEFRoOHoXfzsBENQAsPMV8ZkQ2AMtQBwmN53Cme5e07f89qvL6879h+545k/FpXmyojiPp5IJdLYfRNtn+5BMm0h17WfnnuxTubmu3HWt4adrBxbcm+oLZw581q4Vt12MYFDlbCs7ogdDEmgQO9YtW16S577OEJy9HPov2dUbZj84udASZqyxZMqcq7Op8NX5fZwEgEZDQDAKKk7yQ4BLDqdwyGRXTWn64srRkwZ1RFMLnB47Kot9lEomKNLXg02bt+CjFauxo3k7osmETCXifPy4YdLp8Y7uSFozvXbjuT3bd1M0lpg+Z84ce3bOcOQOVZMFNIjWzSteKCzOnZOMxkVowavS53Gw06t9qjfa+6eJl/6sDKFGdVgqHHcB+lUAvG7zdSQT3GYyKijgM/5lxx2dHVHHG2SzFQzIt6lMJs3S6Qy6OrpAnIELZu1Ytx5bVm/gvd2dkqDZaeNGSiXsU+1FeYWx7o7NPb3hmij3ngUAfv+Cr4inyUJtrb2tefnDhXnuOw7s3C3eeuMdPbKmVA0pL8z/uGXvY5ygD03Yvh8BmoISAM7s/vjtHLP9DV+OuqF1wb8su03+8MWU4RhR6sxYkBmeNDPIpJOw2W3a5/Nqe64vUje8enJXy66FGz74mO/fs5dshsCYkScpi/h0bgirreUz9PWGr8k2FPrvbfv9HDt3pq+7rsHR1bL2voJc9x2bVq/j69ZuwJnDB1m+3PyLffUXz0AoJL8YFY4ex6waIeuGwrN/+h+9GX5nbmSDlcdSQnEBxhg0MeR7PUhaSrZFLJ5Oy7+mdy6+zuaomgPG/71y+DDPoNpqGYlEaNPGrSwTjePUM0Z1XDXt7ME33XRT7PMmAgGGIAAE1aD6CyZ3JeTjDqdvYc+6Bbd48of/KmXx306dcV5aOnJtTR9vWhtbEzpVZzv06B6/9+PY8qYhIDQCbNBl//nDsK/mTpfZZnllH88oQEoJaVlQloV4PIGigjxeWuiVDl/BtZ6TL3s8lWh5qMDJxuzdvu3tTzdt5TYu2Mkjh0nY7emWPW2F7zR9NB3QVOcPGPAv4AgGFUdQlU64+Zb2OBbH45GhluA/Lx7/j4/Eej6529DmfUvfWWa3q7g1vLJsrG/E+aMAqGN1wbEJUNysCUHV09v+z6prl/LEdsPSREpZUFJCKQtaS8SSSfR0dWFQSQEfVOKxeF7hbM+p175YN+78rmTfzqm9+3Zf2rxhw8Z0NMqH19XaU1qz7bv2ngqQbg4FMyzUKIfP+PPYnCn3vNkXj/w+E+ti5SUlcvzIKpM7XTf6Jt74SCq67Y50uOfRle+uNIp9djppYNFMAGjo6DgmVx9jCjQIoMkqGDblxt5w+pF8Z8ZycVNoTdmDAJTdHebMgNQKXq8H1TW1iEibbO2xeF8sfgBKPVBbU/X0mueD3YOKK8/0lJWMzvd5O0ayTe9szf2haFE1Z/SZfGY6HW2U4Z3CiG6X5eUDWN2QGsr3uZHIKHPlzj4jGY8+Elk29ybhrn2yuKbmRycNrdxVXcBGzZs3L4EvMvV4C5DdwV0SCLALn1y0MmOp00pcpoSWnBjv/y8DYxzEOZSSsBl2DBxUBUduoeyIa94WziAWiVsatFnYnRss4ejRmrnBXcNNJYYp5ihRVhj26B7kGUlZXlzIC70uSMuE0hxFBT5oblird4VFKt73cOey+XOEZ/jzlUNrrhpalTt54UvPLfX7/TwUCn3l1Pe7CoDseBtUI0+ZfNKn+2JrDK5dBS4LSksGxkHEQMg+9ibOAU1QUsHr86CotFQzh1dFM8T7TIGUBaS1AZP6nygpE/ZMr3JRWnttYG6HnZiSkFpBGAYMw4DUHHm+HIC42dyeNHQ6/qed7z5xc2FV/c01VSUvfvj+ws/wPTqgH34OhGTFkNMvaw9bL7lskF6HyZTSRNQvAmPQjEBEYExAKg0NCafDhZwct7Y53FoxQ1lg0CBoZRFXkpG2CFqBaUARwBiHMAwwziG4ADdskIoh3+dGOE3pqAm7LdH50w/efPqhb8PkO5wQydaDsmGnz+rosea6bNA+u6mVVgzgYEQAZ6D+ukCMZTdPNAClkf23AOMMjDEwRp8LxxgH54cuBmIi+1oYICbgcNjQE0tbO1vbRI6h4hU+54Vrkm0foKZG4SitfxwEyIpAaLLKh5xxbUef9WeboQ2fU1qkLKGhAWaAGGVrI1G2OfqCKCHrEGL9xPtfc+oX5ZA4XICIwxACNqdD98TTsnV/lzDIPFjkMP3bN61ecSg1j5XBcTgjlHVC1fCJZx/oiT+pwWu8TqkdXCooyXV/YSTwrAgsK8bnFwAw9vl71u8AIgJxAUYAZxyGYQMZdtkZSfOu3hhchvpgWIVn5or3Fu6G38+PtecP4TsfNT20YGn5ZPmyC86sPM1l6McjcY3epI2ntdAAs5hWCkpCKQmlFJRUkFJBquyl5BeXtCxI08xWfSsF0lIpIqs3KbHzQB/v7u7O5Lv5fzx6xeTJ35U8cFyPyWULIwGoHHH2mV3dibvSUk8TguAQgI1ntCAlGREBmjR4tjzgcEcwMEaaMa4151qTwRJKsERKwcwklcvOXx5YlHv3hpULN/Y3esxT3yNxvA9KErJBScaAQaPOPrWrOzUzbappAKoZZxBMQ3ANQdnjMdkaQNCaoIhBwYClGKTWMKUCaavVJdhr5cXOp7Z++P66LFs/B0IK33IX6MiAvwcEGLIrGUUAfvZzv/OVd9tP6ezLTNTAqZalhkhllRKjHCJhA0AgbSmt4wA67IZtNyO5Js9jX+ofPXDVA88+G+9nyoAAvk2x+zp8z4elAwxopuzuThaMACKGEROn52Yypk9mLKdWirxOkZGJWGT9+p/2CNYo5Zf61s+BOn08if9vg7IkGgSOeDj5NWDZ7/qzU8TvN7D/J6Av/gYO+zh4qN+/c26fwAmcwAmcwAmcwDfi/wK1liRvWHXiDQAAAABJRU5ErkJggg==";
     function getFaviconHref() {
       const link = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
       return link ? link.href : null;
     }
+
     function testImage(url) {
       return new Promise((resolve) => {
         if (!url) return resolve(false);
@@ -729,13 +793,20 @@ function getClientId() {
         img.src = url;
       });
     }
+
     async function ensureIconReady() {
       let candidate = getFaviconHref() || 'favicon.ico';
       if (!(await testImage(candidate))) {
         candidate = TMAP_ICON_FALLBACK_DATAURI || candidate;
       }
       ICON_URL = candidate;
-      customIcon = L.icon({ iconUrl: ICON_URL, iconSize: [42, 42], iconAnchor: [21, 38], popupAnchor: [0, -34], className: 'tmap-pin tmap-pin--favicon' });
+      customIcon = L.icon({
+        iconUrl: ICON_URL,
+        iconSize: [42, 42],
+        iconAnchor: [21, 38],
+        popupAnchor: [0, -34],
+        className: 'tmap-pin tmap-pin--favicon'
+      });
     }
 
     (async function init() {
@@ -743,10 +814,8 @@ function getClientId() {
       await refreshAuthUI();
       await loadObjects();
       subscribeRealtime();
-      // Температури: автообновяване и при движение
       map.on('moveend', refreshVisibleTemps);
       setInterval(refreshVisibleTemps, TEMP_REFRESH_MS);
-      // Приложи видимостта на панела според localStorage (по подразбиране: видим)
       applyLayersVisibilityFromStorage();
     })();
   </script>
