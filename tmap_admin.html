@@ -1,123 +1,641 @@
-
 <!DOCTYPE html>
 <html lang="bg">
 <head>
   <meta charset="UTF-8" />
-  <title>Административен панел</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Администраторски панел - T-MAP</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="favicon-injector.js"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
-    h1 { color: #1d5c4d; }
-    input[type="text"] {
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      margin-bottom: 15px;
-      width: 300px;
+    * {
+      box-sizing: border-box;
     }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7f6;
+      color: #1f2d2a;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      color: #145c4b;
+      font-size: 2.6rem;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .search-box {
+      flex: 1 1 320px;
+      max-width: 420px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid #d7dfdc;
+      background: #fff;
+      font-size: 16px;
+      outline: none;
+    }
+
+    .search-box input:focus {
+      border-color: #1d5c4d;
+      box-shadow: 0 0 0 3px rgba(29, 92, 77, 0.12);
+    }
+
+    .refresh-btn {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      background: #1d5c4d;
+      color: #fff;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .refresh-btn:hover {
+      opacity: 0.95;
+    }
+
+    .info-bar {
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 1px solid #dfe8e5;
+      font-size: 15px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      background: white;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      min-width: 1100px;
     }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 12px;
+
+    thead th {
+      background: #1d5c4d;
+      color: #fff;
       text-align: left;
+      padding: 16px 14px;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      border-top: 1px solid #e6ece9;
+      padding: 14px;
       vertical-align: top;
+      background: #fff;
     }
-    th {
-      background-color: #1d5c4d;
-      color: white;
+
+    tbody tr:hover td {
+      background: #f8fbfa;
     }
-    td img {
-      border-radius: 6px;
-      max-width: 100px;
+
+    .desc-cell {
+      min-width: 260px;
+      line-height: 1.45;
     }
-    button {
-      padding: 8px 14px;
+
+    .coords {
+      white-space: nowrap;
+      font-family: monospace;
+      font-size: 14px;
+    }
+
+    .mountain-cell {
+      min-width: 180px;
+    }
+
+    .thumb {
+      width: 100px;
+      height: 76px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid #dfe6e3;
+      display: block;
+    }
+
+    .no-image {
+      color: #6a7773;
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-width: 190px;
+    }
+
+    button.action-btn {
+      padding: 9px 12px;
       border: none;
-      border-radius: 6px;
+      border-radius: 10px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 14px;
     }
-    button:hover {
-      opacity: 0.9;
-    }
-    button:nth-child(1) { background-color: #ffc107; color: black; }  /* Редактирай */
-    button:nth-child(2) { background-color: #28a745; color: white; }  /* Одобри */
-    button:nth-child(3) { background-color: #dc3545; color: white; }  /* Отхвърли */
-    .status { font-weight: bold; }
 
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-    th { background-color: #eee; }
-    .status { font-weight: bold; }
-    button { margin: 2px; padding: 6px 12px; }
+    .btn-edit {
+      background: #ffc107;
+      color: #1d1d1d;
+    }
+
+    .btn-approve {
+      background: #28a745;
+      color: #fff;
+    }
+
+    .btn-reject {
+      background: #dc3545;
+      color: #fff;
+    }
+
+    .btn-edit:hover,
+    .btn-approve:hover,
+    .btn-reject:hover {
+      opacity: 0.92;
+    }
+
+    .status {
+      min-width: 180px;
+      font-weight: bold;
+      line-height: 1.4;
+    }
+
+    .status-neutral {
+      color: #687672;
+    }
+
+    .status-success {
+      color: #1a7f37;
+    }
+
+    .status-error {
+      color: #c62828;
+    }
+
+    .status-warn {
+      color: #c77700;
+    }
+
+    .status-processing {
+      color: #145c4b;
+    }
+
+    .empty-row td,
+    .message-row td {
+      text-align: center;
+      padding: 26px 16px;
+      font-weight: bold;
+      color: #5e6b67;
+    }
+
+    .top-alert {
+      display: none;
+      margin-bottom: 16px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #e9f8f1;
+      color: #166534;
+      border: 1px solid #b7e4c7;
+      font-weight: bold;
+    }
+
+    .top-alert.show {
+      display: block;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 9999;
+      padding: 20px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 560px;
+      background: #fff;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.18);
+    }
+
+    .modal-box h3 {
+      margin-top: 0;
+      margin-bottom: 18px;
+      color: #145c4b;
+      font-size: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+      color: #24443c;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      border: 1px solid #d5dfdb;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 110px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .modal-btn {
+      padding: 11px 16px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .save-btn {
+      background: #1d5c4d;
+      color: white;
+    }
+
+    .cancel-btn {
+      background: #e5e7eb;
+      color: #1f2937;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
-  <script src="favicon-injector.js"></script>
 </head>
 <body>
+  <audio id="notificationSound">
+    <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
+    Вашият браузър не поддържа аудио.
+  </audio>
 
-<audio id="notificationSound">
-  <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
-  Вашият браузър не поддържа аудио.
-</audio>
+  <div class="container">
+    <h1>Администраторски панел</h1>
 
-  <h1>Администраторски панел</h1>
-  <input type="text" id="searchInput" placeholder="Търси по име или планина" oninput="filterRows()"/>
+    <div id="topAlert" class="top-alert"></div>
 
-  <table id="requestsTable">
-    <thead>
-      <tr>
-        <th>Заглавие</th>
-        <th>Описание</th>
-        <th>Координати</th>
-        <th>Планина</th>
-        <th>Снимка</th>
-        <th>Действия</th>
-        <th>Статус</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+    <div class="toolbar">
+      <div class="search-box">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Търси по име, описание, планина"
+          oninput="filterRows()"
+        />
+      </div>
+      <button class="refresh-btn" onclick="loadPendingRequests(true)">Обнови</button>
+    </div>
+
+    <div class="info-bar" id="infoBar">Зареждане на заявки...</div>
+
+    <div class="table-wrap">
+      <table id="requestsTable">
+        <thead>
+          <tr>
+            <th>Заглавие</th>
+            <th>Описание</th>
+            <th>Координати</th>
+            <th>Планина</th>
+            <th>Снимка</th>
+            <th>Действия</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr class="message-row">
+            <td colspan="7">Зареждане...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="editModal" class="modal">
+    <div class="modal-box">
+      <h3>Редактиране на заявка</h3>
+
+      <input type="hidden" id="edit-id" />
+
+      <div class="form-group">
+        <label for="edit-title">Заглавие</label>
+        <input type="text" id="edit-title" />
+      </div>
+
+      <div class="form-group">
+        <label for="edit-description">Описание</label>
+        <textarea id="edit-description"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="edit-mountain">Планина / Регион</label>
+        <input type="text" id="edit-mountain" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="edit-lat">Ширина</label>
+          <input type="text" id="edit-lat" />
+        </div>
+        <div class="form-group">
+          <label for="edit-lng">Дължина</label>
+          <input type="text" id="edit-lng" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="edit-img">URL на снимка</label>
+        <input type="text" id="edit-img" />
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn save-btn" onclick="saveEdit()">Запази</button>
+        <button class="modal-btn cancel-btn" onclick="closeEditModal()">Отказ</button>
+      </div>
+    </div>
+  </div>
 
   <script>
-    const supabase = window.supabase.createClient(
-      'https://cmiylzpmpwqbacjoqtkx.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8'
-    );
+    const SUPABASE_URL = 'https://cmiylzpmpwqbacjoqtkx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8';
 
-    async function loadPendingRequests() {
-      const { data, error } = await supabase.from("pending_places").select("*").order("created_at", { ascending: false });
-      if (error) return console.error("Грешка при зареждане:", error);
-      const tbody = document.getElementById("tableBody");
-      tbody.innerHTML = "";
-      data.forEach(place => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${place.title}</td>
-          <td>${place.description}</td>
-          <td>${place.latitude}, ${place.longitude}</td>
-          <td>${place.mountain}</td>
-          <td><img src="${place.image_url}" width="80"/></td>
-          <td>
-            <button onclick="editPlace(${place.id})">Редактирай</button>
-            <button onclick="approvePlace(${place.id}, this.closest('tr'))">Одобри</button>
-            <button onclick="rejectPlace(${place.id}, this.closest('tr'))">Отхвърли</button>
-          </td>
-          <td class="status">—</td>
-        `;
-        tbody.appendChild(row);
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let lastIds = [];
+    let pollingStarted = false;
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function setInfoBar(message) {
+      document.getElementById('infoBar').textContent = message;
+    }
+
+    function showTopAlert(message) {
+      const alertBox = document.getElementById('topAlert');
+      alertBox.textContent = message;
+      alertBox.classList.add('show');
+
+      setTimeout(() => {
+        alertBox.classList.remove('show');
+      }, 4000);
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('show');
+    }
+
+    function openEditModal() {
+      document.getElementById('editModal').classList.add('show');
+    }
+
+    function buildStatus(text, cls = 'status-neutral') {
+      return `<span class="status ${cls}">${escapeHtml(text)}</span>`;
+    }
+
+    function filterRows() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const rows = document.querySelectorAll('#tableBody tr[data-row="true"]');
+
+      rows.forEach(row => {
+        const searchable = (row.getAttribute('data-search') || '').toLowerCase();
+        row.style.display = searchable.includes(query) ? '' : 'none';
       });
     }
 
-    
+    function renderTable(data) {
+      const tbody = document.getElementById('tableBody');
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `
+          <tr class="empty-row">
+            <td colspan="7">Няма подадени заявки.</td>
+          </tr>
+        `;
+        setInfoBar('Няма подадени заявки.');
+        return;
+      }
+
+      tbody.innerHTML = '';
+
+      data.forEach(place => {
+        const row = document.createElement('tr');
+        row.setAttribute('data-row', 'true');
+
+        const searchableText = [
+          place.title || '',
+          place.description || '',
+          place.mountain || '',
+          place.latitude || '',
+          place.longitude || ''
+        ].join(' ');
+
+        row.setAttribute('data-search', searchableText);
+
+        const imageHtml = place.image_url
+          ? `<img class="thumb" src="${escapeHtml(place.image_url)}" alt="Снимка на обект" onerror="this.outerHTML='<span class=&quot;no-image&quot;>Невалидна снимка</span>';">`
+          : `<span class="no-image">Няма снимка</span>`;
+
+        row.innerHTML = `
+          <td>${escapeHtml(place.title || '')}</td>
+          <td class="desc-cell">${escapeHtml(place.description || '')}</td>
+          <td class="coords">${escapeHtml(place.latitude ?? '')}, ${escapeHtml(place.longitude ?? '')}</td>
+          <td class="mountain-cell">${escapeHtml(place.mountain || '')}</td>
+          <td>${imageHtml}</td>
+          <td>
+            <div class="actions">
+              <button class="action-btn btn-edit" onclick="editPlace('${String(place.id).replace(/'/g, "\\'")}')">Редактирай</button>
+              <button class="action-btn btn-approve" onclick="approvePlace('${String(place.id).replace(/'/g, "\\'")}', this.closest('tr'))">Одобри</button>
+              <button class="action-btn btn-reject" onclick="rejectPlace('${String(place.id).replace(/'/g, "\\'")}', this.closest('tr'))">Отхвърли</button>
+            </div>
+          </td>
+          <td>${buildStatus('—', 'status-neutral')}</td>
+        `;
+
+        tbody.appendChild(row);
+      });
+
+      setInfoBar(`Общо заявки: ${data.length}`);
+      filterRows();
+    }
+
+    async function loadPendingRequests(showManualToast = false) {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = `
+        <tr class="message-row">
+          <td colspan="7">Зареждане...</td>
+        </tr>
+      `;
+
+      const { data, error } = await supabase
+        .from('pending_places')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      console.log('pending_places data:', data);
+      console.log('pending_places error:', error);
+
+      if (error) {
+        tbody.innerHTML = `
+          <tr class="message-row">
+            <td colspan="7" style="color:#c62828;">Грешка при зареждане: ${escapeHtml(error.message)}</td>
+          </tr>
+        `;
+        setInfoBar('Грешка при зареждане на заявките.');
+        return;
+      }
+
+      renderTable(data || []);
+      lastIds = (data || []).map(item => item.id);
+
+      if (showManualToast) {
+        showTopAlert('Заявките са обновени.');
+      }
+    }
+
+    async function editPlace(id) {
+      const { data, error } = await supabase
+        .from('pending_places')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        console.error('Грешка при зареждане на заявката за редакция:', error);
+        alert('Грешка при зареждане на заявката.');
+        return;
+      }
+
+      document.getElementById('edit-id').value = data.id;
+      document.getElementById('edit-title').value = data.title || '';
+      document.getElementById('edit-description').value = data.description || '';
+      document.getElementById('edit-mountain').value = data.mountain || '';
+      document.getElementById('edit-lat').value = data.latitude ?? '';
+      document.getElementById('edit-lng').value = data.longitude ?? '';
+      document.getElementById('edit-img').value = data.image_url || '';
+
+      openEditModal();
+    }
+
+    async function saveEdit() {
+      const id = document.getElementById('edit-id').value;
+      const latitude = parseFloat(document.getElementById('edit-lat').value);
+      const longitude = parseFloat(document.getElementById('edit-lng').value);
+
+      if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+        alert('Моля въведи валидни координати.');
+        return;
+      }
+
+      const updatedData = {
+        title: document.getElementById('edit-title').value.trim(),
+        description: document.getElementById('edit-description').value.trim(),
+        mountain: document.getElementById('edit-mountain').value.trim(),
+        latitude,
+        longitude,
+        image_url: document.getElementById('edit-img').value.trim()
+      };
+
+      const { error } = await supabase
+        .from('pending_places')
+        .update(updatedData)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Грешка при записване:', error);
+        alert('Грешка при записване: ' + error.message);
+        return;
+      }
+
+      closeEditModal();
+      await loadPendingRequests();
+      showTopAlert('Редакцията е записана успешно.');
+    }
+
     async function approvePlace(id, rowElement) {
+      const statusCell = rowElement.querySelector('.status');
+      statusCell.textContent = 'Обработва се...';
+      statusCell.className = 'status status-processing';
+
       try {
         const { data: placeData, error: fetchError } = await supabase
           .from('pending_places')
@@ -126,30 +644,36 @@
           .single();
 
         if (fetchError || !placeData) {
-          rowElement.querySelector('.status').innerText = 'Грешка при зареждане';
+          console.error('Грешка при зареждане на заявката:', fetchError);
+          statusCell.textContent = 'Грешка при зареждане';
+          statusCell.className = 'status status-error';
           return;
         }
 
         const newObject = {
-          title: placeData.title,
-          description: placeData.description,
+          title: placeData.title || '',
+          description: placeData.description || '',
           latitude: parseFloat(placeData.latitude),
           longitude: parseFloat(placeData.longitude),
-          image_url: placeData.image_url,
-          mountain: placeData.mountain,
+          image_url: placeData.image_url || '',
+          mountain: placeData.mountain || '',
           created_at: new Date().toISOString()
         };
 
-        console.log("📤 Данни за запис:", newObject);
+        if (Number.isNaN(newObject.latitude) || Number.isNaN(newObject.longitude)) {
+          statusCell.textContent = 'Невалидни координати';
+          statusCell.className = 'status status-error';
+          return;
+        }
 
         const { error: insertError } = await supabase
           .from('objects')
           .insert([newObject]);
 
         if (insertError) {
-          console.error("❌ Грешка при insert:", insertError);
-          rowElement.querySelector('.status').innerText = 'Грешка при запис: ' + insertError.message;
-          rowElement.querySelector('.status').style.color = 'red';
+          console.error('Грешка при запис в objects:', insertError);
+          statusCell.textContent = 'Грешка при запис';
+          statusCell.className = 'status status-error';
           return;
         }
 
@@ -159,152 +683,115 @@
           .eq('id', id);
 
         if (deleteError) {
-          rowElement.querySelector('.status').innerText = 'Грешка при премахване';
-          rowElement.querySelector('.status').style.color = 'orange';
+          console.error('Грешка при премахване от pending_places:', deleteError);
+          statusCell.textContent = 'Добавено, но не е премахнато';
+          statusCell.className = 'status status-warn';
           return;
         }
 
-        rowElement.querySelector('.status').innerText = '✅ Добавено успешно';
-        rowElement.querySelector('.status').style.color = 'green';
-        setTimeout(() => rowElement.remove(), 2000);
+        statusCell.textContent = '✅ Добавено успешно';
+        statusCell.className = 'status status-success';
+
+        setTimeout(() => {
+          rowElement.remove();
+
+          const remainingRows = document.querySelectorAll('#tableBody tr[data-row="true"]');
+          setInfoBar(`Общо заявки: ${remainingRows.length}`);
+
+          if (remainingRows.length === 0) {
+            document.getElementById('tableBody').innerHTML = `
+              <tr class="empty-row">
+                <td colspan="7">Няма подадени заявки.</td>
+              </tr>
+            `;
+            setInfoBar('Няма подадени заявки.');
+          }
+        }, 1200);
 
       } catch (err) {
-        console.error("⚠ Неочаквана грешка:", err);
-        rowElement.querySelector('.status').innerText = '⚠ Неочаквана грешка';
-        rowElement.querySelector('.status').style.color = 'red';
+        console.error('Неочаквана грешка при одобрение:', err);
+        statusCell.textContent = 'Неочаквана грешка';
+        statusCell.className = 'status status-error';
       }
     }
-
 
     async function rejectPlace(id, rowElement) {
-      const { error } = await supabase.from("pending_places").delete().eq("id", id);
-      const statusCell = rowElement.querySelector(".status");
+      const statusCell = rowElement.querySelector('.status');
+      statusCell.textContent = 'Обработва се...';
+      statusCell.className = 'status status-processing';
+
+      const { error } = await supabase
+        .from('pending_places')
+        .delete()
+        .eq('id', id);
+
       if (error) {
-        statusCell.innerText = "Грешка при отхвърляне";
-        statusCell.style.color = "red";
+        console.error('Грешка при отхвърляне:', error);
+        statusCell.textContent = 'Грешка при отхвърляне';
+        statusCell.className = 'status status-error';
+        return;
+      }
+
+      statusCell.textContent = 'Заявката е отхвърлена';
+      statusCell.className = 'status status-warn';
+
+      setTimeout(() => {
+        rowElement.remove();
+
+        const remainingRows = document.querySelectorAll('#tableBody tr[data-row="true"]');
+        setInfoBar(`Общо заявки: ${remainingRows.length}`);
+
+        if (remainingRows.length === 0) {
+          document.getElementById('tableBody').innerHTML = `
+            <tr class="empty-row">
+              <td colspan="7">Няма подадени заявки.</td>
+            </tr>
+          `;
+          setInfoBar('Няма подадени заявки.');
+        }
+      }, 1200);
+    }
+
+    async function checkForNewRequests() {
+      const { data, error } = await supabase
+        .from('pending_places')
+        .select('id');
+
+      if (error || !data) {
+        console.error('Грешка при проверка за нови заявки:', error);
+        return;
+      }
+
+      const currentIds = data.map(item => item.id);
+      const newOnes = currentIds.filter(id => !lastIds.includes(id));
+
+      if (newOnes.length > 0 && lastIds.length > 0) {
+        const sound = document.getElementById('notificationSound');
+        try {
+          await sound.play();
+        } catch (e) {
+          console.log('Аудиото не е стартирано автоматично от браузъра.');
+        }
+
+        showTopAlert(`Има ${newOnes.length} нова/и заявка/и.`);
+        await loadPendingRequests();
       } else {
-        statusCell.innerText = "Заявката е отхвърлена";
-        statusCell.style.color = "gray";
-        setTimeout(() => rowElement.remove(), 2000);
+        lastIds = currentIds;
       }
     }
 
-    function editPlace(id) {
-      alert("Редактирането ще бъде добавено скоро.");
-    }
-
-    function filterRows() {
-      const input = document.getElementById("searchInput").value.toLowerCase();
-      const rows = document.querySelectorAll("#tableBody tr");
-      rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        row.style.display = text.includes(input) ? "" : "none";
-      });
-    }
+    document.getElementById('editModal').addEventListener('click', function (e) {
+      if (e.target === this) {
+        closeEditModal();
+      }
+    });
 
     loadPendingRequests();
 
-let lastIds = [];
-
-async function checkForNewRequests() {
-  const { data, error } = await supabase.from("pending_places").select("id");
-  if (error || !data) return;
-
-  const newIds = data.map(p => p.id);
-  const newOnes = newIds.filter(id => !lastIds.includes(id));
-  if (newOnes.length > 0) {
-    document.getElementById("notificationSound").play();
-    loadPendingRequests(); // презареди таблицата
-  }
-  lastIds = newIds;
-}
-
-setInterval(checkForNewRequests, 15000);
-
-  </script>
-
-  <!-- Popup редакция -->
-  <div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#00000066; z-index:9999; justify-content:center; align-items:center;">
-    <div style="background:white; padding:20px; border-radius:10px; width:400px;">
-      <h3>Редактирай обекта</h3>
-      <input type="hidden" id="edit-id">
-      <label>Заглавие:</label>
-      <input type="text" id="edit-title" style="width:100%;"><br><br>
-      <label>Описание:</label>
-      <textarea id="edit-description" style="width:100%; height:80px;"></textarea><br><br>
-      <label>Планина / Регион:</label>
-      <input type="text" id="edit-mountain" style="width:100%;"><br><br>
-      <label>Координати:</label>
-      <input type="text" id="edit-lat" placeholder="Ширина">
-      <input type="text" id="edit-lng" placeholder="Дължина"><br><br>
-      <label>URL на снимка:</label>
-      <input type="text" id="edit-img" style="width:100%;"><br><br>
-      <button onclick="saveEdit()">Запази</button>
-      <button onclick="document.getElementById('editModal').style.display='none'">Отказ</button>
-    </div>
-  </div>
-
-  <script>
-    let currentEditRow = null;
-
-    function editPlace(id) {
-      const row = [...document.querySelectorAll("#tableBody tr")].find(r => r.innerHTML.includes('editPlace(' + id));
-      if (!row) return;
-
-      const cells = row.querySelectorAll("td");
-      document.getElementById("edit-id").value = id;
-      document.getElementById("edit-title").value = cells[0].innerText;
-      document.getElementById("edit-description").value = cells[1].innerText;
-      document.getElementById("edit-lat").value = cells[2].innerText.split(",")[0].trim();
-      document.getElementById("edit-lng").value = cells[2].innerText.split(",")[1].trim();
-      document.getElementById("edit-mountain").value = cells[3].innerText;
-      document.getElementById("edit-img").value = cells[4].querySelector("img")?.src || "";
-      document.getElementById("editModal").style.display = "flex";
-      currentEditRow = row;
-    }
-
-    async function saveEdit() {
-      const id = document.getElementById("edit-id").value;
-      const updated = {
-        title: document.getElementById("edit-title").value,
-        description: document.getElementById("edit-description").value,
-        mountain: document.getElementById("edit-mountain").value,
-        latitude: parseFloat(document.getElementById("edit-lat").value),
-        longitude: parseFloat(document.getElementById("edit-lng").value),
-        image_url: document.getElementById("edit-img").value,
-      };
-
-      const { error } = await supabase
-        .from("pending_places")
-        .update(updated)
-        .eq("id", id);
-
-      if (error) {
-        alert("Грешка при записване");
-      } else {
-        document.getElementById("editModal").style.display = "none";
-        loadPendingRequests();
-
-let lastIds = [];
-
-async function checkForNewRequests() {
-  const { data, error } = await supabase.from("pending_places").select("id");
-  if (error || !data) return;
-
-  const newIds = data.map(p => p.id);
-  const newOnes = newIds.filter(id => !lastIds.includes(id));
-  if (newOnes.length > 0) {
-    document.getElementById("notificationSound").play();
-    loadPendingRequests(); // презареди таблицата
-  }
-  lastIds = newIds;
-}
-
-setInterval(checkForNewRequests, 15000);
-
-      }
+    if (!pollingStarted) {
+      pollingStarted = true;
+      setInterval(checkForNewRequests, 15000);
     }
   </script>
-
 </body>
 </html>
