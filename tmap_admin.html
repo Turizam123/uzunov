@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="bg">
 <head>
@@ -6,15 +5,31 @@
   <title>Административен панел</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
-    h1 { color: #1d5c4d; }
-    input[type="text"] {
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f4f4f4;
+    }
+
+    h1 {
+      color: #1d5c4d;
+    }
+
+    input[type="text"],
+    textarea {
       padding: 10px;
       border-radius: 8px;
       border: 1px solid #ccc;
       margin-bottom: 15px;
-      width: 300px;
+      width: 100%;
+      box-sizing: border-box;
     }
+
+    #searchInput {
+      max-width: 320px;
+      background: white;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -22,54 +37,97 @@
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-top: 10px;
     }
+
     th, td {
       border: 1px solid #ddd;
       padding: 12px;
       text-align: left;
       vertical-align: top;
     }
+
     th {
       background-color: #1d5c4d;
       color: white;
     }
+
     td img {
       border-radius: 6px;
       max-width: 100px;
+      max-height: 80px;
+      object-fit: cover;
     }
+
     button {
+      margin: 2px;
       padding: 8px 14px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
       font-weight: bold;
     }
-    button:hover {
-      opacity: 0.9;
-    }
-    button:nth-child(1) { background-color: #ffc107; color: black; }  /* Редактирай */
-    button:nth-child(2) { background-color: #28a745; color: white; }  /* Одобри */
-    button:nth-child(3) { background-color: #dc3545; color: white; }  /* Отхвърли */
-    .status { font-weight: bold; }
 
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-    th { background-color: #eee; }
-    .status { font-weight: bold; }
-    button { margin: 2px; padding: 6px 12px; }
+    .btn-edit { background-color: #ffc107; color: black; }
+    .btn-approve { background-color: #28a745; color: white; }
+    .btn-reject { background-color: #dc3545; color: white; }
+
+    .status {
+      font-weight: bold;
+      min-width: 140px;
+    }
+
+    #editModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.4);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #editModal .modal-box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 420px;
+      max-width: 95vw;
+    }
+
+    .row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .coord-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .coord-row input {
+      width: 100%;
+    }
   </style>
   <script src="favicon-injector.js"></script>
 </head>
 <body>
 
-<audio id="notificationSound">
-  <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
-  Вашият браузър не поддържа аудио.
-</audio>
+  <audio id="notificationSound">
+    <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
+    Вашият браузър не поддържа аудио.
+  </audio>
 
   <h1>Администраторски панел</h1>
-  <input type="text" id="searchInput" placeholder="Търси по име или планина" oninput="filterRows()"/>
+  <input
+    type="text"
+    id="searchInput"
+    placeholder="Търси по име или планина"
+    oninput="filterRows()"
+  />
 
   <table id="requestsTable">
     <thead>
@@ -86,39 +144,117 @@
     <tbody id="tableBody"></tbody>
   </table>
 
+  <div id="editModal">
+    <div class="modal-box">
+      <h3>Редактирай обекта</h3>
+
+      <input type="hidden" id="edit-id">
+
+      <label>Заглавие:</label>
+      <input type="text" id="edit-title">
+
+      <label>Описание:</label>
+      <textarea id="edit-description" style="height:80px;"></textarea>
+
+      <label>Планина / Регион:</label>
+      <input type="text" id="edit-mountain">
+
+      <label>Координати:</label>
+      <div class="coord-row">
+        <input type="text" id="edit-lat" placeholder="Ширина">
+        <input type="text" id="edit-lng" placeholder="Дължина">
+      </div>
+
+      <label>URL на снимка:</label>
+      <input type="text" id="edit-img">
+
+      <div style="margin-top: 10px;">
+        <button class="btn-approve" onclick="saveEdit()">Запази</button>
+        <button class="btn-reject" onclick="closeEditModal()">Отказ</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const supabase = window.supabase.createClient(
       'https://cmiylzpmpwqbacjoqtkx.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaXlsenBtcHdxYmFjam9xdGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5ODcwMDUsImV4cCI6MjA2OTU2MzAwNX0.FY2d1NSGTmw6SydxT_V0cKF7Kp2USbp91VdfO_eqZz8'
     );
 
+    let lastIds = [];
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
     async function loadPendingRequests() {
-      const { data, error } = await supabase.from("pending_places").select("*").order("created_at", { ascending: false });
-      if (error) return console.error("Грешка при зареждане:", error);
       const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = '<tr><td colspan="7">Зареждане...</td></tr>';
+
+      const { data, error } = await supabase
+        .from("pending_places")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Грешка при зареждане:", error);
+        tbody.innerHTML = `<tr><td colspan="7" style="color:red;">Грешка при зареждане: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7">Няма подадени заявки.</td></tr>`;
+        lastIds = [];
+        return;
+      }
+
       tbody.innerHTML = "";
+
       data.forEach(place => {
         const row = document.createElement("tr");
+
+        const imageCell = place.image_url
+          ? `<img src="${escapeHtml(place.image_url)}" alt="Снимка">`
+          : `Няма снимка`;
+
         row.innerHTML = `
-          <td>${place.title}</td>
-          <td>${place.description}</td>
-          <td>${place.latitude}, ${place.longitude}</td>
-          <td>${place.mountain}</td>
-          <td><img src="${place.image_url}" width="80"/></td>
+          <td>${escapeHtml(place.title)}</td>
+          <td>${escapeHtml(place.description)}</td>
+          <td>${escapeHtml(place.latitude)}, ${escapeHtml(place.longitude)}</td>
+          <td>${escapeHtml(place.mountain)}</td>
+          <td>${imageCell}</td>
           <td>
-            <button onclick="editPlace(${place.id})">Редактирай</button>
-            <button onclick="approvePlace(${place.id}, this.closest('tr'))">Одобри</button>
-            <button onclick="rejectPlace(${place.id}, this.closest('tr'))">Отхвърли</button>
+            <div class="row-actions">
+              <button class="btn-edit" onclick="editPlace('${place.id}')">Редактирай</button>
+              <button class="btn-approve" onclick="approvePlace('${place.id}', this.closest('tr'))">Одобри</button>
+              <button class="btn-reject" onclick="rejectPlace('${place.id}', this.closest('tr'))">Отхвърли</button>
+            </div>
           </td>
           <td class="status">—</td>
         `;
+
         tbody.appendChild(row);
       });
+
+      lastIds = data.map(p => p.id);
     }
 
-    
     async function approvePlace(id, rowElement) {
       try {
+        const statusCell = rowElement.querySelector('.status');
+        statusCell.innerText = 'Обработва се...';
+        statusCell.style.color = '#1d5c4d';
+
         const { data: placeData, error: fetchError } = await supabase
           .from('pending_places')
           .select('*')
@@ -126,7 +262,9 @@
           .single();
 
         if (fetchError || !placeData) {
-          rowElement.querySelector('.status').innerText = 'Грешка при зареждане';
+          console.error(fetchError);
+          statusCell.innerText = 'Грешка при зареждане';
+          statusCell.style.color = 'red';
           return;
         }
 
@@ -140,16 +278,14 @@
           created_at: new Date().toISOString()
         };
 
-        console.log("📤 Данни за запис:", newObject);
-
         const { error: insertError } = await supabase
           .from('objects')
           .insert([newObject]);
 
         if (insertError) {
-          console.error("❌ Грешка при insert:", insertError);
-          rowElement.querySelector('.status').innerText = 'Грешка при запис: ' + insertError.message;
-          rowElement.querySelector('.status').style.color = 'red';
+          console.error("Грешка при insert:", insertError);
+          statusCell.innerText = 'Грешка при запис: ' + insertError.message;
+          statusCell.style.color = 'red';
           return;
         }
 
@@ -159,120 +295,85 @@
           .eq('id', id);
 
         if (deleteError) {
-          rowElement.querySelector('.status').innerText = 'Грешка при премахване';
-          rowElement.querySelector('.status').style.color = 'orange';
+          console.error("Грешка при delete:", deleteError);
+          statusCell.innerText = 'Добавено, но не е премахнато от pending_places';
+          statusCell.style.color = 'orange';
           return;
         }
 
-        rowElement.querySelector('.status').innerText = '✅ Добавено успешно';
-        rowElement.querySelector('.status').style.color = 'green';
-        setTimeout(() => rowElement.remove(), 2000);
+        statusCell.innerText = '✅ Добавено успешно';
+        statusCell.style.color = 'green';
+        setTimeout(() => rowElement.remove(), 1200);
 
       } catch (err) {
-        console.error("⚠ Неочаквана грешка:", err);
-        rowElement.querySelector('.status').innerText = '⚠ Неочаквана грешка';
-        rowElement.querySelector('.status').style.color = 'red';
+        console.error("Неочаквана грешка:", err);
+        const statusCell = rowElement.querySelector('.status');
+        statusCell.innerText = '⚠ Неочаквана грешка';
+        statusCell.style.color = 'red';
       }
     }
 
-
     async function rejectPlace(id, rowElement) {
-      const { error } = await supabase.from("pending_places").delete().eq("id", id);
       const statusCell = rowElement.querySelector(".status");
+      statusCell.innerText = 'Обработва се...';
+      statusCell.style.color = '#1d5c4d';
+
+      const { error } = await supabase
+        .from("pending_places")
+        .delete()
+        .eq("id", id);
+
       if (error) {
+        console.error(error);
         statusCell.innerText = "Грешка при отхвърляне";
         statusCell.style.color = "red";
       } else {
         statusCell.innerText = "Заявката е отхвърлена";
         statusCell.style.color = "gray";
-        setTimeout(() => rowElement.remove(), 2000);
+        setTimeout(() => rowElement.remove(), 1200);
       }
     }
 
-    function editPlace(id) {
-      alert("Редактирането ще бъде добавено скоро.");
-    }
+    async function editPlace(id) {
+      const { data, error } = await supabase
+        .from("pending_places")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    function filterRows() {
-      const input = document.getElementById("searchInput").value.toLowerCase();
-      const rows = document.querySelectorAll("#tableBody tr");
-      rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        row.style.display = text.includes(input) ? "" : "none";
-      });
-    }
+      if (error || !data) {
+        console.error(error);
+        alert("Грешка при зареждане");
+        return;
+      }
 
-    loadPendingRequests();
-
-let lastIds = [];
-
-async function checkForNewRequests() {
-  const { data, error } = await supabase.from("pending_places").select("id");
-  if (error || !data) return;
-
-  const newIds = data.map(p => p.id);
-  const newOnes = newIds.filter(id => !lastIds.includes(id));
-  if (newOnes.length > 0) {
-    document.getElementById("notificationSound").play();
-    loadPendingRequests(); // презареди таблицата
-  }
-  lastIds = newIds;
-}
-
-setInterval(checkForNewRequests, 15000);
-
-  </script>
-
-  <!-- Popup редакция -->
-  <div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#00000066; z-index:9999; justify-content:center; align-items:center;">
-    <div style="background:white; padding:20px; border-radius:10px; width:400px;">
-      <h3>Редактирай обекта</h3>
-      <input type="hidden" id="edit-id">
-      <label>Заглавие:</label>
-      <input type="text" id="edit-title" style="width:100%;"><br><br>
-      <label>Описание:</label>
-      <textarea id="edit-description" style="width:100%; height:80px;"></textarea><br><br>
-      <label>Планина / Регион:</label>
-      <input type="text" id="edit-mountain" style="width:100%;"><br><br>
-      <label>Координати:</label>
-      <input type="text" id="edit-lat" placeholder="Ширина">
-      <input type="text" id="edit-lng" placeholder="Дължина"><br><br>
-      <label>URL на снимка:</label>
-      <input type="text" id="edit-img" style="width:100%;"><br><br>
-      <button onclick="saveEdit()">Запази</button>
-      <button onclick="document.getElementById('editModal').style.display='none'">Отказ</button>
-    </div>
-  </div>
-
-  <script>
-    let currentEditRow = null;
-
-    function editPlace(id) {
-      const row = [...document.querySelectorAll("#tableBody tr")].find(r => r.innerHTML.includes('editPlace(' + id));
-      if (!row) return;
-
-      const cells = row.querySelectorAll("td");
       document.getElementById("edit-id").value = id;
-      document.getElementById("edit-title").value = cells[0].innerText;
-      document.getElementById("edit-description").value = cells[1].innerText;
-      document.getElementById("edit-lat").value = cells[2].innerText.split(",")[0].trim();
-      document.getElementById("edit-lng").value = cells[2].innerText.split(",")[1].trim();
-      document.getElementById("edit-mountain").value = cells[3].innerText;
-      document.getElementById("edit-img").value = cells[4].querySelector("img")?.src || "";
+      document.getElementById("edit-title").value = data.title || "";
+      document.getElementById("edit-description").value = data.description || "";
+      document.getElementById("edit-lat").value = data.latitude ?? "";
+      document.getElementById("edit-lng").value = data.longitude ?? "";
+      document.getElementById("edit-mountain").value = data.mountain || "";
+      document.getElementById("edit-img").value = data.image_url || "";
+
       document.getElementById("editModal").style.display = "flex";
-      currentEditRow = row;
     }
 
     async function saveEdit() {
       const id = document.getElementById("edit-id").value;
+
       const updated = {
-        title: document.getElementById("edit-title").value,
-        description: document.getElementById("edit-description").value,
-        mountain: document.getElementById("edit-mountain").value,
+        title: document.getElementById("edit-title").value.trim(),
+        description: document.getElementById("edit-description").value.trim(),
+        mountain: document.getElementById("edit-mountain").value.trim(),
         latitude: parseFloat(document.getElementById("edit-lat").value),
         longitude: parseFloat(document.getElementById("edit-lng").value),
-        image_url: document.getElementById("edit-img").value,
+        image_url: document.getElementById("edit-img").value.trim(),
       };
+
+      if (Number.isNaN(updated.latitude) || Number.isNaN(updated.longitude)) {
+        alert("Моля въведи валидни координати.");
+        return;
+      }
 
       const { error } = await supabase
         .from("pending_places")
@@ -280,31 +381,50 @@ setInterval(checkForNewRequests, 15000);
         .eq("id", id);
 
       if (error) {
-        alert("Грешка при записване");
+        console.error(error);
+        alert("Грешка при записване: " + error.message);
       } else {
-        document.getElementById("editModal").style.display = "none";
-        loadPendingRequests();
-
-let lastIds = [];
-
-async function checkForNewRequests() {
-  const { data, error } = await supabase.from("pending_places").select("id");
-  if (error || !data) return;
-
-  const newIds = data.map(p => p.id);
-  const newOnes = newIds.filter(id => !lastIds.includes(id));
-  if (newOnes.length > 0) {
-    document.getElementById("notificationSound").play();
-    loadPendingRequests(); // презареди таблицата
-  }
-  lastIds = newIds;
-}
-
-setInterval(checkForNewRequests, 15000);
-
+        closeEditModal();
+        await loadPendingRequests();
       }
     }
-  </script>
 
+    function filterRows() {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      const rows = document.querySelectorAll("#tableBody tr");
+
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(input) ? "" : "none";
+      });
+    }
+
+    async function checkForNewRequests() {
+      const { data, error } = await supabase
+        .from("pending_places")
+        .select("id");
+
+      if (error || !data) {
+        console.error("Грешка при проверка за нови заявки:", error);
+        return;
+      }
+
+      const newIds = data.map(p => p.id);
+      const newOnes = newIds.filter(id => !lastIds.includes(id));
+
+      if (newOnes.length > 0 && lastIds.length > 0) {
+        const sound = document.getElementById("notificationSound");
+        if (sound) {
+          sound.play().catch(() => {});
+        }
+        loadPendingRequests();
+      }
+
+      lastIds = newIds;
+    }
+
+    loadPendingRequests();
+    setInterval(checkForNewRequests, 15000);
+  </script>
 </body>
 </html>
